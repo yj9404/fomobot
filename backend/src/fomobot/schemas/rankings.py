@@ -3,7 +3,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-DISCLAIMER = "이 데이터는 투자 조언이 아닙니다. 참고 및 교육 목적으로만 사용하세요."
+DISCLAIMER = "투자 조언이 아닙니다. FomoBot은 지나간 걸 보여줄 뿐이에요."
 
 PeriodLiteral = Literal["1d", "7d", "30d", "90d", "365d", "1825d"]
 MarketLiteral = Literal["kospi", "nasdaq"]

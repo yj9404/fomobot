@@ -15,7 +15,7 @@ import numpy as np
 import pandas as pd
 
 TRADING_DAYS_PER_YEAR = 252
-DISCLAIMER = "이 데이터는 투자 조언이 아닙니다. 참고 및 교육 목적으로만 사용하세요."
+DISCLAIMER = "투자 조언이 아닙니다. FomoBot은 지나간 걸 보여줄 뿐이에요."
 
 
 def compute_returns(price_matrix: pd.DataFrame) -> pd.Series:

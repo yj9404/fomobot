@@ -26,7 +26,7 @@ app = FastAPI(
     title="FomoBot API",
     description=(
         "KOSPI·NASDAQ 기간별 상승률 랭킹 서비스. "
-        "**이 데이터는 투자 조언이 아닙니다. 참고 및 교육 목적으로만 사용하세요.**"
+        "**투자 조언이 아닙니다. FomoBot은 지나간 걸 보여줄 뿐이에요.**"
     ),
     version="0.1.0",
     lifespan=lifespan,
