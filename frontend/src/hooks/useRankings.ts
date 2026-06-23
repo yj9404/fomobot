@@ -11,7 +11,7 @@ interface RankingsState {
   errorMsg: string
 }
 
-export function useRankings(market: Market, period: Period) {
+export function useRankings(market: Market, period: Period, retryKey: number = 0) {
   const [state, setState] = useState<RankingsState>({
     status: 'loading',
     rankings: [],
@@ -43,7 +43,7 @@ export function useRankings(market: Market, period: Period) {
       })
 
     return () => { cancelled = true }
-  }, [market, period])
+  }, [market, period, retryKey])
 
   return state
 }

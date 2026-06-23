@@ -16,10 +16,11 @@ export default function App() {
   const [market, setMarket] = useState<Market>('kospi')
   const [periodIdx, setPeriodIdx] = useState(2) // default: 30d
   const [openRank, setOpenRank] = useState<number | null>(null)
+  const [retryKey, setRetryKey] = useState(0)
 
   const t = useStrings(lang)
   const period = PERIODS[periodIdx]!
-  const { status, rankings, disclaimer, errorMsg } = useRankings(market, period.value)
+  const { status, rankings, disclaimer, errorMsg } = useRankings(market, period.value, retryKey)
   const { load: loadBt, get: getBt } = useBacktest(market, period.value, period.days)
 
   const handleToggle = useCallback(
@@ -68,7 +69,7 @@ export default function App() {
 
         {status === 'empty' && <EmptyState t={t} onRetry={() => handlePeriod(2)} />}
 
-        {status === 'error' && <ErrorState t={t} errorMsg={errorMsg} onRetry={() => handlePeriod(periodIdx)} />}
+        {status === 'error' && <ErrorState t={t} errorMsg={errorMsg} onRetry={() => setRetryKey((k) => k + 1)} />}
 
         {status === 'ok' && (
           <div style={{ padding: '12px 14px 16px', borderTop: `1px solid ${C.borderSub}`, flex: 1 }}>
