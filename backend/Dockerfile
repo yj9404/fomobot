@@ -34,6 +34,7 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 COPY src/ src/
 COPY alembic/ alembic/
 COPY alembic.ini .
+COPY scripts/ scripts/
 
 # 마이그레이션 실행 후 웹 서버 시작
 # 배치 실행은 railway.toml 의 cron 서비스에서 별도로 정의한다:
