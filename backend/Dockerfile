@@ -26,6 +26,9 @@ WORKDIR /app
 
 # builder 의 venv 전체 복사 후 PATH에 추가
 COPY --from=builder /build/.venv /app/.venv
+# venv를 /build에서 /app으로 복사했으므로 python 심볼릭링크를 시스템 python으로 재설정
+RUN ln -sf /usr/local/bin/python3.12 /app/.venv/bin/python && \
+    ln -sf /usr/local/bin/python3.12 /app/.venv/bin/python3
 ENV PATH="/app/.venv/bin:$PATH"
 
 # 소스 코드 및 마이그레이션 파일 복사
@@ -38,4 +41,4 @@ COPY scripts/ scripts/
 # 배치 실행은 railway.toml 의 cron 서비스에서 별도로 정의한다:
 #   python -m fomobot.jobs.collect kospi
 #   python -m fomobot.jobs.collect nasdaq
-CMD alembic upgrade head && uvicorn fomobot.main:app --host 0.0.0.0 --port ${PORT:-8000}
+CMD /app/.venv/bin/alembic upgrade head && /app/.venv/bin/uvicorn fomobot.main:app --host 0.0.0.0 --port ${PORT:-8000}
