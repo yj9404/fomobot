@@ -11,8 +11,9 @@ import { useRankings } from './hooks/useRankings'
 import { useBacktest } from './hooks/useBacktest'
 import { useWindowWidth } from './hooks/useWindowWidth'
 import { useStrings } from './i18n/strings'
+import { useC } from './ThemeContext'
 import { PERIODS } from './types'
-import { C, FONT } from './tokens'
+import { FONT } from './tokens'
 import type { Lang, Market } from './types'
 
 export default function App() {
@@ -23,6 +24,7 @@ export default function App() {
   const [selectedRank, setSelectedRank] = useState<number | null>(null) // desktop sidebar
   const [retryKey, setRetryKey] = useState(0)
 
+  const C = useC()
   const t = useStrings(lang)
   const period = PERIODS[periodIdx]!
   const { status, rankings, disclaimer, errorMsg } = useRankings(market, period.value, retryKey)
@@ -126,7 +128,7 @@ export default function App() {
     )
   }
 
-  // ── Mobile layout (unchanged) ────────────────────────────────────────
+  // ── Mobile layout ────────────────────────────────────────────────────
   return (
     <div style={{
       minWidth: '100%',

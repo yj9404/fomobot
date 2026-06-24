@@ -1,14 +1,15 @@
-import { C, FONT } from '../tokens'
+import { useC } from '../ThemeContext'
+import { FONT } from '../tokens'
 import type { Strings } from '../i18n/strings'
 
-const shimmer: React.CSSProperties = {
-  background: 'linear-gradient(90deg,#161B26 25%,#222B3A 50%,#161B26 75%)',
-  backgroundSize: '400px 100%',
-  animation: 'fb-shimmer 1.4s infinite linear',
-  borderRadius: 5,
-}
-
 function SkeletonRow({ w1, w2 }: { w1: string; w2: string }) {
+  const C = useC()
+  const shimmer: React.CSSProperties = {
+    background: `linear-gradient(90deg,${C.shimmerBase} 25%,${C.shimmerHighlight} 50%,${C.shimmerBase} 75%)`,
+    backgroundSize: '400px 100%',
+    animation: 'fb-shimmer 1.4s infinite linear',
+    borderRadius: 5,
+  }
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '14px 16px', borderBottom: `1px solid ${C.borderFaint}` }}>
       <div style={{ ...shimmer, width: 18, height: 12, borderRadius: 4, flexShrink: 0 }} />
@@ -22,6 +23,7 @@ function SkeletonRow({ w1, w2 }: { w1: string; w2: string }) {
 }
 
 export function SkeletonList({ t }: { t: Strings }) {
+  const C = useC()
   return (
     <div style={{ borderTop: `1px solid ${C.borderSub}` }}>
       <SkeletonRow w1="60%" w2="42%" />

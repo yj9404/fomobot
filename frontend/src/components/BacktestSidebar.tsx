@@ -1,4 +1,5 @@
-import { C, FONT } from '../tokens'
+import { useC } from '../ThemeContext'
+import { FONT } from '../tokens'
 import { BacktestPanel } from './BacktestPanel'
 import type { RankingItem, Market, Lang, BacktestItem } from '../types'
 import type { Strings } from '../i18n/strings'
@@ -18,6 +19,8 @@ interface Props {
 }
 
 export function BacktestSidebar({ selected, bt, market, days, lang, t }: Props) {
+  const C = useC()
+
   return (
     <div style={{
       width: 320,
@@ -44,7 +47,6 @@ export function BacktestSidebar({ selected, bt, market, days, lang, t }: Props) 
           padding: 28,
           textAlign: 'center',
         }}>
-          {/* Simple chart icon */}
           <svg width="40" height="40" viewBox="0 0 40 40" fill="none" style={{ opacity: 0.25 }}>
             <rect x="4" y="26" width="6" height="10" rx="2" fill={C.blue} />
             <rect x="14" y="18" width="6" height="18" rx="2" fill={C.blue} />

@@ -1,7 +1,9 @@
-import { C, FONT } from '../tokens'
+import { useC } from '../ThemeContext'
+import { FONT } from '../tokens'
 import type { Strings } from '../i18n/strings'
 
 export function ErrorState({ t, errorMsg, onRetry }: { t: Strings; errorMsg: string; onRetry: () => void }) {
+  const C = useC()
   return (
     <div style={{ borderTop: `1px solid ${C.borderSub}`, padding: '56px 28px 60px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 13, fontFamily: FONT.sans }}>
       <div style={{ width: 62, height: 62, borderRadius: '50%', background: 'rgba(255,77,98,0.08)', border: '1px solid rgba(255,77,98,0.22)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 30, fontWeight: 800, color: C.red, lineHeight: 1 }}>

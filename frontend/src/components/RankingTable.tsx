@@ -1,4 +1,5 @@
-import { C, FONT } from '../tokens'
+import { useC } from '../ThemeContext'
+import { FONT } from '../tokens'
 import type { RankingItem, Market, Lang } from '../types'
 import type { Strings } from '../i18n/strings'
 
@@ -17,7 +18,25 @@ function fmtPct(n: number | null): string {
 }
 
 export function RankingTable({ rankings, selectedRank, lang, t, onSelect }: Props) {
+  const C = useC()
   const vsLabel = lang === 'ko' ? 'vs 지수' : 'vs Index'
+
+  const th: React.CSSProperties = {
+    padding: '10px 8px 13px',
+    fontSize: 11,
+    fontWeight: 600,
+    color: C.textDim,
+    fontFamily: FONT.sans,
+    letterSpacing: '0.05em',
+    textTransform: 'uppercase',
+    textAlign: 'right',
+    whiteSpace: 'nowrap',
+  }
+
+  const td: React.CSSProperties = {
+    padding: '14px 8px',
+    verticalAlign: 'middle',
+  }
 
   return (
     <div style={{ fontFamily: FONT.sans, padding: '20px 20px 24px' }}>
@@ -50,7 +69,7 @@ export function RankingTable({ rankings, selectedRank, lang, t, onSelect }: Prop
                   outlineOffset: -1,
                 }}
                 onMouseEnter={(e) => {
-                  if (!selected) (e.currentTarget as HTMLTableRowElement).style.background = 'rgba(255,255,255,0.025)'
+                  if (!selected) (e.currentTarget as HTMLTableRowElement).style.background = C.hoverBg
                 }}
                 onMouseLeave={(e) => {
                   (e.currentTarget as HTMLTableRowElement).style.background = selected ? 'rgba(62,123,250,0.07)' : 'transparent'
@@ -118,21 +137,4 @@ export function RankingTable({ rankings, selectedRank, lang, t, onSelect }: Prop
       </div>
     </div>
   )
-}
-
-const th: React.CSSProperties = {
-  padding: '10px 8px 13px',
-  fontSize: 11,
-  fontWeight: 600,
-  color: C.textDim,
-  fontFamily: FONT.sans,
-  letterSpacing: '0.05em',
-  textTransform: 'uppercase',
-  textAlign: 'right',
-  whiteSpace: 'nowrap',
-}
-
-const td: React.CSSProperties = {
-  padding: '14px 8px',
-  verticalAlign: 'middle',
 }

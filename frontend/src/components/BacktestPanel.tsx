@@ -1,4 +1,5 @@
-import { C, FONT } from '../tokens'
+import { useC } from '../ThemeContext'
+import { FONT } from '../tokens'
 import { Sparkline, buildSparkSeries } from './Sparkline'
 import type { BacktestItem, Market } from '../types'
 import type { Strings } from '../i18n/strings'
@@ -24,6 +25,8 @@ function fmtMoney(v: number, market: Market): string {
 }
 
 export function BacktestPanel({ status, item, ticker, mddPct, market, days, t }: Props) {
+  const C = useC()
+
   const panelStyle: React.CSSProperties = {
     background: C.surfaceBt,
     borderTop: '1px solid rgba(62,123,250,0.22)',

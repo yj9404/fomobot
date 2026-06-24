@@ -1,4 +1,5 @@
-import { C, FONT } from '../tokens'
+import { useC } from '../ThemeContext'
+import { FONT } from '../tokens'
 import { BacktestPanel } from './BacktestPanel'
 import type { RankingItem, Market } from '../types'
 import type { Strings } from '../i18n/strings'
@@ -24,6 +25,7 @@ function fmtPct(n: number | null): string {
 }
 
 export function RankingCard({ item, open, market, days, bt, t, onToggle }: Props) {
+  const C = useC()
   const mdd = item.mdd_pct ?? 0
   const vol = item.volatility_annualized_pct ?? 0
   const excess = item.excess_return_vs_index_pct ?? 0
@@ -33,8 +35,8 @@ export function RankingCard({ item, open, market, days, bt, t, onToggle }: Props
   return (
     <div style={{
       marginBottom: 10, borderRadius: 16, overflow: 'hidden',
-      border: `1px solid ${open ? 'rgba(62,123,250,0.35)' : 'rgba(255,255,255,0.07)'}`,
-      background: 'linear-gradient(180deg,#12161F,#0F131B)',
+      border: `1px solid ${open ? 'rgba(62,123,250,0.35)' : C.cardBorderDefault}`,
+      background: C.cardGradient,
       fontFamily: FONT.sans,
     }}>
       {/* Card header button */}
@@ -73,7 +75,7 @@ export function RankingCard({ item, open, market, days, bt, t, onToggle }: Props
               <span style={{ color: C.textMuted }}>MDD</span>
               <span style={{ fontFamily: FONT.mono, color: C.orange, fontWeight: 600 }}>{fmtPct(mdd)}</span>
             </div>
-            <div style={{ height: 5, borderRadius: 3, background: 'rgba(255,255,255,0.06)', overflow: 'hidden' }}>
+            <div style={{ height: 5, borderRadius: 3, background: C.barTrack, overflow: 'hidden' }}>
               <div style={{ height: '100%', width: mddBar, background: 'linear-gradient(90deg,#F4A93C,#FF8A4C)', borderRadius: 3 }} />
             </div>
           </div>
@@ -84,7 +86,7 @@ export function RankingCard({ item, open, market, days, bt, t, onToggle }: Props
               <span style={{ color: C.textMuted }}>{t.volatilityLabel}</span>
               <span style={{ fontFamily: FONT.mono, color: C.orange, fontWeight: 600 }}>{fmtPct(vol)}</span>
             </div>
-            <div style={{ height: 5, borderRadius: 3, background: 'rgba(255,255,255,0.06)', overflow: 'hidden' }}>
+            <div style={{ height: 5, borderRadius: 3, background: C.barTrack, overflow: 'hidden' }}>
               <div style={{ height: '100%', width: volBar, background: 'linear-gradient(90deg,#F4A93C,#FF8A4C)', borderRadius: 3 }} />
             </div>
           </div>

@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { C, FONT } from '../tokens'
+import { useC } from '../ThemeContext'
+import { FONT } from '../tokens'
 
 const STR = {
   ko: {
@@ -22,31 +23,31 @@ const STR = {
 
 type Lang = 'ko' | 'en'
 
-// Deterministic up-then-crash sparkline points over 320×120
 const CRASH_PTS = [18, 12, 26, 16, 34, 22, 40, 30, 52, 44, 70, 108, 96, 118]
 const W = 320, H = 120
 const dx = W / (CRASH_PTS.length - 1)
 const linePts = CRASH_PTS.map((y, i) => `${(i * dx).toFixed(1)},${y.toFixed(1)}`).join(' ')
 const areaPts = linePts + ` ${W},${H} 0,${H}`
 
-function pill(active: boolean): React.CSSProperties {
-  return {
-    padding: '5px 11px',
-    border: 'none',
-    borderRadius: 7,
-    fontSize: 11,
-    fontWeight: 700,
-    fontFamily: 'inherit',
-    cursor: 'pointer',
-    letterSpacing: '0.04em',
-    background: active ? '#2A3346' : 'transparent',
-    color: active ? C.textPrimary : C.textDim,
-  }
-}
-
 export function NotFoundPage() {
   const [lang, setLang] = useState<Lang>('ko')
+  const C = useC()
   const t = STR[lang]
+
+  function pill(active: boolean): React.CSSProperties {
+    return {
+      padding: '5px 11px',
+      border: 'none',
+      borderRadius: 7,
+      fontSize: 11,
+      fontWeight: 700,
+      fontFamily: 'inherit',
+      cursor: 'pointer',
+      letterSpacing: '0.04em',
+      background: active ? C.langActive : 'transparent',
+      color: active ? C.textPrimary : C.textDim,
+    }
+  }
 
   function goBack() {
     if (typeof history !== 'undefined' && history.length > 1) history.back()
@@ -75,8 +76,8 @@ export function NotFoundPage() {
           <div style={{ fontSize: 21, fontWeight: 800, color: C.textPrimary, letterSpacing: '-0.02em' }}>FomoBot</div>
           <div style={{
             display: 'flex',
-            background: '#11151D',
-            border: `1px solid rgba(255,255,255,0.07)`,
+            background: C.langBg,
+            border: `1px solid ${C.langBorder}`,
             borderRadius: 9,
             padding: 2,
             gap: 2,
@@ -94,7 +95,7 @@ export function NotFoundPage() {
           border: `1px solid ${C.border}`,
           borderRadius: 24,
           overflow: 'hidden',
-          boxShadow: '0 28px 70px rgba(0,0,0,0.6)',
+          boxShadow: '0 28px 70px rgba(0,0,0,0.4)',
         }}>
 
           {/* Fake ticker tape */}
@@ -184,7 +185,7 @@ export function NotFoundPage() {
                 onClick={goBack}
                 style={{
                   padding: '12px 24px',
-                  border: `1px solid rgba(255,255,255,0.13)`,
+                  border: `1px solid ${C.border}`,
                   borderRadius: 12,
                   background: 'transparent',
                   color: C.textSub,
