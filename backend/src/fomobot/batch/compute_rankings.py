@@ -91,7 +91,7 @@ def _load_price_matrix(
     return price_matrix, meta
 
 
-def compute_rankings_for_market(market: str, snapshot_date: date, top: int = 100) -> None:
+def compute_rankings_for_market(market: str, snapshot_date: date, top: int = 100) -> int:
     """
     특정 마켓의 전 기간(1d~1825d) 랭킹을 계산해 DB에 저장한다.
 
@@ -181,6 +181,8 @@ def compute_rankings_for_market(market: str, snapshot_date: date, top: int = 100
                 "%s 랭킹 스냅샷 %d건 저장 (기준일: %s)",
                 market, len(all_snapshot_records), snapshot_date,
             )
+
+    return len(all_snapshot_records)
 
 
 def run_rankings_today() -> None:

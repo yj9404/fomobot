@@ -26,6 +26,8 @@ dependencies = [
     "tenacity>=8.3.0",
     # HTTP
     "httpx>=0.27.0",
+    # Monitoring
+    "sentry-sdk[fastapi]>=2.0.0",
     # pykrx가 pkg_resources를 사용함. setuptools>=70에서 pkg_resources가 제거되므로 <70 고정
     "setuptools>=69.5.1,<70",
 ]

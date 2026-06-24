@@ -68,6 +68,11 @@ def _on_job_executed(event: JobExecutionEvent):
 
 def _on_job_error(event: JobExecutionEvent):
     logger.error("배치 잡 실패: %s — %s", event.job_id, event.exception)
+    try:
+        import sentry_sdk
+        sentry_sdk.capture_exception(event.exception)
+    except Exception:
+        pass
 
 
 def get_scheduler() -> BackgroundScheduler:

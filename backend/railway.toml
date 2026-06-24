@@ -1,0 +1,40 @@
+# Railway 배포 설정
+#
+# 서비스 구성:
+#   1. web       — FastAPI 웹 서버 (이 파일의 [deploy] 섹션)
+#   2. cron-kospi  — KOSPI 수집 + 랭킹 계산 (Railway Dashboard > Add Service > Cron)
+#   3. cron-nasdaq — NASDAQ 수집 + 랭킹 계산 (Railway Dashboard > Add Service > Cron)
+#
+# Cron 서비스는 railway.toml 에서 직접 정의할 수 없으므로
+# Railway Dashboard 에서 수동으로 추가해야 한다.
+# 아래 "Railway Cron 설정값" 을 복붙해 사용할 것.
+#
+# ── Railway Cron 설정값 ────────────────────────────────────────────────────────
+#
+#  [cron-kospi]
+#    Schedule : 0 9 * * 1-6
+#    Command  : python -m fomobot.jobs.collect kospi
+#    (09:00 UTC = 18:00 KST. KOSPI 장 마감 15:30 KST 기준 +2.5h.
+#     한국은 서머타임 없어 연중 고정.)
+#
+#  [cron-nasdaq]
+#    Schedule : 30 21 * * 1-5
+#    Command  : python -m fomobot.jobs.collect nasdaq
+#    (21:30 UTC = 다음날 06:30 KST.
+#     NASDAQ 정규장 마감 16:00 EST = 21:00 UTC 기준 +30분,
+#     서머타임(EDT) 16:00 EDT = 20:00 UTC 기준 +90분.
+#     EST/EDT 양쪽에서 모두 마감 이후가 되는 단일 시각으로 선택.
+#     별도 계절 분기 불필요.)
+#
+# ──────────────────────────────────────────────────────────────────────────────
+
+[build]
+# backend/ 디렉토리에 Dockerfile 이 있으므로 Railway 가 자동 감지
+dockerfilePath = "Dockerfile"
+
+[deploy]
+startCommand = "uvicorn fomobot.main:app --host 0.0.0.0 --port $PORT"
+healthcheckPath = "/health"
+healthcheckTimeout = 30
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3
