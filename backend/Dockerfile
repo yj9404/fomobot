@@ -37,4 +37,4 @@ COPY src/ src/
 # 배치 실행은 railway.toml 의 cron 서비스에서 별도로 정의한다:
 #   python -m fomobot.jobs.collect kospi
 #   python -m fomobot.jobs.collect nasdaq
-CMD ["uvicorn", "fomobot.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD uvicorn fomobot.main:app --host 0.0.0.0 --port ${PORT:-8000}
