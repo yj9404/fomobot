@@ -1,3 +1,4 @@
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -10,8 +11,27 @@ class Settings(BaseSettings):
     )
 
     # Database
+    # Railway PostgreSQL은 "postgresql://..." 형태로 주입하므로 드라이버 prefix를 자동 보정
     database_url: str = "postgresql+asyncpg://user:password@localhost:5432/fomobot"
     database_url_sync: str = "postgresql+psycopg2://user:password@localhost:5432/fomobot"
+
+    @model_validator(mode="after")
+    def _normalize_db_urls(self) -> "Settings":
+        def to_asyncpg(url: str) -> str:
+            if url.startswith("postgresql://") or url.startswith("postgres://"):
+                return url.replace("://", "+asyncpg://", 1)
+            return url
+
+        def to_psycopg2(url: str) -> str:
+            if url.startswith("postgresql://") or url.startswith("postgres://"):
+                return url.replace("://", "+psycopg2://", 1)
+            if url.startswith("postgresql+asyncpg://"):
+                return url.replace("+asyncpg://", "+psycopg2://", 1)
+            return url
+
+        self.database_url = to_asyncpg(self.database_url)
+        self.database_url_sync = to_psycopg2(self.database_url_sync)
+        return self
 
     # App
     app_env: str = "development"
