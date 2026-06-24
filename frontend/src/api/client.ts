@@ -18,7 +18,16 @@ export async function apiFetch<T>(path: string, params: Record<string, string | 
   const res = await fetch(url.toString())
   if (!res.ok) {
     const body = await res.text().catch(() => '')
-    throw new ApiError(res.status, body || `HTTP ${res.status}`)
+    let message = `HTTP ${res.status}`
+    if (body) {
+      try {
+        const parsed = JSON.parse(body)
+        message = parsed.detail ?? parsed.message ?? body
+      } catch {
+        message = body
+      }
+    }
+    throw new ApiError(res.status, message)
   }
   return res.json() as Promise<T>
 }
