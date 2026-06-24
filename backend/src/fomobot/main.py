@@ -83,8 +83,7 @@ async def health_check():
             now_utc = datetime.now(timezone.utc).date()
             delta_hours = (now_utc - latest).days * 24
             stale = delta_hours >= settings.health_stale_hours
-        else:
-            stale = True
+        # else: 데이터 없음(초기 배포) → stale=False 유지, 200 반환
 
     except Exception:
         logger.exception("헬스체크 DB 조회 실패")
@@ -104,8 +103,7 @@ async def health_check():
             },
         )
 
-    return {
-        "status": "ok",
-        "last_updated": last_updated,
-        "stale_threshold_hours": settings.health_stale_hours,
-    }
+    body: dict = {"status": "ok", "last_updated": last_updated, "stale_threshold_hours": settings.health_stale_hours}
+    if last_updated is None:
+        body["note"] = "no data yet"
+    return body
