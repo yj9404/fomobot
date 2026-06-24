@@ -9,13 +9,11 @@ WORKDIR /build
 # uv 를 빠른 pip 대체재로 사용해 레이어 캐시를 최대화
 RUN pip install --no-cache-dir uv
 
-COPY pyproject.toml .
-# src 레이아웃 패키지 메타데이터 참조용
+# lockfile 기반 설치 — uv.lock 버전 고정으로 재현성 보장
+COPY pyproject.toml uv.lock ./
 COPY src/ src/
 
-# 의존성만 먼저 설치 (소스 변경 시 이 레이어는 재사용됨)
-RUN uv pip install --system --no-cache ".[dev]" 2>/dev/null || \
-    uv pip install --system --no-cache .
+RUN uv sync --frozen --no-dev --no-cache
 
 
 # ── Runtime stage ─────────────────────────────────────────────────────────────
@@ -26,9 +24,9 @@ ENV PYTHONUNBUFFERED=1 \
 
 WORKDIR /app
 
-# builder 에서 설치된 site-packages 복사
-COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
-COPY --from=builder /usr/local/bin /usr/local/bin
+# builder 의 venv 전체 복사 후 PATH에 추가
+COPY --from=builder /build/.venv /app/.venv
+ENV PATH="/app/.venv/bin:$PATH"
 
 # 소스 코드 및 마이그레이션 파일 복사
 COPY src/ src/
