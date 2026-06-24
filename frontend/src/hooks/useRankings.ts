@@ -34,11 +34,13 @@ export function useRankings(market: Market, period: Period, retryKey: number = 0
       })
       .catch((err: unknown) => {
         if (cancelled) return
+        const msg = err instanceof Error ? err.message : String(err)
+        console.error('[useRankings]', msg)
         setState({
           status: 'error',
           rankings: [],
           disclaimer: '',
-          errorMsg: err instanceof Error ? err.message : String(err),
+          errorMsg: msg,
         })
       })
 

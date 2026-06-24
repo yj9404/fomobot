@@ -11,8 +11,7 @@ export function ErrorState({ t, errorMsg, onRetry }: { t: Strings; errorMsg: str
       </div>
       <div style={{ fontSize: 15.5, fontWeight: 700, color: C.textPrimary }}>{t.errorTitle}</div>
       <div style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.5, maxWidth: 240 }}>
-        {t.errorSub}{' '}
-        {errorMsg && <span style={{ fontFamily: FONT.mono, color: C.textDim, fontSize: 11 }}>{errorMsg}</span>}
+        {t.errorSub}
       </div>
       <button
         onClick={onRetry}
