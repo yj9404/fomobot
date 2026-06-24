@@ -11,8 +11,8 @@ export const C = {
 
   textPrimary: '#E9EDF5',
   textSub:     '#C7CEDC',
-  textMuted:   '#8B94A7',
-  textDim:     '#565E70',
+  textMuted:   '#9AA5B8',
+  textDim:     '#7C8699',
 
   green:   '#1ECB81',
   red:     '#FF4D62',
