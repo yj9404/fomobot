@@ -63,9 +63,9 @@ def _fetch_market_cap(start: str, end: str, ticker: str) -> pd.DataFrame:
     before_sleep=before_sleep_log(logger, logging.WARNING),
     reraise=True,
 )
-def _fetch_ticker_list() -> list[str]:
+def _fetch_ticker_list(date: str = "") -> list[str]:
     from pykrx import stock
-    return stock.get_market_ticker_list(market="KOSPI")
+    return stock.get_market_ticker_list(date, market="KOSPI")
 
 
 @retry(
@@ -121,7 +121,7 @@ def run_kospi_collection(target_date: date | None = None) -> None:
     logger.info("KOSPI 수집 시작: %s ~ %s", start_str, end_str)
 
     try:
-        tickers = _fetch_ticker_list()
+        tickers = _fetch_ticker_list(end_str)
     except Exception:
         logger.exception("KOSPI 티커 목록 조회 실패, 배치 중단")
         return
@@ -218,7 +218,7 @@ def run_kospi_full_history(start_date: date, end_date: date) -> None:
     logger.info("KOSPI 풀 히스토리 수집: %s ~ %s", start_str, end_str)
 
     try:
-        tickers = _fetch_ticker_list()
+        tickers = _fetch_ticker_list(end_str)
     except Exception:
         logger.exception("KOSPI 티커 목록 조회 실패")
         return
