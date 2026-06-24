@@ -34,11 +34,17 @@ export function NavRail({ lang, market, periodIdx, disclaimer, t, onLang, onMark
     }}>
       {/* Logo */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <div style={{
-          width: 28, height: 28, borderRadius: 9, flexShrink: 0,
-          background: 'linear-gradient(135deg,#3E7BFA,#21D4D4)',
-          boxShadow: '0 0 0 1px rgba(62,123,250,0.3),0 4px 14px rgba(62,123,250,0.4)',
-        }} />
+        <img
+          src="/icons/favicon.svg"
+          alt="FomoBot Logo"
+          style={{
+            width: 28,
+            height: 28,
+            flexShrink: 0,
+            boxShadow: '0 0 0 1px rgba(62,123,250,0.3), 0 4px 14px rgba(62,123,250,0.4)',
+            borderRadius: 9,
+          }}
+        />
         <div>
           <div style={{ fontSize: 17, fontWeight: 800, color: C.textPrimary, letterSpacing: '-0.02em', lineHeight: 1.05 }}>FomoBot</div>
           <div style={{ fontSize: 10, color: C.textDim, marginTop: 3, lineHeight: 1.3 }}>{t.tagline}</div>

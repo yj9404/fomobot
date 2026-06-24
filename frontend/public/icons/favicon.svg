@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="fb" x1="8" y1="8" x2="56" y2="56" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#3E7BFA"></stop>
+      <stop offset="1" stop-color="#21D4D4"></stop>
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="48" height="48" rx="14" fill="url(#fb)"></rect>
+  <polyline points="18.6,46.6 24.4,39.7 28.2,44.3 35,28.9 41.8,18.6" fill="none" stroke="#fff" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round"></polyline>
+  <circle cx="41.8" cy="18.6" r="3.4" fill="#fff"></circle>
+</svg>

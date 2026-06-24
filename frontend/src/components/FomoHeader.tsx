@@ -20,11 +20,17 @@ export function FomoHeader({ lang, market, periodIdx, disclaimer, t, onLang, onM
       {/* Logo row */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 16px 12px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-          <div style={{
-            width: 24, height: 24, borderRadius: 8, flexShrink: 0,
-            background: 'linear-gradient(135deg,#3E7BFA,#21D4D4)',
-            boxShadow: '0 0 0 1px rgba(62,123,250,0.3),0 4px 14px rgba(62,123,250,0.4)',
-          }} />
+          <img
+            src="/icons/favicon.svg"
+            alt="FomoBot Logo"
+            style={{
+              width: 24,
+              height: 24,
+              flexShrink: 0,
+              boxShadow: '0 0 0 1px rgba(62,123,250,0.3), 0 4px 14px rgba(62,123,250,0.4)',
+              borderRadius: 8,
+            }}
+          />
           <div>
             <div style={{ fontSize: 16, fontWeight: 800, color: C.textPrimary, letterSpacing: '-0.02em', lineHeight: 1.05 }}>FomoBot</div>
             <div style={{ fontSize: 11, color: C.textDim, marginTop: 2, lineHeight: 1.1 }}>{t.tagline}</div>
