@@ -57,7 +57,7 @@ app.include_router(rankings_router)
 app.include_router(backtest_router)
 
 
-@app.get("/health", tags=["Health"])
+@app.api_route("/health", methods=["GET", "HEAD"], tags=["Health"])
 async def health_check():
     """
     앱 상태 + 마지막 수집 성공 시각을 반환한다.
