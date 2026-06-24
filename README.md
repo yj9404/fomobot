@@ -1,143 +1,60 @@
 # FomoBot
 
-KOSPI·NASDAQ 기간별 상승률 랭킹 서비스. **투자 조언이 아닙니다.**
-
-## 스택
-
-| 레이어 | 기술 |
-|--------|------|
-| 프론트엔드 | React + Vite → Vercel |
-| 백엔드 | FastAPI + PostgreSQL → Railway |
-| 배치 | Railway Cron (독립 프로세스) |
-| 모니터링 | Sentry (에러), UptimeRobot (uptime/데이터 신선도) |
+> 이미 오른 것들의 명예의 전당
 
 ---
 
-## 로컬 개발
+## 이게 뭔가요?
 
-```bash
-# 백엔드
-cd backend
-cp .env.example .env          # 필요한 값 채우기
-uv sync
-uv run alembic upgrade head
-uv run uvicorn fomobot.main:app --reload
+FomoBot은 **"그때 샀어야 했는데..."** 하는 후회를 데이터로 보여주는 서비스입니다.
 
-# 로컬에서 배치 스케줄러도 함께 돌리려면 .env 에 추가:
-# ENABLE_SCHEDULER=true
+주식을 놓쳤다는 걸 알면서도 "에이, 나도 알고 있었어"라고 합리화하게 되는 그 순간 — FomoBot은 실제로 얼마나 올랐는지, 그리고 그때 샀다면 지금 얼마였는지를 냉정하게 알려줍니다.
 
-# 프론트엔드 (별도 터미널)
-cd frontend
-npm ci
-npm run dev
-```
+투자 조언이 아닙니다. FomoBot은 지나간 걸 보여줄 뿐이에요.
 
 ---
 
-## 배포
+## 주요 기능
 
-### 백엔드 — Railway
+### 기간별 급등 랭킹
+KOSPI와 NASDAQ에서 특정 기간 동안 가장 많이 오른 종목들을 순위로 보여줍니다.
 
-1. Railway 프로젝트 생성 → GitHub 저장소 연결
-2. **Root Directory**: `backend`
-3. Railway 가 `backend/Dockerfile` 을 자동 감지해 빌드
-4. **PostgreSQL 서비스** 추가 → `DATABASE_URL` / `DATABASE_URL_SYNC` 환경변수 설정
-5. 아래 환경변수 설정:
+| 기간 | 설명 |
+|------|------|
+| 전일 | 어제 대비 오늘 |
+| 7일 | 일주일 상승률 |
+| 30일 | 한 달 상승률 |
+| 90일 | 분기 상승률 |
+| 1년 | 연간 상승률 |
+| 5년 | 5년 장기 상승률 |
 
-```
-DATABASE_URL=postgresql+asyncpg://...
-DATABASE_URL_SYNC=postgresql+psycopg2://...
-APP_ENV=production
-ALLOWED_ORIGINS=https://your-frontend.vercel.app
-SENTRY_DSN=https://...@sentry.io/...
-ENABLE_SCHEDULER=false
-HEALTH_STALE_HOURS=25
-```
+각 종목에는 상승률 외에도 **변동성(σ)**, **지수 대비 초과수익**, **MDD(최대낙폭)** 정보가 함께 표시됩니다.
 
-#### Railway Cron 서비스 추가
+### 백테스트: 그때 샀다면?
+랭킹에 오른 종목을 클릭하면 **"그 시점에 샀다면 지금 수익률이 얼마였는가"** 를 바로 확인할 수 있습니다. 올랐으면 "안 샀죠? 그럴 줄 알았어요."라고 하고, 내렸으면 "안 사길 잘했네요, 이번만큼은."이라고 합니다.
 
-Dashboard > **New Service > Cron** 으로 두 개의 Cron 서비스를 추가한다.
-같은 이미지(웹 서비스와 동일 Dockerfile)를 사용하고 커맨드만 다르게 지정한다.
-
-**KOSPI 수집**
-```
-Schedule : 0 9 * * 1-6
-Command  : python -m fomobot.jobs.collect kospi
-```
-> 09:00 UTC = 18:00 KST.
-> KOSPI 장 마감 15:30 KST(= 06:30 UTC) 기준 +2.5h.
-> 한국은 서머타임 없으므로 연중 고정.
-
-**NASDAQ 수집**
-```
-Schedule : 30 21 * * 1-5
-Command  : python -m fomobot.jobs.collect nasdaq
-```
-> 21:30 UTC = 다음날 06:30 KST.
-> NASDAQ 정규장 마감 16:00 EST = 21:00 UTC 기준 +30분,
-> 서머타임(EDT) 기준 16:00 EDT = 20:00 UTC 기준 +90분.
-> EST/EDT 양쪽에서 모두 마감 이후가 되는 단일 시각으로 선택.
-> 두 개의 계절별 cron 으로 나누지 않아도 무방.
-
-#### 초기 히스토리 데이터 수집
-
-최초 배포 후 Railway 콘솔에서 1회 실행:
-```bash
-python scripts/init_history.py
-```
+### 잡주 필터링
+시총이 너무 낮거나 거래대금이 없는 동전주·저유동성 종목은 자동으로 제외합니다. 진짜 오른 종목만 봐야 제대로 된 후회를 할 수 있으니까요.
 
 ---
 
-### 프론트엔드 — Vercel
+## 어떻게 동작하나요?
 
-1. Vercel 프로젝트 생성 → GitHub 저장소 연결
-2. **Root Directory**: `frontend`
-3. Vercel 이 `frontend/vercel.json` 을 자동 감지
-4. **Environment Variables** 설정:
-
-```
-VITE_API_BASE_URL=https://your-backend.up.railway.app
-```
+매일 장 마감 후, 서버가 자동으로 KOSPI 전 종목과 NASDAQ 종목의 수정주가 데이터를 수집하고 랭킹을 계산합니다. 수정주가를 사용하기 때문에 액면분할이나 배당이 수익률을 왜곡하지 않습니다.
 
 ---
 
-## 헬스체크 — UptimeRobot
+## 주의사항
 
-`GET /health` 엔드포인트를 모니터링한다.
-
-- 정상: `200 {"status": "ok", "last_updated": "2026-06-24"}`
-- 비정상: `503 {"status": "unhealthy", "reason": "stale_data", ...}`
-  - 마지막 랭킹 스냅샷이 `HEALTH_STALE_HOURS`(기본 25h) 이상 지난 경우
-  - 배치 실패로 데이터가 멈춰 있어도 화면은 어제 데이터로 정상처럼 보이므로 이 엔드포인트로 감지
-
-UptimeRobot 설정:
-- Monitor Type: **HTTP(s)**
-- URL: `https://your-backend.up.railway.app/health`
-- Interval: 5분
-- Alert condition: status code `!= 200`
+- **투자 조언이 아닙니다.** FomoBot은 과거 데이터를 보여주는 도구일 뿐이며, 미래 수익을 보장하지 않습니다.
+- 백테스트 결과는 **생존 편향**이 있습니다. 상장폐지된 종목은 포함되지 않기 때문에 실제 수익률보다 좋게 보일 수 있습니다.
+- 과거의 급등이 미래에도 반복된다는 보장은 없습니다.
 
 ---
 
-## 프로젝트 구조
+## 지원 마켓
 
-```
-FomoBot/
-├── backend/
-│   ├── src/fomobot/
-│   │   ├── main.py              # FastAPI 앱 진입점
-│   │   ├── config.py            # pydantic-settings 기반 설정
-│   │   ├── sentry_init.py       # 웹/배치 공용 Sentry 초기화
-│   │   ├── api/                 # HTTP 엔드포인트
-│   │   ├── batch/               # 수집·계산 로직 (웹 서버와 독립)
-│   │   ├── jobs/
-│   │   │   └── collect.py       # Railway Cron 진입점
-│   │   ├── db/                  # ORM 모델, 세션, CRUD
-│   │   └── services/            # 금융 계산, 노이즈 필터
-│   ├── Dockerfile
-│   ├── railway.toml
-│   └── .env.example
-└── frontend/
-    ├── src/
-    ├── vercel.json
-    └── vite.config.ts
-```
+- 🇰🇷 KOSPI (한국거래소)
+- 🇺🇸 NASDAQ
+
+한국어 · English 양국어 지원

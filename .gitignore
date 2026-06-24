@@ -20,3 +20,6 @@ Thumbs.db
 
 # uv
 uv.lock
+
+# Claude
+.claude
