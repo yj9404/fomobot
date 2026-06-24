@@ -30,11 +30,13 @@ WORKDIR /app
 COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
 COPY --from=builder /usr/local/bin /usr/local/bin
 
-# 소스 코드 복사
+# 소스 코드 및 마이그레이션 파일 복사
 COPY src/ src/
+COPY alembic/ alembic/
+COPY alembic.ini .
 
-# 웹 서버 실행 (Railway 웹 서비스 기본 커맨드)
+# 마이그레이션 실행 후 웹 서버 시작
 # 배치 실행은 railway.toml 의 cron 서비스에서 별도로 정의한다:
 #   python -m fomobot.jobs.collect kospi
 #   python -m fomobot.jobs.collect nasdaq
-CMD uvicorn fomobot.main:app --host 0.0.0.0 --port ${PORT:-8000}
+CMD alembic upgrade head && uvicorn fomobot.main:app --host 0.0.0.0 --port ${PORT:-8000}
