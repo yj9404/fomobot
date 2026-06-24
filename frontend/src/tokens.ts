@@ -80,7 +80,7 @@ export const LIGHT = {
   barTrack:         'rgba(0,0,0,0.07)',
 } as const
 
-export type Colors = typeof DARK
+export type Colors = typeof DARK | typeof LIGHT
 
 export const FONT = {
   sans: "'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif",

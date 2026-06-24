@@ -23,7 +23,8 @@ def init_sentry(release: str | None = None) -> None:
         traces_sample_rate=settings.sentry_traces_sample_rate,
         environment=settings.app_env,
         release=release,
-        # 배치 스크립트에서도 미처리 예외를 자동 캡처
+        send_default_pii=True,
         enable_tracing=True,
+        enable_logs=True,
     )
     logger.info("Sentry 초기화 완료 (env=%s)", settings.app_env)
