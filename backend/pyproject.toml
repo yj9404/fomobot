@@ -18,7 +18,7 @@ dependencies = [
     # Data
     "pandas>=2.2.0",
     "numpy>=1.26.0",
-    "pykrx>=1.0.45",
+    "pykrx>=1.2.8",
     "yfinance>=0.2.40",
     # Scheduler
     "apscheduler>=3.10.0",
