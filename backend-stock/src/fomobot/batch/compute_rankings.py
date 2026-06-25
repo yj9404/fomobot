@@ -78,8 +78,11 @@ def _load_price_matrix(
         .reset_index()
     )
 
+    # 거래대금(KRW) = volume(주) × close_adj(원) — 필터 임계값과 단위 일치
+    recent_with_value = recent.copy()
+    recent_with_value["trading_value"] = recent_with_value["volume"] * recent_with_value["close_adj"]
     avg_vol = (
-        recent.groupby("ticker")["volume"]
+        recent_with_value.groupby("ticker")["trading_value"]
         .mean()
         .rename("avg_volume_30d")
         .reset_index()
