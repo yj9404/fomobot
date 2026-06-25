@@ -40,6 +40,41 @@ MARKET_CONFIG = {
 }
 
 
+def _fetch_name_map(market: str, tickers: list[str]) -> dict[str, str]:
+    """티커 → 종목명 딕셔너리를 반환한다. 실패 시 ticker를 name으로 사용."""
+    name_map: dict[str, str] = {}
+    if market == "kospi":
+        try:
+            from pykrx import stock as krx
+            for ticker in tickers:
+                try:
+                    name_map[ticker] = krx.get_market_ticker_name(ticker)
+                except Exception:
+                    name_map[ticker] = ticker
+        except Exception:
+            logger.warning("pykrx 종목명 조회 실패")
+    elif market == "nasdaq":
+        try:
+            import io
+            import httpx
+            resp = httpx.get(
+                "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt",
+                timeout=30,
+            )
+            resp.raise_for_status()
+            df = pd.read_csv(io.StringIO(resp.text), sep="|")
+            df = df[df["Symbol"].notna() & ~df["Symbol"].str.startswith("File", na=False)]
+            ticker_set = set(tickers)
+            name_col = "Security Name" if "Security Name" in df.columns else df.columns[1]
+            for _, row in df.iterrows():
+                sym = str(row["Symbol"]).strip()
+                if sym in ticker_set:
+                    name_map[sym] = str(row[name_col]).strip()
+        except Exception:
+            logger.warning("NASDAQ 종목명 조회 실패")
+    return name_map
+
+
 def _load_price_matrix(
     session,
     market: str,
@@ -160,7 +195,7 @@ def compute_rankings_for_market(market: str, snapshot_date: date, top: int = 100
                     "period": period_key,
                     "rank": int(row["rank"]),
                     "ticker": str(row["ticker"]),
-                    "name": None,  # 종목명은 별도 조회 비용 → 추후 보완
+                    "name": None,
                     "return_pct": float(row["return_pct"]),
                     "mdd_pct": float(row["mdd_pct"]) if pd.notna(row["mdd_pct"]) else None,
                     "volatility_annualized_pct": (
@@ -179,6 +214,11 @@ def compute_rankings_for_market(market: str, snapshot_date: date, top: int = 100
             )
 
         if all_snapshot_records:
+            unique_tickers = list({r["ticker"] for r in all_snapshot_records})
+            name_map = _fetch_name_map(market, unique_tickers)
+            for r in all_snapshot_records:
+                r["name"] = name_map.get(r["ticker"], r["ticker"])
+
             upsert_ranking_snapshots_sync(session, all_snapshot_records)
             logger.info(
                 "%s 랭킹 스냅샷 %d건 저장 (기준일: %s)",
