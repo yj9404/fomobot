@@ -64,7 +64,7 @@ class RankingSnapshot(Base):
     period = Column(String(10), nullable=False)      # "1d"|"7d"|"30d"|"90d"|"365d"|"1825d"
     rank = Column(Integer, nullable=False)
     ticker = Column(String(20), nullable=False)
-    name = Column(String(100))
+    name = Column(String(200))
     return_pct = Column(Float, nullable=False)
     mdd_pct = Column(Float)
     volatility_annualized_pct = Column(Float)

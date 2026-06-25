@@ -69,7 +69,7 @@ def _fetch_name_map(market: str, tickers: list[str]) -> dict[str, str]:
             for _, row in df.iterrows():
                 sym = str(row["Symbol"]).strip()
                 if sym in ticker_set:
-                    name_map[sym] = str(row[name_col]).strip()
+                    name_map[sym] = str(row[name_col]).strip()[:200]
         except Exception:
             logger.warning("NASDAQ 종목명 조회 실패")
     return name_map
@@ -224,7 +224,7 @@ def compute_rankings_for_market(market: str, snapshot_date: date, top: int = 100
         name_map = _fetch_name_map(market, unique_tickers)
         with SyncSessionLocal() as session:
             name_records = [
-                {**r, "name": name_map.get(r["ticker"], r["ticker"])}
+                {**r, "name": name_map.get(r["ticker"], r["ticker"])[:200]}
                 for r in all_snapshot_records
             ]
             upsert_ranking_snapshots_sync(session, name_records)
