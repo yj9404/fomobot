@@ -188,8 +188,9 @@ def compute_rankings_for_market(market: str, snapshot_date: date, top: int = 100
             # 랭킹 계산 (벡터 연산)
             ranking_df = build_ranking_df(price_matrix, idx_series, top=top)
 
+            period_records: list[dict] = []
             for _, row in ranking_df.iterrows():
-                all_snapshot_records.append({
+                period_records.append({
                     "snapshot_date": snapshot_date,
                     "market": market,
                     "period": period_key,
@@ -208,22 +209,29 @@ def compute_rankings_for_market(market: str, snapshot_date: date, top: int = 100
                     ),
                 })
 
+            # period별 즉시 저장 (이후 period 실패해도 앞 데이터 보존)
+            if period_records:
+                upsert_ranking_snapshots_sync(session, period_records)
+                all_snapshot_records.extend(period_records)
+
             logger.info(
-                "%s %s 랭킹 계산 완료: %d종목",
-                market, period_key, len(ranking_df),
+                "%s %s 랭킹 계산·저장 완료: %d종목",
+                market, period_key, len(period_records),
             )
 
-        if all_snapshot_records:
-            unique_tickers = list({r["ticker"] for r in all_snapshot_records})
-            name_map = _fetch_name_map(market, unique_tickers)
-            for r in all_snapshot_records:
-                r["name"] = name_map.get(r["ticker"], r["ticker"])
-
-            upsert_ranking_snapshots_sync(session, all_snapshot_records)
-            logger.info(
-                "%s 랭킹 스냅샷 %d건 저장 (기준일: %s)",
-                market, len(all_snapshot_records), snapshot_date,
-            )
+    if all_snapshot_records:
+        unique_tickers = list({r["ticker"] for r in all_snapshot_records})
+        name_map = _fetch_name_map(market, unique_tickers)
+        with SyncSessionLocal() as session:
+            name_records = [
+                {**r, "name": name_map.get(r["ticker"], r["ticker"])}
+                for r in all_snapshot_records
+            ]
+            upsert_ranking_snapshots_sync(session, name_records)
+        logger.info(
+            "%s 랭킹 스냅샷 %d건 저장 완료 (기준일: %s)",
+            market, len(all_snapshot_records), snapshot_date,
+        )
 
     return len(all_snapshot_records)
 
