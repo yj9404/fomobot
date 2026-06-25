@@ -44,7 +44,7 @@ def fetch_nasdaq_tickers() -> list[str]:
         resp.raise_for_status()
         df = pd.read_csv(io.StringIO(resp.text), sep="|")
         # 마지막 행은 메타 정보 행 제거
-        df = df[df["Symbol"].notna() & ~df["Symbol"].str.startswith("File")]
+        df = df[df["Symbol"].notna() & ~df["Symbol"].str.startswith("File", na=False)]
         # ETF 제외 (주식만)
         if "ETF" in df.columns:
             df = df[df["ETF"] != "Y"]
