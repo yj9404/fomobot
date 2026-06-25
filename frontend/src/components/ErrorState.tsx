@@ -2,7 +2,7 @@ import { useC } from '../ThemeContext'
 import { FONT } from '../tokens'
 import type { Strings } from '../i18n/strings'
 
-export function ErrorState({ t, errorMsg, onRetry }: { t: Strings; errorMsg: string; onRetry: () => void }) {
+export function ErrorState({ t, onRetry }: { t: Strings; onRetry: () => void }) {
   const C = useC()
   return (
     <div style={{ borderTop: `1px solid ${C.borderSub}`, padding: '56px 28px 60px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 13, fontFamily: FONT.sans }}>

@@ -27,7 +27,7 @@ export default function App() {
   const C = useC()
   const t = useStrings(lang)
   const period = PERIODS[periodIdx]!
-  const { status, rankings, disclaimer, errorMsg } = useRankings(market, period.value, retryKey)
+  const { status, rankings, disclaimer } = useRankings(market, period.value, retryKey)
   const { load: loadBt, get: getBt } = useBacktest(market, period.value, period.days)
 
   const windowWidth = useWindowWidth()
@@ -102,7 +102,7 @@ export default function App() {
           <div style={{ flex: 1, minWidth: 0, background: C.surface, borderRight: `1px solid ${C.borderSub}` }}>
             {status === 'loading' && <SkeletonList t={t} />}
             {status === 'empty' && <EmptyState t={t} onRetry={() => handlePeriod(2)} />}
-            {status === 'error' && <ErrorState t={t} errorMsg={errorMsg} onRetry={() => setRetryKey((k) => k + 1)} />}
+            {status === 'error' && <ErrorState t={t} onRetry={() => setRetryKey((k) => k + 1)} />}
             {status === 'ok' && (
               <RankingTable
                 rankings={rankings}
@@ -152,7 +152,7 @@ export default function App() {
 
         {status === 'loading' && <SkeletonList t={t} />}
         {status === 'empty' && <EmptyState t={t} onRetry={() => handlePeriod(2)} />}
-        {status === 'error' && <ErrorState t={t} errorMsg={errorMsg} onRetry={() => setRetryKey((k) => k + 1)} />}
+        {status === 'error' && <ErrorState t={t} onRetry={() => setRetryKey((k) => k + 1)} />}
 
         {status === 'ok' && (
           <div style={{ padding: '12px 14px 16px', borderTop: `1px solid ${C.borderSub}`, flex: 1 }}>
