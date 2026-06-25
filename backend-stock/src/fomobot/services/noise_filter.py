@@ -63,8 +63,10 @@ def apply_nasdaq_filter(df: pd.DataFrame) -> pd.DataFrame:
     """
     before = len(df)
 
+    # market_cap이 0이면 수집 안 된 것(yfinance 배치 미지원) → 시총 조건 생략
+    cap_mask = (df["market_cap"] == 0) | (df["market_cap"] >= settings.nasdaq_min_market_cap_usd)
     mask = (
-        (df["market_cap"] >= settings.nasdaq_min_market_cap_usd)
+        cap_mask
         & (df["avg_volume_30d"] >= settings.nasdaq_min_avg_volume_30d_usd)
         & (df["close_adj"] >= settings.nasdaq_min_price_usd)
     )
