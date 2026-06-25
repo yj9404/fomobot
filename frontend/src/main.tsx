@@ -1,5 +1,6 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import { Analytics } from '@vercel/analytics/react'
 import App from './App'
 import { NotFoundPage } from './components/NotFoundPage'
 import { ServerErrorPage } from './components/ServerErrorPage'
@@ -26,6 +27,7 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ThemeProvider>
       {is500 ? <ServerErrorPage /> : is404 ? <NotFoundPage /> : <App />}
+      <Analytics />
     </ThemeProvider>
   </StrictMode>,
 )
