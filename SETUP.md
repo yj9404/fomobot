@@ -17,7 +17,7 @@ KOSPI·NASDAQ 기간별 상승률 랭킹 서비스. **투자 조언이 아닙니
 
 ```bash
 # 백엔드
-cd backend
+cd backend-stock
 cp .env.example .env          # 필요한 값 채우기
 uv sync
 uv run alembic upgrade head
@@ -39,8 +39,8 @@ npm run dev
 ### 백엔드 — Railway
 
 1. Railway 프로젝트 생성 → GitHub 저장소 연결
-2. **Root Directory**: `backend`
-3. Railway 가 `backend/Dockerfile` 을 자동 감지해 빌드
+2. **Root Directory**: `backend-stock`
+3. Railway 가 `backend-stock/Dockerfile` 을 자동 감지해 빌드
 4. **PostgreSQL 서비스** 추가 → `DATABASE_URL` / `DATABASE_URL_SYNC` 환경변수 설정
 5. 아래 환경변수 설정:
 
@@ -86,6 +86,8 @@ Command  : python -m fomobot.jobs.collect nasdaq
 python scripts/init_history.py
 ```
 
+> Railway Dashboard의 **Root Directory** 설정이 `backend-stock`인지 반드시 확인할 것.
+
 ---
 
 ### 프론트엔드 — Vercel
@@ -113,6 +115,7 @@ VITE_API_BASE_URL=https://your-backend.up.railway.app
 UptimeRobot 설정:
 - Monitor Type: **HTTP(s)**
 - URL: `https://your-backend.up.railway.app/health`
+  (부동산 확장 시에도 `/health` 경로 유지 — 응답 body에 도메인별 필드 추가)
 - Interval: 5분
 - Alert condition: status code `!= 200`
 
@@ -122,12 +125,12 @@ UptimeRobot 설정:
 
 ```
 FomoBot/
-├── backend/
+├── backend-stock/               # 주식 백엔드 (Railway)
 │   ├── src/fomobot/
-│   │   ├── main.py              # FastAPI 앱 진입점
+│   │   ├── main.py              # FastAPI 앱 진입점 (/health, /api/stock/*)
 │   │   ├── config.py            # pydantic-settings 기반 설정
 │   │   ├── sentry_init.py       # 웹/배치 공용 Sentry 초기화
-│   │   ├── api/                 # HTTP 엔드포인트
+│   │   ├── api/                 # HTTP 엔드포인트 (/api/stock/rankings, /api/stock/backtest)
 │   │   ├── batch/               # 수집·계산 로직 (웹 서버와 독립)
 │   │   ├── jobs/
 │   │   │   └── collect.py       # Railway Cron 진입점

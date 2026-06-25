@@ -7,7 +7,7 @@ export function fetchBacktest(
   period: Period,
   top = 10,
 ): Promise<BacktestResponse> {
-  return apiFetch<BacktestResponse>('/api/backtest', { market, as_of: asOf, period, top })
+  return apiFetch<BacktestResponse>('/api/stock/backtest', { market, as_of: asOf, period, top })
 }
 
 export function asOfDate(days: number): string {

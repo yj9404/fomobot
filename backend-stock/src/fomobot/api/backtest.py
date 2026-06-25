@@ -19,7 +19,7 @@ from fomobot.db.session import get_async_session
 from fomobot.schemas.backtest import BacktestItem, BacktestResponse
 from fomobot.schemas.rankings import MarketLiteral, PeriodLiteral
 
-router = APIRouter(prefix="/api", tags=["Backtest"])
+router = APIRouter(prefix="/api/stock", tags=["Backtest"])
 
 
 @router.get(

@@ -12,7 +12,7 @@ from fomobot.schemas.rankings import (
     RankingsResponse,
 )
 
-router = APIRouter(prefix="/api", tags=["Rankings"])
+router = APIRouter(prefix="/api/stock", tags=["Rankings"])
 
 
 @router.get(
