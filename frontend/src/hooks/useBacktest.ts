@@ -20,7 +20,7 @@ export function useBacktest(market: Market, period: Period, days: number) {
       setCache((prev) => ({ ...prev, [key]: { status: 'loading', item: null } }))
 
       try {
-        const data = await fetchBacktest(market, asOfDate(days), period)
+        const data = await fetchBacktest(market, asOfDate(days), period, 100)
         const found = data.items.find((i) => i.ticker === ticker) ?? null
         setCache((prev) => ({ ...prev, [key]: { status: 'ok', item: found } }))
       } catch {

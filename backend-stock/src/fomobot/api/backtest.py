@@ -59,19 +59,8 @@ async def backtest_endpoint(
             ),
         )
 
-    # 2) 오늘 날짜 최신 스냅샷 조회 (현재 가격 대용)
+    # 2) 최신 가격 기준일 조회 (price_daily 비교용)
     latest_date = await get_latest_snapshot_date(session, market, "1d")
-    today_rows_map: dict[str, float] = {}
-
-    if latest_date:
-        today_rows = await get_rankings(session, market, "1825d", 500, latest_date)
-        # 종목별 현재 가격은 ranking_snapshot에 직접 없으므로
-        # price_daily를 조회하는 것이 정확하나, 여기서는 현재 수익률을
-        # 기준일 종가 기준으로 재계산하기 위해 별도 price 조회가 필요하다.
-        # 간소화: as_of 랭킹의 return_pct와 오늘 랭킹의 return_pct 차이는
-        # 의미가 없으므로, price_daily를 직접 조회해 수익률을 계산한다.
-        # → 실제 구현은 아래 _compute_current_returns()에서 수행.
-        pass
 
     current_returns = await _compute_current_returns(
         session, market, snapshot_rows, latest_date
@@ -127,6 +116,10 @@ async def _compute_current_returns(
     as_of_date = snapshot_rows[0].snapshot_date if hasattr(snapshot_rows[0], "snapshot_date") else None
 
     if as_of_date is None:
+        return {}
+
+    # 기준일과 최신 스냅샷 날짜가 같으면 오늘 가격 데이터 미수집 상태 → 모두 None
+    if as_of_date >= latest_date:
         return {}
 
     # 동기 세션은 배치에서 사용하고, 여기서는 async 세션 사용
