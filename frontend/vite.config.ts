@@ -5,7 +5,12 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      // 로컬 개발 전용: VITE_API_BASE_URL 이 없을 때 백엔드로 프록시
+      // 부동산 백엔드 (8001) — 주식보다 먼저 매칭되어야 함
+      '/api/realestate': {
+        target: 'http://localhost:8001',
+        changeOrigin: true,
+      },
+      // 주식 백엔드 (8000)
       '/api': {
         target: 'http://localhost:8000',
         changeOrigin: true,
