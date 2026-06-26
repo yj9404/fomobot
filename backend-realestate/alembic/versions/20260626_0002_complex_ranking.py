@@ -14,9 +14,9 @@ depends_on = None
 
 
 def upgrade() -> None:
-    # 기존 동/구 단위 테이블 제거
-    op.drop_table("re_ranking_snapshot")
-    op.drop_table("re_monthly_stat")
+    # 기존 동/구 단위 테이블 제거 (IF EXISTS — 테이블이 없어도 안전)
+    op.drop_table("re_ranking_snapshot", if_exists=True)
+    op.drop_table("re_monthly_stat", if_exists=True)
 
     # 단지 월별 집계
     op.create_table(
