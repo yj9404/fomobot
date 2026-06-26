@@ -1,6 +1,6 @@
 from typing import Any
 
-from sqlalchemy import select, text
+from sqlalchemy import func, select, text
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
@@ -14,6 +14,38 @@ from realestate.db.models import (
 
 
 # ── 비동기 (API용) ─────────────────────────────────────────────────────
+
+async def get_region_monthly_stats_async(
+    session: AsyncSession,
+    sigungu_code: str,
+    eupmyeondong: str | None,
+    start_ym: str,
+    end_ym: str,
+):
+    filters = [
+        ReTransaction.sigungu_code == sigungu_code,
+        ReTransaction.deal_ym >= start_ym,
+        ReTransaction.deal_ym <= end_ym,
+        ReTransaction.price_per_sqm.isnot(None),
+    ]
+    if eupmyeondong:
+        filters.append(ReTransaction.eupmyeondong == eupmyeondong)
+
+    q = (
+        select(
+            ReTransaction.deal_ym,
+            func.percentile_cont(0.5)
+            .within_group(ReTransaction.price_per_sqm.asc())
+            .label("median_price_per_sqm"),
+            func.count().label("transaction_count"),
+        )
+        .where(*filters)
+        .group_by(ReTransaction.deal_ym)
+        .order_by(ReTransaction.deal_ym.asc())
+    )
+    result = await session.execute(q)
+    return result.all()
+
 
 async def get_latest_complex_snapshot_ym(
     session: AsyncSession,
