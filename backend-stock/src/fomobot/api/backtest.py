@@ -14,7 +14,7 @@ from datetime import date
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from fomobot.db.crud import get_latest_snapshot_date, get_rankings
+from fomobot.db.crud import get_latest_snapshot_date, get_nearest_snapshot_date, get_rankings
 from fomobot.db.session import get_async_session
 from fomobot.schemas.backtest import BacktestItem, BacktestResponse
 from fomobot.schemas.rankings import MarketLiteral, PeriodLiteral
@@ -39,15 +39,23 @@ async def backtest_endpoint(
     top: int = Query(20, ge=1, le=100, description="상위 N개 (기본 20, 최대 100)"),
     session: AsyncSession = Depends(get_async_session),
 ):
-    # 1) as_of 시점의 랭킹 스냅샷 조회
-    snapshot_rows = await get_rankings(session, market, period, top, as_of)
+    # 1) as_of 이하의 가장 가까운 스냅샷 날짜 조회 (주간 백필 등 정확한 날짜가 없을 때 대응)
+    actual_date = await get_nearest_snapshot_date(session, market, period, as_of)
+    if actual_date is None:
+        raise HTTPException(
+            status_code=404,
+            detail=(
+                f"{as_of} 이전 {market.upper()} {period} 랭킹 스냅샷이 없습니다. "
+                f"백필 배치가 실행되지 않았거나 데이터가 부족합니다."
+            ),
+        )
 
+    snapshot_rows = await get_rankings(session, market, period, top, actual_date)
     if not snapshot_rows:
         raise HTTPException(
             status_code=404,
             detail=(
-                f"{as_of} 기준 {market.upper()} {period} 랭킹 스냅샷이 없습니다. "
-                f"해당 날짜 배치가 실행되지 않았거나 데이터가 부족합니다."
+                f"{actual_date} {market.upper()} {period} 랭킹 스냅샷이 비어 있습니다."
             ),
         )
 
@@ -89,6 +97,7 @@ async def backtest_endpoint(
         market=market,
         period=period,
         as_of=as_of,
+        actual_as_of=actual_date,
         top=top,
         avg_current_return_pct=avg_return,
         items=items,

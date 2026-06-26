@@ -33,6 +33,27 @@ async def get_rankings(
     return result.scalars().all()
 
 
+async def get_nearest_snapshot_date(
+    session: AsyncSession,
+    market: str,
+    period: str,
+    as_of: date,
+) -> date | None:
+    """as_of 이하의 가장 가까운 snapshot_date를 반환."""
+    stmt = (
+        select(RankingSnapshot.snapshot_date)
+        .where(
+            RankingSnapshot.market == market,
+            RankingSnapshot.period == period,
+            RankingSnapshot.snapshot_date <= as_of,
+        )
+        .order_by(RankingSnapshot.snapshot_date.desc())
+        .limit(1)
+    )
+    result = await session.execute(stmt)
+    return result.scalar_one_or_none()
+
+
 async def get_latest_snapshot_date(
     session: AsyncSession, market: str, period: str
 ) -> date | None:

@@ -24,6 +24,7 @@ class BacktestResponse(BaseModel):
     market: MarketLiteral
     period: PeriodLiteral
     as_of: date
+    actual_as_of: date = Field(description="실제 사용된 스냅샷 날짜 (as_of 이하 가장 가까운 날짜)")
     top: int
     avg_current_return_pct: float | None = Field(
         None, description="포트폴리오 평균 현재 수익률 (동일 가중)"
