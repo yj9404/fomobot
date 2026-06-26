@@ -41,7 +41,7 @@ export function ReResultArea({ rankings, excluded, meta, lang }: Props) {
           </span>
           <span style={{ fontSize: 11, color: C.textDim }}>·</span>
           <span style={{ fontSize: 11, color: C.textDim }}>
-            {meta.total_regions}{lang === 'ko' ? '개 지역' : ' regions'}
+            {meta.total_complexes}{lang === 'ko' ? '개 단지' : ' complexes'}
           </span>
           {meta.is_recent_incomplete && (
             <span style={{

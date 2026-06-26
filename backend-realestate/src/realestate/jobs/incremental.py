@@ -13,12 +13,11 @@ import sys
 import time
 from datetime import date
 
-from realestate.batch.aggregate import aggregate_sigungu
 from realestate.batch.collect import collect_sigungu_month
-from realestate.batch.compute_rankings import compute_all_rankings
+from realestate.batch.complex_aggregate import aggregate_sigungu_complex
+from realestate.batch.complex_rankings import compute_complex_rankings
 from realestate.batch.regions import SUDOGWON_SIGUNGU
 from realestate.config import settings
-from realestate.db.crud import upsert_collection_log_sync
 from realestate.db.session import SyncSessionLocal
 
 logging.basicConfig(
@@ -83,15 +82,15 @@ def run_incremental(n_months: int = 3) -> None:
                 logger.exception("%s %s 증분 수집 실패", code, ym)
 
         try:
-            aggregate_sigungu(code, recent_yms)
+            aggregate_sigungu_complex(code, recent_yms)
         except Exception:
-            logger.exception("%s 집계 중 오류", code)
+            logger.exception("%s 단지 집계 중 오류", code)
 
-    logger.info("랭킹 재계산 시작")
+    logger.info("단지 랭킹 재계산 시작")
     try:
-        compute_all_rankings()
+        compute_complex_rankings()
     except Exception:
-        logger.exception("랭킹 계산 중 오류")
+        logger.exception("단지 랭킹 계산 중 오류")
 
     logger.info("증분 수집 완료")
 

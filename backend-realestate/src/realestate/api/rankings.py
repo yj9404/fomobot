@@ -1,74 +1,83 @@
-from datetime import date, datetime, timezone
+from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from realestate.db.crud import get_latest_snapshot_ym, get_rankings_async
+from realestate.db.crud import get_complex_rankings_async, get_latest_complex_snapshot_ym
 from realestate.db.session import get_async_session
 from realestate.schemas.rankings import (
     DISCLAIMER,
-    LevelLiteral,
+    ComplexRankingItem,
+    ComplexRankingsMeta,
+    ComplexRankingsResponse,
     PeriodLiteral,
-    RankingItem,
-    RankingsMeta,
-    RankingsResponse,
+    _WINDOW_OVERLAP_NOTE,
 )
 
 router = APIRouter(prefix="/api/realestate", tags=["Real Estate Rankings"])
 
-# 최근 2개월 이내 end_ym이면 신고 진행 중 가능성 있음
 _RECENT_NOTE = "최근 1~2개월 거래는 신고 진행 중일 수 있어 수치가 바뀔 수 있습니다."
 
 
 def _is_recent_incomplete(snapshot_ym: str) -> bool:
     today = date.today()
-    current_ym = f"{today.year}{today.month:02d}"
-    prev_ym_date = date(today.year, today.month, 1)
-    if prev_ym_date.month == 1:
-        prev = f"{prev_ym_date.year - 1}12"
-    else:
-        prev = f"{prev_ym_date.year}{prev_ym_date.month - 1:02d}"
-    return snapshot_ym >= prev
+    month = today.month - 1
+    year = today.year
+    if month <= 0:
+        month += 12
+        year -= 1
+    prev_ym = f"{year}{month:02d}"
+    return snapshot_ym >= prev_ym
 
 
 @router.get(
     "/rankings",
-    response_model=RankingsResponse,
-    summary="아파트 평단가 상승률 랭킹",
+    response_model=ComplexRankingsResponse,
+    summary="아파트 단지 평단가 상승률 랭킹",
     description=(
-        "수도권 시군구(구/동) 단위 아파트 ㎡당 단가 중위값 기반 상승률 랭킹. "
-        "데이터는 월별 배치에서 계산되며 실시간 계산은 수행하지 않습니다. "
-        "거래 건수가 최소 기준에 미달하는 지역은 excluded 목록에 포함됩니다."
+        "수도권 아파트 단지 단위 ㎡당 단가 중위값 기반 상승률 랭킹. "
+        "sido/gu/dong은 랭킹 단위가 아닌 범위 필터입니다. "
+        "데이터는 월별 배치에서 계산되며 실시간 계산은 수행하지 않습니다."
     ),
 )
 async def get_rankings_endpoint(
-    level: LevelLiteral = Query("gu", description="집계 단위 (gu=구, dong=동)"),
     period: PeriodLiteral = Query(..., description="기간 (3m|6m|1y|3y|5y|10y|20y)"),
-    region: str | None = Query(None, description="시도 필터 (11=서울, 28=인천, 41=경기)"),
+    sido: str | None = Query(None, description="시도 필터 (11=서울, 28=인천, 41=경기)"),
+    gu: str | None = Query(None, description="구 필터 — 5자리 시군구 코드 (예: 11680=강남구)"),
+    dong: str | None = Query(None, description="동 필터 — 법정동명 (예: 개포동)"),
     top: int = Query(20, ge=1, le=100, description="상위 N개 (기본 20)"),
     session: AsyncSession = Depends(get_async_session),
 ):
-    snapshot_ym = await get_latest_snapshot_ym(session, level, period)
+    snapshot_ym = await get_latest_complex_snapshot_ym(session, period)
     if snapshot_ym is None:
         raise HTTPException(
             status_code=404,
-            detail=f"{level} {period} 랭킹 데이터가 없습니다. 배치가 아직 실행되지 않았을 수 있습니다.",
+            detail=f"{period} 랭킹 데이터가 없습니다. 배치가 아직 실행되지 않았을 수 있습니다.",
         )
 
-    rows = await get_rankings_async(session, level, period, snapshot_ym, top, region)
+    rows = await get_complex_rankings_async(
+        session, period, snapshot_ym, top,
+        sido=sido, gu=gu, dong=dong,
+    )
     if not rows:
         raise HTTPException(
             status_code=404,
-            detail=f"{snapshot_ym} 기준 {level}/{period} 랭킹 데이터가 없습니다.",
+            detail=f"{snapshot_ym} 기준 {period} 랭킹 데이터가 없습니다.",
         )
 
-    ok_items: list[RankingItem] = []
-    excluded_items: list[RankingItem] = []
+    ok_items: list[ComplexRankingItem] = []
+    excluded_items: list[ComplexRankingItem] = []
     ok_count = 0
+    windows_overlap = False
 
     for row in rows:
-        item = RankingItem(
+        if row.windows_overlap:
+            windows_overlap = True
+
+        item = ComplexRankingItem(
             rank=row.rank,
+            complex_key=row.complex_key,
+            apt_name=row.apt_name,
             display_name=row.display_name,
             sigungu_code=row.sigungu_code,
             sigungu_name=row.sigungu_name,
@@ -90,12 +99,14 @@ async def get_rankings_endpoint(
         else:
             excluded_items.append(item)
 
-    meta = RankingsMeta(
+    meta = ComplexRankingsMeta(
         snapshot_ym=snapshot_ym,
         period=period,
-        level=level,
+        total_complexes=ok_count,
         is_recent_incomplete=_is_recent_incomplete(snapshot_ym),
+        windows_overlap=windows_overlap,
+        window_note=_WINDOW_OVERLAP_NOTE if windows_overlap else None,
         recent_note=_RECENT_NOTE,
         disclaimer=DISCLAIMER,
     )
-    return RankingsResponse(meta=meta, rankings=ok_items, excluded=excluded_items)
+    return ComplexRankingsResponse(meta=meta, rankings=ok_items, excluded=excluded_items)

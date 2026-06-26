@@ -50,7 +50,7 @@ def _generate_year_months(start_ym: str, end_ym: str) -> list[str]:
         result.append(f"{year}{month:02d}")
         month += 1
         if month > 12:
-            month = 1
+            month -= 12
             year += 1
     return result
 
@@ -139,20 +139,20 @@ def run_backfill(
     logger.info("백필 1회 실행 완료: %d개 시군구, 총 %d회 API 호출", len(collected_gu), total_api_calls)
 
     if not skip_aggregate and collected_gu:
-        logger.info("집계 시작 (처리된 시군구: %d개)", len(collected_gu))
-        from realestate.batch.aggregate import aggregate_sigungu
+        logger.info("단지 집계 시작 (처리된 시군구: %d개)", len(collected_gu))
+        from realestate.batch.complex_aggregate import aggregate_sigungu_complex
         for code in collected_gu:
             try:
-                aggregate_sigungu(code, all_yms)
+                aggregate_sigungu_complex(code, all_yms)
             except Exception:
-                logger.exception("%s 집계 중 오류", code)
+                logger.exception("%s 단지 집계 중 오류", code)
 
-        logger.info("랭킹 계산 시작")
-        from realestate.batch.compute_rankings import compute_all_rankings
+        logger.info("단지 랭킹 계산 시작")
+        from realestate.batch.complex_rankings import compute_complex_rankings
         try:
-            compute_all_rankings()
+            compute_complex_rankings()
         except Exception:
-            logger.exception("랭킹 계산 중 오류")
+            logger.exception("단지 랭킹 계산 중 오류")
 
     logger.info("백필 완료")
 

@@ -4,21 +4,20 @@ import { SkeletonList } from '../components/SkeletonList'
 import { ErrorState } from '../components/ErrorState'
 import { ReResultArea } from '../components/ReResultArea'
 import { useRealEstateRankings } from '../hooks/useRealEstateRankings'
-import type { Lang, ReLevel, RealEstatePeriod } from '../types'
+import type { Lang, RealEstatePeriod } from '../types'
 import type { Strings } from '../i18n/strings'
 
 interface Props {
   lang: Lang
-  level: ReLevel
   period: RealEstatePeriod
-  region: string
+  sido: string      // 시도 필터 ('11'=서울 등, ''=수도권 전체)
   retryKey: number
   onRetry: () => void
   t: Strings
 }
 
-export function RealEstateView({ lang, level, period, region, retryKey, onRetry, t }: Props) {
-  const { status, rankings, excluded, meta } = useRealEstateRankings(level, period, region, retryKey)
+export function RealEstateView({ lang, period, sido, retryKey, onRetry, t }: Props) {
+  const { status, rankings, excluded, meta } = useRealEstateRankings(period, sido, retryKey)
   const C = useC()
 
   if (status === 'loading') return <SkeletonList t={t} />

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { fetchReRankings } from '../api/realestate'
-import type { ReLevel, RealEstatePeriod, ReRankingItem, ReRankingsMeta } from '../types'
+import type { RealEstatePeriod, ReRankingItem, ReRankingsMeta } from '../types'
 
 type Status = 'loading' | 'ok' | 'empty' | 'error'
 
@@ -12,9 +12,8 @@ export interface ReRankingsState {
 }
 
 export function useRealEstateRankings(
-  level: ReLevel,
   period: RealEstatePeriod,
-  region: string,
+  sido: string,       // 시도 필터 ('11'=서울, '28'=인천, '41'=경기, ''=수도권 전체)
   retryKey: number = 0,
 ): ReRankingsState {
   const [state, setState] = useState<ReRankingsState>({
@@ -28,7 +27,7 @@ export function useRealEstateRankings(
     let cancelled = false
     setState({ status: 'loading', rankings: [], excluded: [], meta: null })
 
-    fetchReRankings(level, period, region || undefined)
+    fetchReRankings(period, sido || undefined)
       .then((data) => {
         if (cancelled) return
         if (data.rankings.length === 0 && data.excluded.length === 0) {
@@ -44,7 +43,7 @@ export function useRealEstateRankings(
       })
 
     return () => { cancelled = true }
-  }, [level, period, region, retryKey])
+  }, [period, sido, retryKey])
 
   return state
 }

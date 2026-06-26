@@ -76,26 +76,34 @@ export const RE_REGIONS: { label: Record<Lang, string>; value: string }[] = [
   { label: { ko: '인천',       en: 'Incheon'  }, value: '28' },
 ]
 
-// RE API response types
+// RE API response types — 단지(complex) 단위 랭킹
 export interface ReRankingItem {
-  sigungu_code: string
-  eupmyeondong: string | null
+  complex_key: string
+  apt_name: string
   display_name: string
+  sigungu_code: string
+  sigungu_name: string
+  eupmyeondong: string
   rank: number | null
   change_pct: number | null
   start_ym: string
   end_ym: string
+  start_price: number | null   // 만원/㎡
+  end_price: number | null     // 만원/㎡
   data_status: DataStatus
   start_tx_count: number | null
   end_tx_count: number | null
+  insufficient_reason: string | null
 }
 
 export interface ReRankingsMeta {
   snapshot_ym: string
-  region_level: ReLevel
   period: RealEstatePeriod
-  total_regions: number
+  total_complexes: number
   is_recent_incomplete: boolean
+  windows_overlap: boolean
+  window_note: string | null
+  recent_note: string
   disclaimer: string
 }
 

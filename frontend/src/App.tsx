@@ -145,9 +145,8 @@ export default function App() {
             {tab === 'realestate' && (
               <RealEstateView
                 lang={lang}
-                level={reLevel}
                 period={RE_PERIODS[rePeriodIdx]!.value}
-                region={reRegion}
+                sido={reRegion}
                 retryKey={reRetryKey}
                 onRetry={() => setReRetryKey((k) => k + 1)}
                 t={t}
@@ -211,9 +210,8 @@ export default function App() {
         {tab === 'realestate' && (
           <RealEstateView
             lang={lang}
-            level={reLevel}
             period={RE_PERIODS[rePeriodIdx]!.value}
-            region={reRegion}
+            sido={reRegion}
             retryKey={reRetryKey}
             onRetry={() => setReRetryKey((k) => k + 1)}
             t={t}

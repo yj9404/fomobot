@@ -53,10 +53,17 @@ class Settings(BaseSettings):
     molit_api_key: str = ""
 
     # 수집 설정
-    re_min_transaction_count: int = 5
     re_api_call_delay_sec: float = 0.3
     re_backfill_max_gu_per_run: int = 30
     re_backfill_start_year_month: str = "200601"
+
+    # 단지 랭킹 설정
+    # 윈도우 N: 시작·종료 앵커 기준으로 탐색할 월 수
+    #   시작 앵커: [start-N, start+N] (대칭, 3m 구간은 [start-N, start] 과거 방향만)
+    #   종료 앵커: [end-N, end]       (미래 방향 차단)
+    re_window_months: int = 3
+    # 최소 거래건수 M: 시작·종료 앵커 양쪽 모두 M건 이상이어야 랭킹 포함
+    re_min_tx_per_window: int = 3
 
 
 settings = Settings()
