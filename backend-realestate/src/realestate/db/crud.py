@@ -47,6 +47,15 @@ async def get_region_monthly_stats_async(
     return result.all()
 
 
+async def get_latest_snapshot_ym(
+    session: AsyncSession,
+    _region_level: str,
+    period: str,
+) -> str | None:
+    """헬스체크용. region_level은 무시하고 complex 스냅샷 기준으로 최신 ym 반환."""
+    return await get_latest_complex_snapshot_ym(session, period)
+
+
 async def get_latest_complex_snapshot_ym(
     session: AsyncSession,
     period: str,
