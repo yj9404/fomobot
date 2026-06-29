@@ -124,19 +124,27 @@ def _append_ticker_records(
     ticker: str,
     market: str,
 ) -> None:
-    for idx_date, row in sub.iterrows():
-        close_val = row.get("Close")
+    for row in sub.itertuples():
+        close_val = getattr(row, "Close", None)
         if pd.isna(close_val):
             continue
+
+        open_val = getattr(row, "Open", None)
+        high_val = getattr(row, "High", None)
+        low_val = getattr(row, "Low", None)
+        volume_val = getattr(row, "Volume", None)
+
+        idx_date = row.Index
+
         records.append({
             "ticker": ticker,
             "market": market,
             "date": idx_date.date() if hasattr(idx_date, "date") else idx_date,
-            "open": float(row["Open"]) if pd.notna(row.get("Open")) else None,
-            "high": float(row["High"]) if pd.notna(row.get("High")) else None,
-            "low": float(row["Low"]) if pd.notna(row.get("Low")) else None,
-            "close_adj": float(close_val),
-            "volume": int(row["Volume"]) if pd.notna(row.get("Volume")) else None,
+            "open": float(open_val) if pd.notna(open_val) and open_val is not None else None,
+            "high": float(high_val) if pd.notna(high_val) and high_val is not None else None,
+            "low": float(low_val) if pd.notna(low_val) and low_val is not None else None,
+            "close_adj": float(close_val) if close_val is not None else 0.0,
+            "volume": int(volume_val) if pd.notna(volume_val) and volume_val is not None else None,
             "market_cap": None,  # yfinance 배치에서 시총은 별도 조회 비용이 크므로 생략
         })
 
