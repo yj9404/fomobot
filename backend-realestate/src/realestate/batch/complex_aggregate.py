@@ -76,18 +76,19 @@ def aggregate_sigungu_complex(sigungu_code: str, deal_yms: list[str]) -> int:
         )
 
         records: list[dict] = []
-        for _, row in agg.iterrows():
-            key = row["complex_key"]
-            meta = meta_df.loc[key]
+        meta_dict = meta_df.to_dict('index')
+        for row in agg.itertuples(index=False):
+            key = row.complex_key
+            meta = meta_dict[key]
             records.append({
                 "complex_key": key,
-                "sigungu_code": row["sigungu_code"],
+                "sigungu_code": row.sigungu_code,
                 "eupmyeondong": str(meta["eupmyeondong"])[:100],
                 "apt_name": str(meta["apt_name"])[:200],
                 "apt_name_norm": str(meta["apt_name_norm"])[:200],
-                "deal_ym": row["deal_ym"],
-                "median_price_per_sqm": round(Decimal(str(row["median"])), 2),
-                "transaction_count": int(row["count"]),
+                "deal_ym": row.deal_ym,
+                "median_price_per_sqm": round(Decimal(str(row.median)), 2),
+                "transaction_count": int(row.count),
             })
 
         upsert_complex_stats_sync(session, records)
