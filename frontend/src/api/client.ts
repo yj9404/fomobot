@@ -1,4 +1,9 @@
-const BASE = import.meta.env.VITE_API_BASE_URL ?? ''
+const BASE_STOCK = import.meta.env.VITE_API_BASE_URL ?? ''
+const BASE_RE    = import.meta.env.VITE_RE_API_BASE_URL ?? ''
+
+function resolveBase(path: string): string {
+  return path.startsWith('/api/realestate') ? BASE_RE : BASE_STOCK
+}
 
 export class ApiError extends Error {
   constructor(
@@ -11,7 +16,7 @@ export class ApiError extends Error {
 }
 
 export async function apiFetch<T>(path: string, params: Record<string, string | number>): Promise<T> {
-  const url = new URL(BASE + path, window.location.href)
+  const url = new URL(resolveBase(path) + path, window.location.href)
   for (const [k, v] of Object.entries(params)) {
     url.searchParams.set(k, String(v))
   }
