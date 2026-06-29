@@ -70,13 +70,13 @@ def aggregate_sigungu(sigungu_code: str, deal_yms: list[str]) -> int:
                 .agg(median="median", count="count")
                 .reset_index()
             )
-            for _, row in gu_agg.iterrows():
+            for row in gu_agg.itertuples(index=False):
                 records.append({
                     "sigungu_code": sigungu_code,
                     "eupmyeondong": None,
-                    "deal_ym": row["deal_ym"],
-                    "median_price_per_sqm": round(Decimal(str(row["median"])), 2),
-                    "transaction_count": int(row["count"]),
+                    "deal_ym": row.deal_ym,
+                    "median_price_per_sqm": round(Decimal(str(row.median)), 2),
+                    "transaction_count": int(row.count),
                 })
 
             # 거래 없는 월도 0건으로 기록
@@ -97,13 +97,13 @@ def aggregate_sigungu(sigungu_code: str, deal_yms: list[str]) -> int:
                 .agg(median="median", count="count")
                 .reset_index()
             )
-            for _, row in dong_agg.iterrows():
+            for row in dong_agg.itertuples(index=False):
                 records.append({
                     "sigungu_code": sigungu_code,
-                    "eupmyeondong": str(row["eupmyeondong"])[:50],
-                    "deal_ym": row["deal_ym"],
-                    "median_price_per_sqm": round(Decimal(str(row["median"])), 2),
-                    "transaction_count": int(row["count"]),
+                    "eupmyeondong": str(row.eupmyeondong)[:50],
+                    "deal_ym": row.deal_ym,
+                    "median_price_per_sqm": round(Decimal(str(row.median)), 2),
+                    "transaction_count": int(row.count),
                 })
 
         upsert_monthly_stats_sync(session, records)
