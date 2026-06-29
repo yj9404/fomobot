@@ -54,7 +54,7 @@ export function BacktestSidebar({ selected, bt, market, days, lang, t }: Props) 
             <rect x="34" y="4" width="6" height="32" rx="2" fill={C.blue} />
           </svg>
           <div style={{ fontSize: 14, fontWeight: 600, color: C.textMuted }}>
-            {lang === 'ko' ? '종목을 선택하세요' : 'Select a stock'}
+            {lang === 'ko' ? '항목을 선택하세요' : 'Select an item'}
           </div>
           <div style={{ fontSize: 12, color: C.textDim, lineHeight: 1.6 }}>
             {lang === 'ko'
