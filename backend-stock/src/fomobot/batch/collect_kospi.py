@@ -146,11 +146,18 @@ def run_kospi_collection(target_date: date | None = None) -> None:
             low_col = "저가" if "저가" in ohlcv.columns else ohlcv.columns[2]
             vol_col = "거래량" if "거래량" in ohlcv.columns else ohlcv.columns[4]
 
+            close_idx = ohlcv.columns.get_loc(close_col) + 1
+            open_idx = ohlcv.columns.get_loc(open_col) + 1
+            high_idx = ohlcv.columns.get_loc(high_col) + 1
+            low_idx = ohlcv.columns.get_loc(low_col) + 1
+            vol_idx = ohlcv.columns.get_loc(vol_col) + 1
+
             cap_col = "시가총액" if "시가총액" in cap_df.columns else cap_df.columns[0]
 
             avg_vol_30d = _compute_avg_volume_30d(ohlcv, cap_df, today)
 
-            for idx_date, row in ohlcv.iterrows():
+            for row in ohlcv.itertuples(index=True, name=None):
+                idx_date = row[0]
                 cap_val = None
                 if not cap_df.empty and idx_date in cap_df.index:
                     cap_val = int(cap_df.loc[idx_date, cap_col])
@@ -159,11 +166,11 @@ def run_kospi_collection(target_date: date | None = None) -> None:
                     "ticker": ticker,
                     "market": MARKET,
                     "date": idx_date.date(),
-                    "open": float(row[open_col]) if pd.notna(row[open_col]) else None,
-                    "high": float(row[high_col]) if pd.notna(row[high_col]) else None,
-                    "low": float(row[low_col]) if pd.notna(row[low_col]) else None,
-                    "close_adj": float(row[close_col]),
-                    "volume": int(row[vol_col]) if pd.notna(row[vol_col]) else None,
+                    "open": float(row[open_idx]) if pd.notna(row[open_idx]) else None,
+                    "high": float(row[high_idx]) if pd.notna(row[high_idx]) else None,
+                    "low": float(row[low_idx]) if pd.notna(row[low_idx]) else None,
+                    "close_adj": float(row[close_idx]),
+                    "volume": int(row[vol_idx]) if pd.notna(row[vol_idx]) else None,
                     "market_cap": cap_val,
                 })
 
@@ -182,11 +189,13 @@ def run_kospi_collection(target_date: date | None = None) -> None:
     try:
         idx_df = _fetch_kospi_index(start_str, end_str)
         close_col = "종가" if "종가" in idx_df.columns else idx_df.columns[3]
-        for idx_date, row in idx_df.iterrows():
+        close_idx = idx_df.columns.get_loc(close_col) + 1
+        for row in idx_df.itertuples(index=True, name=None):
+            idx_date = row[0]
             index_records.append({
                 "index_code": INDEX_CODE,
                 "date": idx_date.date(),
-                "close_adj": float(row[close_col]),
+                "close_adj": float(row[close_idx]),
             })
     except Exception:
         logger.warning("KOSPI 지수 수집 실패")
@@ -239,9 +248,16 @@ def run_kospi_full_history(start_date: date, end_date: date) -> None:
             high_col = "고가" if "고가" in ohlcv.columns else ohlcv.columns[1]
             low_col = "저가" if "저가" in ohlcv.columns else ohlcv.columns[2]
             vol_col = "거래량" if "거래량" in ohlcv.columns else ohlcv.columns[4]
+
+            close_idx = ohlcv.columns.get_loc(close_col) + 1
+            open_idx = ohlcv.columns.get_loc(open_col) + 1
+            high_idx = ohlcv.columns.get_loc(high_col) + 1
+            low_idx = ohlcv.columns.get_loc(low_col) + 1
+            vol_idx = ohlcv.columns.get_loc(vol_col) + 1
             cap_col = "시가총액" if "시가총액" in cap_df.columns else (cap_df.columns[0] if not cap_df.empty else None)
 
-            for idx_date, row in ohlcv.iterrows():
+            for row in ohlcv.itertuples(index=True, name=None):
+                idx_date = row[0]
                 cap_val = None
                 if cap_col and not cap_df.empty and idx_date in cap_df.index:
                     cap_val = int(cap_df.loc[idx_date, cap_col])
@@ -250,11 +266,11 @@ def run_kospi_full_history(start_date: date, end_date: date) -> None:
                     "ticker": ticker,
                     "market": MARKET,
                     "date": idx_date.date(),
-                    "open": float(row[open_col]) if pd.notna(row[open_col]) else None,
-                    "high": float(row[high_col]) if pd.notna(row[high_col]) else None,
-                    "low": float(row[low_col]) if pd.notna(row[low_col]) else None,
-                    "close_adj": float(row[close_col]),
-                    "volume": int(row[vol_col]) if pd.notna(row[vol_col]) else None,
+                    "open": float(row[open_idx]) if pd.notna(row[open_idx]) else None,
+                    "high": float(row[high_idx]) if pd.notna(row[high_idx]) else None,
+                    "low": float(row[low_idx]) if pd.notna(row[low_idx]) else None,
+                    "close_adj": float(row[close_idx]),
+                    "volume": int(row[vol_idx]) if pd.notna(row[vol_idx]) else None,
                     "market_cap": cap_val,
                 })
 
@@ -277,11 +293,13 @@ def run_kospi_full_history(start_date: date, end_date: date) -> None:
     try:
         idx_df = _fetch_kospi_index(start_str, end_str)
         close_col = "종가" if "종가" in idx_df.columns else idx_df.columns[3]
-        for idx_date, row in idx_df.iterrows():
+        close_idx = idx_df.columns.get_loc(close_col) + 1
+        for row in idx_df.itertuples(index=True, name=None):
+            idx_date = row[0]
             index_records.append({
                 "index_code": INDEX_CODE,
                 "date": idx_date.date(),
-                "close_adj": float(row[close_col]),
+                "close_adj": float(row[close_idx]),
             })
     except Exception:
         logger.warning("KOSPI 지수 풀 수집 실패")
