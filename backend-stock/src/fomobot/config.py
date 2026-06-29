@@ -49,9 +49,6 @@ class Settings(BaseSettings):
     # prod 에서는 Railway Cron 이 fomobot.jobs.collect 를 직접 호출하므로 false
     enable_scheduler: bool = False
 
-    # Health check — 마지막 수집이 이 시간(시) 이상 지나면 unhealthy
-    health_stale_hours: int = 25
-
     # Noise Filter - KOSPI
     kospi_min_market_cap: int = 100_000_000_000        # 1000억원
     kospi_min_avg_volume_30d: int = 1_000_000_000       # 10억원/일

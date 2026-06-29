@@ -1,6 +1,6 @@
 import logging
 from contextlib import asynccontextmanager
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -86,8 +86,12 @@ async def health_check():
             latest = max(dates)
             last_updated = latest.isoformat()
             now_utc = datetime.now(timezone.utc).date()
-            delta_hours = (now_utc - latest).days * 24
-            stale = delta_hours >= settings.health_stale_hours
+            # 주말에는 시장이 쉬므로 시간 단순 비교 대신 영업일 기준으로 판단:
+            # 전날(now - 1)의 가장 최근 영업일보다 데이터가 오래됐으면 stale.
+            threshold = now_utc - timedelta(days=1)
+            while threshold.weekday() >= 5:  # 토=5, 일=6
+                threshold -= timedelta(days=1)
+            stale = latest < threshold
         # else: 데이터 없음(초기 배포) → stale=False 유지, 200 반환
 
     except Exception:
@@ -104,11 +108,11 @@ async def health_check():
                 "status": "unhealthy",
                 "reason": "stale_data",
                 "last_updated": last_updated,
-                "stale_threshold_hours": settings.health_stale_hours,
+                "expected_since": threshold.isoformat(),
             },
         )
 
-    body: dict = {"status": "ok", "last_updated": last_updated, "stale_threshold_hours": settings.health_stale_hours}
+    body: dict = {"status": "ok", "last_updated": last_updated}
     if last_updated is None:
         body["note"] = "no data yet"
     return body
