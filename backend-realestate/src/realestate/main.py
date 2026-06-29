@@ -8,6 +8,7 @@ from fastapi.responses import JSONResponse
 
 from realestate.api.rankings import router as rankings_router
 from realestate.api.region import router as region_router
+from realestate.api.search import router as search_router
 from realestate.config import settings
 from realestate.sentry_init import init_sentry
 
@@ -54,6 +55,7 @@ app.add_middleware(
 
 app.include_router(rankings_router)
 app.include_router(region_router)
+app.include_router(search_router)
 
 
 @app.api_route("/health", methods=["GET", "HEAD"], tags=["Health"])
