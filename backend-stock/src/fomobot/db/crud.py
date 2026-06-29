@@ -1,11 +1,11 @@
 from datetime import date
 from typing import Sequence
 
-from sqlalchemy import select, delete
+from sqlalchemy import func, or_, case, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 
-from fomobot.db.models import PriceDaily, IndexDaily, RankingSnapshot
+from fomobot.db.models import PriceDaily, IndexDaily, RankingSnapshot, SecuritiesMaster
 
 
 # ── RankingSnapshot ──────────────────────────────────────────────────────────
@@ -163,3 +163,107 @@ def get_index_range_sync(
         .order_by(IndexDaily.date)
     ).fetchall()
     return [r._asdict() for r in rows]
+
+
+# ── SecuritiesMaster (배치용 sync, API용 async) ──────────────────────────────
+
+def upsert_securities_master_sync(session: Session, records: list[dict]) -> None:
+    """ticker+market 기준 upsert. name은 NULL이 아닌 경우에만 덮어쓴다."""
+    from sqlalchemy.dialects.postgresql import insert as pg_insert
+    if not records:
+        return
+    stmt = pg_insert(SecuritiesMaster).values(records)
+    stmt = stmt.on_conflict_do_update(
+        constraint="uq_securities_master",
+        set_={
+            "name": func.coalesce(stmt.excluded.name, SecuritiesMaster.name),
+            "is_active": stmt.excluded.is_active,
+            "updated_at": func.now(),
+        },
+    )
+    session.execute(stmt)
+    session.commit()
+
+
+async def search_securities(
+    session: AsyncSession,
+    market: str,
+    q: str,
+    limit: int = 50,
+) -> Sequence[SecuritiesMaster]:
+    """ticker 접두 매칭 + 종목명 부분일치(대소문자 무시). 정확 매칭 우선 정렬."""
+    stmt = (
+        select(SecuritiesMaster)
+        .where(SecuritiesMaster.market == market)
+        .where(
+            or_(
+                SecuritiesMaster.ticker.ilike(q + "%"),
+                SecuritiesMaster.name.ilike("%" + q + "%"),
+            )
+        )
+        .order_by(
+            case(
+                (SecuritiesMaster.ticker.ilike(q), 0),
+                (SecuritiesMaster.ticker.ilike(q + "%"), 1),
+                else_=2,
+            ),
+            SecuritiesMaster.ticker,
+        )
+        .limit(limit)
+    )
+    result = await session.execute(stmt)
+    return result.scalars().all()
+
+
+async def get_security_name(
+    session: AsyncSession,
+    market: str,
+    ticker: str,
+) -> str | None:
+    stmt = (
+        select(SecuritiesMaster.name)
+        .where(SecuritiesMaster.market == market, SecuritiesMaster.ticker == ticker)
+    )
+    result = await session.execute(stmt)
+    return result.scalar_one_or_none()
+
+
+async def get_price_series_async(
+    session: AsyncSession,
+    market: str,
+    ticker: str,
+    start_date: date,
+    end_date: date,
+) -> list[tuple[date, float]]:
+    """단일 종목의 날짜별 수정주가 시계열 반환 (오름차순)."""
+    stmt = (
+        select(PriceDaily.date, PriceDaily.close_adj)
+        .where(
+            PriceDaily.market == market,
+            PriceDaily.ticker == ticker,
+            PriceDaily.date >= start_date,
+            PriceDaily.date <= end_date,
+            PriceDaily.close_adj.isnot(None),
+        )
+        .order_by(PriceDaily.date)
+    )
+    result = await session.execute(stmt)
+    return [(row.date, row.close_adj) for row in result.fetchall()]
+
+
+async def get_price_history_bounds_async(
+    session: AsyncSession,
+    market: str,
+    ticker: str,
+) -> tuple[date | None, date | None]:
+    """해당 종목의 PriceDaily 보유 이력 첫날·마지막날 반환."""
+    stmt = select(
+        func.min(PriceDaily.date),
+        func.max(PriceDaily.date),
+    ).where(
+        PriceDaily.market == market,
+        PriceDaily.ticker == ticker,
+    )
+    result = await session.execute(stmt)
+    row = result.one()
+    return row[0], row[1]

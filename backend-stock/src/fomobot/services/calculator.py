@@ -169,3 +169,33 @@ PERIOD_TO_DAYS: dict[str, int] = {
     "365d": 365,
     "1825d": 1825,
 }
+
+
+def compute_quote_metrics(prices: pd.Series) -> dict:
+    """
+    단일 종목 가격 시계열에서 수익률·MDD·변동성을 계산한다.
+
+    Parameters
+    ----------
+    prices : pd.Series
+        index=DatetimeIndex, 값=수정주가(float)
+
+    Returns
+    -------
+    dict with keys: return_pct, mdd_pct, volatility_annualized_pct
+        값이 계산 불가(데이터 부족)이면 None.
+    """
+    if prices.empty or len(prices) < 2:
+        return {"return_pct": None, "mdd_pct": None, "volatility_annualized_pct": None}
+
+    pm = prices.to_frame("_ticker")
+
+    ret = compute_returns(pm)
+    mdd = compute_mdd(pm)
+    vol = compute_volatility(pm)
+
+    return {
+        "return_pct": float(ret.iloc[0]) if not ret.empty else None,
+        "mdd_pct": float(mdd.iloc[0]) if not mdd.empty else None,
+        "volatility_annualized_pct": float(vol.iloc[0]) if not vol.empty else None,
+    }

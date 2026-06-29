@@ -24,7 +24,11 @@ from tenacity import (
 )
 
 from fomobot.config import settings
-from fomobot.db.crud import upsert_price_daily_sync, upsert_index_daily_sync
+from fomobot.db.crud import (
+    upsert_price_daily_sync,
+    upsert_index_daily_sync,
+    upsert_securities_master_sync,
+)
 from fomobot.db.session import SyncSessionLocal
 
 logger = logging.getLogger(__name__)
@@ -60,6 +64,24 @@ def fetch_nasdaq_tickers() -> list[str]:
             "AAPL", "MSFT", "NVDA", "AMZN", "META", "GOOGL", "GOOG",
             "TSLA", "AVGO", "COST", "NFLX", "AMD", "ADBE", "QCOM", "INTC",
         ]
+
+
+def _fetch_nasdaq_name_map() -> dict[str, str]:
+    """nasdaqlisted.txt에서 ticker→종목명 매핑을 반환한다. 실패 시 빈 dict."""
+    try:
+        resp = httpx.get(NASDAQ_LISTED_URL, timeout=30)
+        resp.raise_for_status()
+        df = pd.read_csv(io.StringIO(resp.text), sep="|")
+        df = df[df["Symbol"].notna() & ~df["Symbol"].str.startswith("File", na=False)]
+        if "ETF" in df.columns:
+            df = df[df["ETF"] != "Y"]
+        df = df[df["Symbol"].str.isalpha() & (df["Symbol"].str.len() <= 5)]
+        if "Security Name" not in df.columns:
+            return {}
+        return dict(zip(df["Symbol"].str.strip(), df["Security Name"].str.strip()))
+    except Exception:
+        logger.warning("NASDAQ 종목명 매핑 조회 실패")
+        return {}
 
 
 @retry(
@@ -157,6 +179,7 @@ def run_nasdaq_collection(target_date: date | None = None) -> None:
 
     logger.info("NASDAQ 수집 시작: %s ~ %s", start_str, end_str)
 
+    name_map = _fetch_nasdaq_name_map()
     tickers = fetch_nasdaq_tickers()
     batch_size = settings.batch_size_nasdaq
     batches = [tickers[i:i + batch_size] for i in range(0, len(tickers), batch_size)]
@@ -214,6 +237,11 @@ def run_nasdaq_collection(target_date: date | None = None) -> None:
     except Exception:
         logger.warning("QQQ 지수 수집 실패")
 
+    master_records = [
+        {"ticker": t, "market": MARKET, "name": name_map.get(t), "is_active": True}
+        for t in tickers
+    ]
+
     with SyncSessionLocal() as session:
         if all_records:
             upsert_price_daily_sync(session, all_records)
@@ -221,6 +249,9 @@ def run_nasdaq_collection(target_date: date | None = None) -> None:
         if index_records:
             upsert_index_daily_sync(session, index_records)
             logger.info("QQQ 지수 %d건 저장", len(index_records))
+        if master_records:
+            upsert_securities_master_sync(session, master_records)
+            logger.info("NASDAQ securities_master %d건 저장 완료", len(master_records))
 
     logger.info("NASDAQ 수집 완료")
 
@@ -232,6 +263,7 @@ def run_nasdaq_full_history(start_date: date, end_date: date) -> None:
 
     logger.info("NASDAQ 풀 히스토리 수집: %s ~ %s", start_str, end_str)
 
+    name_map = _fetch_nasdaq_name_map()
     tickers = fetch_nasdaq_tickers()
     batch_size = settings.batch_size_nasdaq
     batches = [tickers[i:i + batch_size] for i in range(0, len(tickers), batch_size)]
@@ -267,7 +299,15 @@ def run_nasdaq_full_history(start_date: date, end_date: date) -> None:
         if (batch_idx + 1) % 10 == 0:
             logger.info("진행률: %d/%d 배치", batch_idx + 1, len(batches))
 
+    master_records = [
+        {"ticker": t, "market": MARKET, "name": name_map.get(t), "is_active": True}
+        for t in tickers
+    ]
+
     with SyncSessionLocal() as session:
         if all_records:
             upsert_price_daily_sync(session, all_records)
+        if master_records:
+            upsert_securities_master_sync(session, master_records)
+            logger.info("NASDAQ securities_master %d건 저장 완료", len(master_records))
     logger.info("NASDAQ 풀 히스토리 수집 완료")

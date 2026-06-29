@@ -1,6 +1,6 @@
-from datetime import date
 from sqlalchemy import (
-    BigInteger, Column, Date, Float, Integer, String, UniqueConstraint, Index
+    BigInteger, Boolean, Column, Date, DateTime, Float, Integer, String,
+    UniqueConstraint, Index, text,
 )
 from sqlalchemy.orm import DeclarativeBase
 
@@ -76,4 +76,24 @@ class RankingSnapshot(Base):
             name="uq_ranking_snapshot",
         ),
         Index("ix_ranking_snapshot_market_period_date", "market", "period", "snapshot_date"),
+    )
+
+
+class SecuritiesMaster(Base):
+    """
+    종목 마스터 테이블. 티커↔종목명 매핑 및 상장 여부 관리.
+    수집 배치가 upsert, 검색 API가 조회한다.
+    """
+    __tablename__ = "securities_master"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    ticker = Column(String(20), nullable=False)
+    market = Column(String(10), nullable=False)   # "kospi" | "nasdaq"
+    name = Column(String(200))
+    is_active = Column(Boolean, nullable=False, server_default=text("true"))
+    updated_at = Column(DateTime(timezone=True), server_default=text("NOW()"))
+
+    __table_args__ = (
+        UniqueConstraint("ticker", "market", name="uq_securities_master"),
+        Index("ix_securities_master_market_name", "market", "name"),
     )

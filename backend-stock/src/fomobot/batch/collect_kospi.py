@@ -21,7 +21,11 @@ from tenacity import (
     before_sleep_log,
 )
 
-from fomobot.db.crud import upsert_price_daily_sync, upsert_index_daily_sync
+from fomobot.db.crud import (
+    upsert_price_daily_sync,
+    upsert_index_daily_sync,
+    upsert_securities_master_sync,
+)
 from fomobot.db.session import SyncSessionLocal
 
 logger = logging.getLogger(__name__)
@@ -80,6 +84,15 @@ def _fetch_ticker_name(ticker: str) -> str:
     return stock.get_market_ticker_name(ticker)
 
 
+def _fetch_ticker_name_safe(ticker: str) -> str | None:
+    """재시도 없이 종목명 1회 조회. 실패 시 None 반환."""
+    try:
+        from pykrx import stock
+        return stock.get_market_ticker_name(ticker)
+    except Exception:
+        return None
+
+
 def _fetch_kospi_index(start: str, end: str) -> pd.DataFrame:
     """KOSPI 지수 수정주가 조회."""
     from pykrx import stock
@@ -129,6 +142,7 @@ def run_kospi_collection(target_date: date | None = None) -> None:
     logger.info("총 %d개 KOSPI 종목 처리 시작", len(tickers))
 
     price_records: list[dict] = []
+    master_records: list[dict] = []
     failed_tickers: list[str] = []
 
     for i, ticker in enumerate(tickers):
@@ -149,6 +163,12 @@ def run_kospi_collection(target_date: date | None = None) -> None:
             cap_col = "시가총액" if "시가총액" in cap_df.columns else cap_df.columns[0]
 
             avg_vol_30d = _compute_avg_volume_30d(ohlcv, cap_df, today)
+            master_records.append({
+                "ticker": ticker,
+                "market": MARKET,
+                "name": _fetch_ticker_name_safe(ticker),
+                "is_active": True,
+            })
 
             for idx_date, row in ohlcv.iterrows():
                 cap_val = None
@@ -199,6 +219,9 @@ def run_kospi_collection(target_date: date | None = None) -> None:
         if index_records:
             upsert_index_daily_sync(session, index_records)
             logger.info("KOSPI 지수 %d건 저장 완료", len(index_records))
+        if master_records:
+            upsert_securities_master_sync(session, master_records)
+            logger.info("KOSPI securities_master %d건 저장 완료", len(master_records))
 
     if failed_tickers:
         logger.warning("KOSPI 수집 실패 종목 %d개: %s", len(failed_tickers), failed_tickers[:10])
@@ -224,6 +247,7 @@ def run_kospi_full_history(start_date: date, end_date: date) -> None:
         return
 
     price_records: list[dict] = []
+    master_records: list[dict] = []
     index_records: list[dict] = []
 
     for i, ticker in enumerate(tickers):
@@ -233,6 +257,13 @@ def run_kospi_full_history(start_date: date, end_date: date) -> None:
 
             if ohlcv.empty:
                 continue
+
+            master_records.append({
+                "ticker": ticker,
+                "market": MARKET,
+                "name": _fetch_ticker_name_safe(ticker),
+                "is_active": True,
+            })
 
             close_col = "종가" if "종가" in ohlcv.columns else ohlcv.columns[3]
             open_col = "시가" if "시가" in ohlcv.columns else ohlcv.columns[0]
@@ -291,5 +322,8 @@ def run_kospi_full_history(start_date: date, end_date: date) -> None:
             upsert_price_daily_sync(session, price_records)
         if index_records:
             upsert_index_daily_sync(session, index_records)
+        if master_records:
+            upsert_securities_master_sync(session, master_records)
+            logger.info("KOSPI securities_master %d건 저장 완료", len(master_records))
 
     logger.info("KOSPI 풀 히스토리 수집 완료")
