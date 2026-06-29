@@ -49,14 +49,14 @@ class ReComplexStat(Base):
     """
     단지 월별 집계 (배치가 re_transaction에서 계산해 저장).
 
-    complex_key = SHA1(sigungu_code|eupmyeondong|apt_name_norm)
+    complex_key = SHA256(sigungu_code|eupmyeondong|apt_name_norm)
     랭킹 계산은 re_transaction을 직접 읽으므로 이 테이블은
     단지 메타데이터 캐시 및 향후 단지 상세 API용으로 사용된다.
     """
     __tablename__ = "re_complex_stat"
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
-    complex_key = Column(String(64), nullable=False)       # SHA1 hex (40자)
+    complex_key = Column(String(64), nullable=False)       # SHA256 hex (64자)
     sigungu_code = Column(String(5), nullable=False)
     eupmyeondong = Column(String(100), nullable=False)
     apt_name = Column(String(200), nullable=False)         # 표시용 원본명 (최근 표기)

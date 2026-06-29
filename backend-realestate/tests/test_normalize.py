@@ -54,10 +54,10 @@ class TestMakeComplexKey:
         k2 = make_complex_key("41135", "개포동", "래미안")
         assert k1 != k2
 
-    def test_key_is_40_hex_chars(self):
-        """키는 SHA-1 hex 40자다."""
+    def test_key_is_64_hex_chars(self):
+        """키는 SHA-256 hex 64자다."""
         key = make_complex_key("11680", "개포동", "래미안개포1단지")
-        assert len(key) == 40
+        assert len(key) == 64
         assert all(c in "0123456789abcdef" for c in key)
 
     def test_normalized_name_matches(self):
