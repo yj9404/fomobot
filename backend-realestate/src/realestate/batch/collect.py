@@ -106,15 +106,24 @@ def _clean_df(raw: pd.DataFrame, sigungu_code: str, sigungu_name: str, deal_ym: 
         logger.warning("%s %s: 필수 컬럼 없음 %s (보유: %s)", sigungu_code, deal_ym, missing, list(df.columns))
         return []
 
+    col_list = list(df.columns)
+    apt_idx = col_list.index(apt_col) if apt_col else None
+    dong_idx = col_list.index(dong_col) if dong_col else None
+    amount_idx = col_list.index(amount_col)
+    area_idx = col_list.index(area_col)
+    day_idx = col_list.index(day_col)
+    floor_idx = col_list.index(floor_col) if floor_col else None
+    build_idx = col_list.index(build_col) if build_col else None
+
     records = []
-    for _, row in df.iterrows():
-        apt_name = str(row[apt_col]).strip()[:100] if apt_col else ""
-        eupmyeondong = str(row[dong_col]).strip()[:50] if dong_col else ""
-        deal_amount = _parse_amount(row[amount_col])
-        exclusive_area = _parse_decimal(row[area_col])
-        deal_day = _parse_int(row[day_col])
-        floor = _parse_int(row[floor_col]) if floor_col else None
-        build_year = _parse_int(row[build_col]) if build_col else None
+    for row in df.itertuples(index=False, name=None):
+        apt_name = str(row[apt_idx]).strip()[:100] if apt_col else ""
+        eupmyeondong = str(row[dong_idx]).strip()[:50] if dong_col else ""
+        deal_amount = _parse_amount(row[amount_idx])
+        exclusive_area = _parse_decimal(row[area_idx])
+        deal_day = _parse_int(row[day_idx])
+        floor = _parse_int(row[floor_idx]) if floor_col else None
+        build_year = _parse_int(row[build_idx]) if build_col else None
 
         # 이상치 필터: 면적·금액이 0 이하면 skip
         if not deal_amount or deal_amount <= 0:
