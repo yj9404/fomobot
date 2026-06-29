@@ -66,10 +66,12 @@ def _fetch_name_map(market: str, tickers: list[str]) -> dict[str, str]:
             df = df[df["Symbol"].notna() & ~df["Symbol"].str.startswith("File", na=False)]
             ticker_set = set(tickers)
             name_col = "Security Name" if "Security Name" in df.columns else df.columns[1]
-            for _, row in df.iterrows():
-                sym = str(row["Symbol"]).strip()
+            sym_idx = df.columns.get_loc("Symbol")
+            name_idx = df.columns.get_loc(name_col)
+            for row in df.itertuples(index=False, name=None):
+                sym = str(row[sym_idx]).strip()
                 if sym in ticker_set:
-                    name_map[sym] = str(row[name_col]).strip()[:200]
+                    name_map[sym] = str(row[name_idx]).strip()[:200]
         except Exception:
             logger.warning("NASDAQ 종목명 조회 실패")
     return name_map
@@ -189,23 +191,30 @@ def compute_rankings_for_market(market: str, snapshot_date: date, top: int = 100
             ranking_df = build_ranking_df(price_matrix, idx_series, top=top)
 
             period_records: list[dict] = []
-            for _, row in ranking_df.iterrows():
+            rank_idx = ranking_df.columns.get_loc("rank")
+            ticker_idx = ranking_df.columns.get_loc("ticker")
+            ret_idx = ranking_df.columns.get_loc("return_pct")
+            mdd_idx = ranking_df.columns.get_loc("mdd_pct")
+            vol_idx = ranking_df.columns.get_loc("volatility_annualized_pct")
+            exc_idx = ranking_df.columns.get_loc("excess_return_pct")
+
+            for row in ranking_df.itertuples(index=False, name=None):
                 period_records.append({
                     "snapshot_date": snapshot_date,
                     "market": market,
                     "period": period_key,
-                    "rank": int(row["rank"]),
-                    "ticker": str(row["ticker"]),
+                    "rank": int(row[rank_idx]),
+                    "ticker": str(row[ticker_idx]),
                     "name": None,
-                    "return_pct": float(row["return_pct"]),
-                    "mdd_pct": float(row["mdd_pct"]) if pd.notna(row["mdd_pct"]) else None,
+                    "return_pct": float(row[ret_idx]),
+                    "mdd_pct": float(row[mdd_idx]) if pd.notna(row[mdd_idx]) else None,
                     "volatility_annualized_pct": (
-                        float(row["volatility_annualized_pct"])
-                        if pd.notna(row["volatility_annualized_pct"]) else None
+                        float(row[vol_idx])
+                        if pd.notna(row[vol_idx]) else None
                     ),
                     "excess_return_pct": (
-                        float(row["excess_return_pct"])
-                        if pd.notna(row["excess_return_pct"]) else None
+                        float(row[exc_idx])
+                        if pd.notna(row[exc_idx]) else None
                     ),
                 })
 
