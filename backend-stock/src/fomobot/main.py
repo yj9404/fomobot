@@ -61,13 +61,8 @@ app.include_router(backtest_router)
 async def health_check():
     """
     앱 상태 + 마지막 수집 성공 시각을 반환한다.
-    마지막 랭킹 스냅샷이 HEALTH_STALE_HOURS 이상 오래됐으면 503 unhealthy.
+    마지막 랭킹 스냅샷이 전날의 가장 최근 영업일보다 오래됐으면 503 unhealthy.
     UptimeRobot 이 이 엔드포인트를 모니터링해 데이터 정체를 감지한다.
-
-    TODO(부동산 확장): 부동산 백엔드 추가 시 각 도메인의 신선도를 개별 필드로 집계할 것.
-      예: {"status": "ok", "stock": {"last_updated": "...", "stale": false},
-                           "realestate": {"last_updated": "...", "stale": false}}
-      Railway healthcheckPath 와 UptimeRobot URL 은 /health 그대로 유지.
     """
     from fomobot.db.session import AsyncSessionLocal
     from fomobot.db.crud import get_latest_snapshot_date
