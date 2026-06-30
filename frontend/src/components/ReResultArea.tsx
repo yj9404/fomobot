@@ -16,6 +16,7 @@ function fmtPct(n: number | null): string {
   return (n >= 0 ? '+' : '') + n.toFixed(1) + '%'
 }
 
+
 function fmtWon(manwon: number | null): string {
   if (manwon == null) return '—'
   const eok = Math.floor(manwon / 10000)
@@ -116,20 +117,29 @@ export function ReResultArea({ rankings, excluded, meta, lang, period }: Props) 
               </div>
             )}
 
-            {/* 거래금액 변화 */}
-            {(item.start_deal_amount != null || item.end_deal_amount != null) && (
+            {/* 거래금액 변화 — 국평(84㎡) 기준 추정 */}
+            {(item.start_price != null || item.end_price != null) && (
               <div>
-                <div style={{ fontSize: 10, color: C.textDim, marginBottom: 4 }}>
-                  {lang === 'ko' ? '중위 거래금액' : 'Median deal price'}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 4 }}>
+                  <span style={{ fontSize: 10, color: C.textDim }}>
+                    {lang === 'ko' ? '추정 거래금액' : 'Est. deal price'}
+                  </span>
+                  <span style={{
+                    fontSize: 9, color: C.textDim,
+                    background: C.surfaceAlt, border: `1px solid ${C.borderSub}`,
+                    padding: '1px 5px', borderRadius: 4,
+                  }}>
+                    84㎡ 가정
+                  </span>
                 </div>
                 <div style={{
                   display: 'flex', alignItems: 'center', gap: 8,
                   fontSize: 12, fontFamily: FONT.mono, color: C.textMuted,
                 }}>
-                  <span>{fmtAmount(item.start_deal_amount)}</span>
+                  <span>{fmtAmount(item.start_price != null ? item.start_price * 84 : null)}</span>
                   <span style={{ color: C.textDim }}>→</span>
                   <span style={{ color: retColor, fontWeight: 600 }}>
-                    {fmtAmount(item.end_deal_amount)}
+                    {fmtAmount(item.end_price != null ? item.end_price * 84 : null)}
                   </span>
                 </div>
               </div>
@@ -223,7 +233,7 @@ export function ReResultArea({ rankings, excluded, meta, lang, period }: Props) 
                     {item.display_name}
                   </div>
                   <div style={{ fontSize: 11, color: C.textDim, marginTop: 2, fontFamily: FONT.mono }}>
-                    {fmtWon(item.start_deal_amount)} → {fmtWon(item.end_deal_amount)}
+                    {fmtWon(item.start_price != null ? item.start_price * 84 : null)} → {fmtWon(item.end_price != null ? item.end_price * 84 : null)}
                   </div>
                 </div>
 
