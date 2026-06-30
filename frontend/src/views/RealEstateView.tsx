@@ -69,7 +69,7 @@ export function RealEstateView({ lang, period, sido, gu, dong, retryKey, onRetry
   return (
     <>
       <ReAptSearchArea period={period} lang={lang} t={t} />
-      <ReResultArea rankings={rankings} excluded={excluded} meta={meta} lang={lang} />
+      <ReResultArea rankings={rankings} excluded={excluded} meta={meta} lang={lang} period={period} />
     </>
   )
 }
