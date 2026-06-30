@@ -91,7 +91,9 @@ async def get_complex_rankings_async(
             ReComplexRankingSnapshot.snapshot_ym == snapshot_ym,
         )
         .order_by(
-            ReComplexRankingSnapshot.data_status,   # 'ok' < others (알파벳순)
+            # ok를 앞에, 나머지(insufficient/no_end/no_start)를 뒤에
+            # 'ok' > 'i'/'n' 이므로 desc()를 써야 ok가 먼저 온다
+            ReComplexRankingSnapshot.data_status.desc(),
             ReComplexRankingSnapshot.rank.asc().nulls_last(),
         )
     )
