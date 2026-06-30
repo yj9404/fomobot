@@ -76,13 +76,9 @@ export function ReResultArea({ rankings, excluded, meta, lang, period }: Props) 
 
     return (
       <div style={{
-        margin: '0 12px 4px',
         background: C.surfaceBt,
-        border: `1px solid ${C.borderSub}`,
-        borderLeft: `3px solid ${C.blue}`,
-        borderRadius: '0 0 10px 10px',
-        borderTop: 'none',
-        padding: '12px 14px 14px',
+        borderTop: `1px solid ${C.borderFaint}`,
+        padding: '12px 14px 14px 20px',
       }}>
         {item.data_status !== 'ok' && (
           <div style={{
@@ -139,15 +135,10 @@ export function ReResultArea({ rankings, excluded, meta, lang, period }: Props) 
               </div>
             )}
 
-            {/* 기간 + 건수 */}
+            {/* 기간 */}
             {ymRange && (
               <div style={{ fontSize: 10.5, color: C.textDim, fontFamily: FONT.mono }}>
                 {ymRange}
-                {item.start_tx_count != null && item.end_tx_count != null && (
-                  <span style={{ marginLeft: 8, color: C.textDim }}>
-                    ({item.start_tx_count}건 → {item.end_tx_count}건)
-                  </span>
-                )}
               </div>
             )}
           </div>
@@ -192,19 +183,23 @@ export function ReResultArea({ rankings, excluded, meta, lang, period }: Props) 
         {rankings.map((item) => {
           const isSelected = selectedKey === item.complex_key
           return (
-            <div key={item.complex_key}>
+            <div
+              key={item.complex_key}
+              style={{
+                borderLeft: isSelected ? `3px solid ${C.blue}` : '3px solid transparent',
+                borderBottom: `1px solid ${isSelected ? C.borderSub : C.borderFaint}`,
+                transition: 'border-color 0.12s',
+              }}
+            >
               <div
                 onClick={() => handleRowClick(item)}
                 style={{
-                  padding: '14px 20px',
-                  borderBottom: isSelected ? 'none' : `1px solid ${C.borderFaint}`,
+                  padding: '14px 17px 14px 17px',
                   display: 'flex',
                   alignItems: 'center',
                   gap: 12,
                   cursor: 'pointer',
                   background: isSelected ? C.surfaceAlt : 'transparent',
-                  borderTop: isSelected ? `1px solid ${C.borderSub}` : 'none',
-                  borderLeft: isSelected ? `3px solid ${C.blue}` : '3px solid transparent',
                   transition: 'background 0.12s',
                 }}
                 onMouseEnter={(e) => {
@@ -252,10 +247,6 @@ export function ReResultArea({ rankings, excluded, meta, lang, period }: Props) 
 
               {/* 인라인 상세 패널 */}
               {isSelected && detailItem && renderDetail(detailItem)}
-
-              {isSelected && (
-                <div style={{ height: 1, background: C.borderSub }} />
-              )}
             </div>
           )
         })}
