@@ -40,15 +40,8 @@ export function StockSearchArea({ market, lang, t }: Props) {
   const { results, loading: searching } = useStockSearch(market, open ? q : '')
 
   const period: Period | null = customMode ? null : (PERIODS[fixedPeriodIdx]!.value as Period)
-  const quoteState = useStockQuote(
-    market,
-    ticker,
-    period,
-    applied?.start,
-    applied?.end,
-  )
+  const quoteState = useStockQuote(market, ticker, period, applied?.start, applied?.end)
 
-  // market 바뀌면 초기화
   useEffect(() => {
     setQ('')
     setTicker(null)
@@ -58,7 +51,6 @@ export function StockSearchArea({ market, lang, t }: Props) {
     setCustomMode(false)
   }, [market])
 
-  // 외부 클릭 시 드롭다운 닫기
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
@@ -99,22 +91,35 @@ export function StockSearchArea({ market, lang, t }: Props) {
   return (
     <div
       ref={containerRef}
-      style={{
-        borderBottom: `1px solid ${C.borderSub}`,
-        fontFamily: FONT.sans,
-        background: C.surface,
-      }}
+      style={{ fontFamily: FONT.sans, background: C.surface }}
     >
-      {/* 검색 입력 */}
-      <div style={{ padding: '12px 16px 10px', position: 'relative' }}>
+      {/* ── 섹션 헤더 + 검색 입력 ─────────────────────────────────────── */}
+      <div style={{
+        padding: '14px 16px 10px',
+        borderBottom: ticker ? 'none' : `1px solid ${C.borderSub}`,
+        position: 'relative',
+      }}>
+        {/* 섹션 라벨 */}
         <div style={{
-          display: 'flex', alignItems: 'center', gap: 8,
+          fontSize: 10, fontWeight: 700, color: C.textDim,
+          letterSpacing: '0.08em', textTransform: 'uppercase',
+          marginBottom: 8,
+        }}>
+          {lang === 'ko' ? '종목 검색' : 'Stock Search'}
+        </div>
+
+        {/* 입력창 — 라이트/다크 모두 잘 보이도록 border 강화 */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 9,
           background: C.surfaceAlt,
-          border: `1px solid ${open ? 'rgba(62,123,250,0.4)' : C.border}`,
-          borderRadius: 10, padding: '8px 12px',
+          border: `1.5px solid ${open ? 'rgba(62,123,250,0.55)' : 'rgba(62,123,250,0.22)'}`,
+          borderRadius: 10, padding: '9px 13px',
           transition: 'border-color 0.15s',
         }}>
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke={C.textDim} strokeWidth="1.8" strokeLinecap="round">
+          <svg
+            width="14" height="14" viewBox="0 0 16 16"
+            fill="none" stroke={C.blueSoft} strokeWidth="1.8" strokeLinecap="round"
+          >
             <circle cx="6.5" cy="6.5" r="4.5" />
             <line x1="10.5" y1="10.5" x2="14" y2="14" />
           </svg>
@@ -129,7 +134,7 @@ export function StockSearchArea({ market, lang, t }: Props) {
               }
             }}
             onFocus={() => { if (q) setOpen(true) }}
-            placeholder={lang === 'ko' ? '종목명 또는 코드 검색' : 'Search ticker or name'}
+            placeholder={lang === 'ko' ? '종목명 또는 코드 (예: 삼성전자, AAPL)' : 'Ticker or name (e.g. AAPL)'}
             style={{
               flex: 1, border: 'none', outline: 'none',
               background: 'transparent', fontSize: 13,
@@ -141,7 +146,7 @@ export function StockSearchArea({ market, lang, t }: Props) {
               onClick={handleClear}
               style={{
                 border: 'none', background: 'transparent',
-                cursor: 'pointer', color: C.textDim,
+                cursor: 'pointer', color: C.textMuted,
                 fontSize: 13, padding: 0, lineHeight: 1,
                 display: 'flex', alignItems: 'center',
               }}
@@ -155,8 +160,9 @@ export function StockSearchArea({ market, lang, t }: Props) {
         {open && q.length > 0 && (
           <div style={{
             position: 'absolute', left: 16, right: 16, top: 'calc(100% - 4px)',
-            background: C.surface, border: `1px solid ${C.border}`,
-            borderRadius: 10, boxShadow: '0 8px 28px rgba(0,0,0,0.22)',
+            background: C.surface,
+            border: `1.5px solid rgba(62,123,250,0.28)`,
+            borderRadius: 10, boxShadow: '0 8px 28px rgba(0,0,0,0.28)',
             zIndex: 50, overflow: 'hidden', maxHeight: 220, overflowY: 'auto',
           }}>
             {searching && (
@@ -178,9 +184,13 @@ export function StockSearchArea({ market, lang, t }: Props) {
                   display: 'flex', alignItems: 'center', gap: 10,
                   borderBottom: `1px solid ${C.borderFaint}`,
                   background: ticker === r.ticker ? C.surfaceAlt : 'transparent',
+                  transition: 'background 0.1s',
                 }}
                 onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = C.hoverBg }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = ticker === r.ticker ? C.surfaceAlt : 'transparent' }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLDivElement).style.background =
+                    ticker === r.ticker ? C.surfaceAlt : 'transparent'
+                }}
               >
                 <span style={{
                   fontFamily: FONT.mono, fontSize: 11, color: C.blueSoft,
@@ -189,13 +199,17 @@ export function StockSearchArea({ market, lang, t }: Props) {
                 }}>
                   {r.ticker}
                 </span>
-                <span style={{ fontSize: 13, color: C.textPrimary, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <span style={{
+                  fontSize: 13, color: C.textPrimary, flex: 1,
+                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                }}>
                   {r.name ?? r.ticker}
                 </span>
                 {!r.is_active && (
                   <span style={{
                     fontSize: 10, color: C.textDim,
-                    background: C.surfaceAlt, padding: '1px 5px', borderRadius: 4, flexShrink: 0,
+                    background: C.surfaceAlt, padding: '1px 5px', borderRadius: 4,
+                    flexShrink: 0,
                   }}>
                     {lang === 'ko' ? '상장폐지' : 'Delisted'}
                   </span>
@@ -206,11 +220,19 @@ export function StockSearchArea({ market, lang, t }: Props) {
         )}
       </div>
 
-      {/* Quote 패널 */}
+      {/* ── Quote 패널 (종목 선택 후) ──────────────────────────────────── */}
       {ticker && (
-        <div style={{ padding: '0 16px 14px' }}>
+        <div style={{
+          margin: '0 12px 12px',
+          background: C.surfaceBt,
+          border: `1px solid ${C.borderSub}`,
+          borderLeft: `3px solid ${C.blue}`,
+          borderRadius: '0 0 10px 10px',
+          borderTop: 'none',
+          padding: '12px 14px 14px',
+        }}>
           {/* 종목 헤더 */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
             <span style={{ fontSize: 14, fontWeight: 700, color: C.textPrimary }}>
               {selectedName ?? ticker}
             </span>
@@ -219,7 +241,7 @@ export function StockSearchArea({ market, lang, t }: Props) {
             )}
           </div>
 
-          {/* 기간 탭 */}
+          {/* 기간 탭 + 직접 입력 */}
           <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 10 }}>
             {PERIODS.map((p, i) => {
               const active = !customMode && fixedPeriodIdx === i
@@ -230,53 +252,71 @@ export function StockSearchArea({ market, lang, t }: Props) {
                   style={{
                     padding: '5px 10px', borderRadius: 7, fontSize: 11.5, fontWeight: 600,
                     fontFamily: FONT.sans, cursor: 'pointer',
-                    background: active ? 'rgba(62,123,250,0.14)' : 'transparent',
-                    color: active ? C.blueSoft : C.textDim,
-                    border: active ? '1px solid rgba(62,123,250,0.32)' : '1px solid transparent',
+                    background: active ? 'rgba(62,123,250,0.15)' : C.surfaceAlt,
+                    color: active ? C.blueSoft : C.textMuted,
+                    border: active ? '1px solid rgba(62,123,250,0.35)' : `1px solid ${C.borderSub}`,
                   }}
                 >
                   {p.label[lang]}
                 </button>
               )
             })}
+            {/* 직접 입력 버튼 — 구분선 후 배치로 시각적 분리 */}
+            <div style={{ width: 1, background: C.borderSub, margin: '4px 2px' }} />
             <button
               onClick={() => setCustomMode((v) => !v)}
               style={{
                 padding: '5px 10px', borderRadius: 7, fontSize: 11.5, fontWeight: 600,
                 fontFamily: FONT.sans, cursor: 'pointer',
-                background: customMode ? 'rgba(62,123,250,0.14)' : 'transparent',
-                color: customMode ? C.blueSoft : C.textDim,
-                border: customMode ? '1px solid rgba(62,123,250,0.32)' : '1px solid transparent',
+                background: customMode ? 'rgba(62,123,250,0.15)' : C.surfaceAlt,
+                color: customMode ? C.blueSoft : C.textMuted,
+                border: customMode ? '1px solid rgba(62,123,250,0.35)' : `1px solid ${C.borderSub}`,
+                display: 'flex', alignItems: 'center', gap: 5,
               }}
             >
-              {lang === 'ko' ? '직접 입력' : 'Custom'}
+              <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+                <rect x="2" y="3" width="12" height="11" rx="2" />
+                <line x1="5" y1="1" x2="5" y2="5" />
+                <line x1="11" y1="1" x2="11" y2="5" />
+                <line x1="2" y1="8" x2="14" y2="8" />
+              </svg>
+              {lang === 'ko' ? '날짜 직접 입력' : 'Custom dates'}
             </button>
           </div>
 
-          {/* 커스텀 날짜 입력 */}
+          {/* 커스텀 날짜 입력 폼 */}
           {customMode && (
             <div style={{
               display: 'flex', gap: 6, alignItems: 'center',
-              flexWrap: 'wrap', marginBottom: 10,
+              flexWrap: 'wrap', marginBottom: 12,
+              padding: '10px 12px',
+              background: C.surfaceAlt,
+              border: `1px solid ${C.borderSub}`,
+              borderRadius: 8,
             }}>
+              <span style={{ fontSize: 11, color: C.textDim }}>
+                {lang === 'ko' ? '시작' : 'From'}
+              </span>
               <input
                 type="date"
                 value={startInput}
                 onChange={(e) => setStartInput(e.target.value)}
                 style={{
                   padding: '5px 8px', borderRadius: 7, fontSize: 12,
-                  border: `1px solid ${C.border}`, background: C.surfaceAlt,
+                  border: `1px solid ${C.border}`, background: C.surface,
                   color: C.textPrimary, fontFamily: FONT.sans,
                 }}
               />
-              <span style={{ fontSize: 12, color: C.textDim }}>~</span>
+              <span style={{ fontSize: 11, color: C.textDim }}>
+                {lang === 'ko' ? '종료' : 'To'}
+              </span>
               <input
                 type="date"
                 value={endInput}
                 onChange={(e) => setEndInput(e.target.value)}
                 style={{
                   padding: '5px 8px', borderRadius: 7, fontSize: 12,
-                  border: `1px solid ${C.border}`, background: C.surfaceAlt,
+                  border: `1px solid ${C.border}`, background: C.surface,
                   color: C.textPrimary, fontFamily: FONT.sans,
                 }}
               />
@@ -284,11 +324,12 @@ export function StockSearchArea({ market, lang, t }: Props) {
                 onClick={handleApplyCustom}
                 disabled={!isCustomValid}
                 style={{
-                  padding: '5px 14px', borderRadius: 7, fontSize: 12, fontWeight: 600,
+                  padding: '5px 14px', borderRadius: 7, fontSize: 12, fontWeight: 700,
                   fontFamily: FONT.sans, cursor: isCustomValid ? 'pointer' : 'default',
-                  background: 'rgba(62,123,250,0.14)', color: C.blueSoft,
-                  border: '1px solid rgba(62,123,250,0.32)',
-                  opacity: isCustomValid ? 1 : 0.45,
+                  background: isCustomValid ? C.blue : C.surfaceAlt,
+                  color: isCustomValid ? '#fff' : C.textDim,
+                  border: 'none',
+                  opacity: isCustomValid ? 1 : 0.5,
                 }}
               >
                 {lang === 'ko' ? '조회' : 'Query'}
@@ -323,11 +364,11 @@ export function StockSearchArea({ market, lang, t }: Props) {
               : null
 
             return (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {/* 수익률 + 보조 지표 */}
                 <div style={{ display: 'flex', alignItems: 'flex-end', gap: 18, flexWrap: 'wrap' }}>
                   <div>
-                    <div style={{ fontSize: 10, color: C.textDim, marginBottom: 3 }}>
+                    <div style={{ fontSize: 10, color: C.textDim, marginBottom: 3, letterSpacing: '0.04em' }}>
                       {lang === 'ko' ? '기간 수익률' : 'Period Return'}
                     </div>
                     <div style={{
@@ -365,7 +406,9 @@ export function StockSearchArea({ market, lang, t }: Props) {
                   }}>
                     <span>{fmtPrice(d.start_price, market)}</span>
                     <span style={{ color: C.textDim }}>→</span>
-                    <span style={{ color: retColor, fontWeight: 600 }}>{fmtPrice(d.end_price, market)}</span>
+                    <span style={{ color: retColor, fontWeight: 600 }}>
+                      {fmtPrice(d.end_price, market)}
+                    </span>
                     {dateRange && (
                       <span style={{ fontSize: 10, color: C.textDim, marginLeft: 4 }}>{dateRange}</span>
                     )}
@@ -377,7 +420,7 @@ export function StockSearchArea({ market, lang, t }: Props) {
                   <div style={{
                     display: 'flex', alignItems: 'flex-start', gap: 7,
                     padding: '8px 10px', borderRadius: 8,
-                    background: C.orangeFill, border: '1px solid rgba(244,169,60,0.16)',
+                    background: C.orangeFill, border: '1px solid rgba(244,169,60,0.22)',
                     fontSize: 11, color: '#B8924E', lineHeight: 1.4,
                   }}>
                     <span style={{ color: C.orange, flexShrink: 0 }}>⚠</span>
@@ -388,6 +431,11 @@ export function StockSearchArea({ market, lang, t }: Props) {
             )
           })()}
         </div>
+      )}
+
+      {/* 구분선 (ticker 없을 때는 위에서 처리, 있을 때는 여기) */}
+      {ticker && (
+        <div style={{ height: 1, background: C.borderSub, margin: '0 0 0 0' }} />
       )}
     </div>
   )
