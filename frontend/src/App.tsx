@@ -48,6 +48,8 @@ export default function App() {
   const [reLevel, setReLevel] = useState<ReLevel>('gu')
   const [reRegion, setReRegion] = useState('')       // '' = 수도권 전체
   const [rePeriodIdx, setRePeriodIdx] = useState(2)  // 1y
+  const [reGu, setReGu] = useState('')               // 5자리 시군구 코드 ('' = 미설정)
+  const [reDong, setReDong] = useState('')           // 법정동명 ('' = 미설정)
   const [reRetryKey, setReRetryKey] = useState(0)
 
   const C = useC()
@@ -101,6 +103,19 @@ export default function App() {
     : null
   const emptyBt = { status: 'idle' as const, item: null }
 
+  const handleReRegion = useCallback((r: string) => {
+    setReRegion(r)
+    setReGu('')
+    setReDong('')
+  }, [])
+
+  const handleReGu = useCallback((gu: string, dong: string) => {
+    setReGu(gu)
+    setReDong(dong)
+    if (gu) setReRegion(gu.slice(0, 2))  // sido를 선택된 gu에 맞게 자동 설정
+    else setReRegion('')
+  }, [])
+
   // ── 공통 NavRail/FomoHeader props ─────────────────────────────────────
   const sharedControlProps = {
     lang, tab, market, periodIdx, disclaimer, t,
@@ -108,10 +123,11 @@ export default function App() {
     onTab: handleTab,
     onMarket: handleMarket,
     onPeriod: handlePeriod,
-    reLevel, reRegion, rePeriodIdx,
+    reLevel, reRegion, rePeriodIdx, reGu, reDong,
     onReLevel: setReLevel,
-    onReRegion: setReRegion,
+    onReRegion: handleReRegion,
     onRePeriod: setRePeriodIdx,
+    onReGu: handleReGu,
   }
 
   // ── Desktop layout ───────────────────────────────────────────────────
@@ -149,6 +165,8 @@ export default function App() {
                 lang={lang}
                 period={RE_PERIODS[rePeriodIdx]!.value}
                 sido={reRegion}
+                gu={reGu}
+                dong={reDong}
                 retryKey={reRetryKey}
                 onRetry={() => setReRetryKey((k) => k + 1)}
                 t={t}

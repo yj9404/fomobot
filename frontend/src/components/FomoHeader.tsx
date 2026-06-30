@@ -1,7 +1,9 @@
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { useC, useTheme } from '../ThemeContext'
 import { FONT } from '../tokens'
 import { PERIODS, RE_PERIODS, RE_REGIONS } from '../types'
-import type { Lang, Market, Tab, ReLevel } from '../types'
+import { useReRegionSearch } from '../hooks/useReRegionSearch'
+import type { Lang, Market, Tab, ReLevel, RegionItem } from '../types'
 import type { Strings } from '../i18n/strings'
 
 interface Props {
@@ -19,9 +21,12 @@ interface Props {
   reLevel: ReLevel
   reRegion: string
   rePeriodIdx: number
+  reGu: string
+  reDong: string
   onReLevel: (l: ReLevel) => void
   onReRegion: (r: string) => void
   onRePeriod: (i: number) => void
+  onReGu: (gu: string, dong: string) => void
 }
 
 function SunIcon() {
@@ -48,10 +53,189 @@ function MoonIcon() {
   )
 }
 
+function RegionSearchMobile({
+  lang, reGu, reDong, onReGu,
+}: {
+  lang: Lang
+  reGu: string
+  reDong: string
+  onReGu: (gu: string, dong: string) => void
+}) {
+  const C = useC()
+  const [q, setQ] = useState('')
+  const [open, setOpen] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  const { results, loading } = useReRegionSearch(open ? q : '')
+
+  const grouped = (() => {
+    const seen = new Set<string>()
+    const items: Array<{ type: 'gu' | 'dong'; item: RegionItem }> = []
+    for (const r of results) {
+      if (!seen.has(r.sigungu_code)) {
+        seen.add(r.sigungu_code)
+        items.push({ type: 'gu', item: r })
+      }
+    }
+    for (const r of results) {
+      items.push({ type: 'dong', item: r })
+    }
+    return items
+  })()
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  const handleSelect = useCallback((item: RegionItem, type: 'gu' | 'dong') => {
+    const dong = type === 'dong' ? item.eupmyeondong : ''
+    onReGu(item.sigungu_code, dong)
+    setQ('')
+    setOpen(false)
+  }, [onReGu])
+
+  const handleClear = useCallback(() => {
+    onReGu('', '')
+    setQ('')
+    setOpen(false)
+  }, [onReGu])
+
+  // 칩 형태 (선택 완료)
+  if (reGu && !open) {
+    const guName = results.find(r => r.sigungu_code === reGu)?.sigungu_name ?? reGu
+    const chipLabel = reDong ? `${guName} ${reDong}` : `${guName} 전체`
+    return (
+      <div ref={containerRef} style={{ padding: '0 16px 8px' }}>
+        <div style={{
+          display: 'inline-flex', alignItems: 'center', gap: 6,
+          padding: '5px 10px',
+          background: 'rgba(62,123,250,0.12)',
+          border: '1px solid rgba(62,123,250,0.3)',
+          borderRadius: 8, cursor: 'pointer',
+          maxWidth: '100%',
+        }}
+          onClick={() => { setOpen(true); setQ('') }}
+        >
+          <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke={C.blueSoft} strokeWidth="1.8" strokeLinecap="round">
+            <path d="M8 2C5.8 2 4 3.8 4 6c0 3.5 4 8 4 8s4-4.5 4-8c0-2.2-1.8-4-4-4z" />
+            <circle cx="8" cy="6" r="1.5" />
+          </svg>
+          <span style={{ fontSize: 12, color: C.blueSoft, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {chipLabel}
+          </span>
+          <button
+            onMouseDown={(e) => { e.stopPropagation(); handleClear() }}
+            style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: C.blueSoft, fontSize: 12, padding: 0, lineHeight: 1, flexShrink: 0 }}
+          >
+            ✕
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div ref={containerRef} style={{ padding: '0 16px 8px', position: 'relative' }}>
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 7,
+        background: C.surfaceAlt,
+        border: `1px solid ${open ? 'rgba(62,123,250,0.45)' : C.borderSub}`,
+        borderRadius: 8, padding: '7px 12px',
+        transition: 'border-color 0.15s',
+      }}>
+        <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke={C.textDim} strokeWidth="1.8" strokeLinecap="round">
+          <circle cx="6.5" cy="6.5" r="4.5" />
+          <line x1="10.5" y1="10.5" x2="14" y2="14" />
+        </svg>
+        <input
+          value={q}
+          onChange={(e) => { setQ(e.target.value); setOpen(true) }}
+          onFocus={() => setOpen(true)}
+          placeholder={lang === 'ko' ? '구/동 검색…' : 'Search district…'}
+          style={{
+            flex: 1, border: 'none', outline: 'none',
+            background: 'transparent', fontSize: 12,
+            color: C.textPrimary, fontFamily: FONT.sans,
+          }}
+        />
+        {q && (
+          <button
+            onClick={() => setQ('')}
+            style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: C.textMuted, fontSize: 12, padding: 0 }}
+          >
+            ✕
+          </button>
+        )}
+      </div>
+
+      {open && q.length > 0 && (
+        <div style={{
+          position: 'absolute', left: 16, right: 16, top: 'calc(100% - 2px)',
+          background: C.surface,
+          border: '1.5px solid rgba(62,123,250,0.28)',
+          borderRadius: 9, boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
+          zIndex: 100, overflow: 'hidden', maxHeight: 200, overflowY: 'auto',
+        }}>
+          {loading && (
+            <div style={{ padding: '10px 12px', fontSize: 11, color: C.textDim }}>
+              {lang === 'ko' ? '검색 중…' : 'Searching…'}
+            </div>
+          )}
+          {!loading && grouped.length === 0 && (
+            <div style={{ padding: '10px 12px', fontSize: 11, color: C.textDim }}>
+              {lang === 'ko' ? '결과 없음' : 'No results'}
+            </div>
+          )}
+          {grouped.map(({ type, item }, idx) => (
+            <div
+              key={`${type}-${item.sigungu_code}-${item.eupmyeondong}-${idx}`}
+              onMouseDown={(e) => { e.preventDefault(); handleSelect(item, type) }}
+              style={{
+                padding: type === 'gu' ? '8px 12px 6px' : '6px 12px 6px 20px',
+                cursor: 'pointer',
+                borderBottom: `1px solid ${C.borderFaint}`,
+                background: 'transparent',
+                transition: 'background 0.1s',
+              }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = C.hoverBg }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = 'transparent' }}
+            >
+              {type === 'gu' ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: C.textPrimary }}>
+                    {item.sido_name} {item.sigungu_name}
+                  </span>
+                  <span style={{
+                    fontSize: 10, color: C.blueSoft,
+                    background: 'rgba(62,123,250,0.1)', padding: '1px 5px', borderRadius: 4,
+                  }}>
+                    {lang === 'ko' ? '전체' : 'All'}
+                  </span>
+                </div>
+              ) : (
+                <div style={{ fontSize: 11, color: C.textMuted }}>
+                  {item.eupmyeondong}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function FomoHeader({
   lang, tab, market, periodIdx, disclaimer, t,
   onLang, onTab, onMarket, onPeriod,
-  reLevel, reRegion, rePeriodIdx, onReLevel, onReRegion, onRePeriod,
+  reLevel, reRegion, rePeriodIdx, reGu, reDong,
+  onReLevel, onReRegion, onRePeriod, onReGu,
 }: Props) {
   const C = useC()
   const { theme, toggle } = useTheme()
@@ -172,8 +356,8 @@ export function FomoHeader({
       {/* ── 부동산 컨트롤 ── */}
       {tab === 'realestate' && (
         <>
-          {/* 지역 + 단위 한 줄 */}
-          <div style={{ display: 'flex', gap: 6, padding: '0 16px 8px', alignItems: 'center' }}>
+          {/* 지역(sido) + 구/동 토글 한 줄 */}
+          <div style={{ display: 'flex', gap: 6, padding: '0 16px 6px', alignItems: 'center' }}>
             <div style={{ display: 'flex', gap: 4, overflowX: 'auto', scrollbarWidth: 'none', flex: 1 }}>
               {RE_REGIONS.map((r) => (
                 <button
@@ -182,9 +366,9 @@ export function FomoHeader({
                   style={{
                     padding: '6px 11px', borderRadius: 9, border: 'none',
                     fontSize: 12, fontWeight: 600, fontFamily: FONT.sans, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
-                    background: reRegion === r.value ? 'rgba(62,123,250,0.14)' : C.surfaceAlt,
-                    color: reRegion === r.value ? C.blueSoft : C.textMuted,
-                    outline: reRegion === r.value ? '1px solid rgba(62,123,250,0.32)' : 'none',
+                    background: reRegion === r.value && !reGu ? 'rgba(62,123,250,0.14)' : C.surfaceAlt,
+                    color: reRegion === r.value && !reGu ? C.blueSoft : C.textMuted,
+                    outline: reRegion === r.value && !reGu ? '1px solid rgba(62,123,250,0.32)' : 'none',
                   }}
                 >
                   {r.label[lang]}
@@ -212,6 +396,15 @@ export function FomoHeader({
               ))}
             </div>
           </div>
+
+          {/* 구/동 세부 검색 (모바일) */}
+          <RegionSearchMobile
+            lang={lang}
+            reGu={reGu}
+            reDong={reDong}
+            onReGu={onReGu}
+          />
+
           {/* RE 기간 탭 */}
           <div style={{ display: 'flex', gap: 6, padding: '0 16px 10px', overflowX: 'auto', scrollbarWidth: 'none' }}>
             {RE_PERIODS.map((p, i) => (

@@ -115,6 +115,50 @@ export interface ReRankingsResponse {
   excluded: ReRankingItem[]
 }
 
+// ── 부동산 검색 타입 ─────────────────────────────────────────────────────
+export type SearchDataStatus = 'ok' | 'insufficient' | 'no_start' | 'no_end' | 'no_snapshot'
+
+export interface RegionItem {
+  sido_code: string        // 앞 2자리 (11/28/41)
+  sido_name: string        // 서울/인천/경기
+  sigungu_code: string     // 5자리 — rankings gu= 파라미터에 그대로 사용
+  sigungu_name: string
+  eupmyeondong: string
+}
+
+export interface RegionSearchResponse {
+  query: string
+  results: RegionItem[]
+}
+
+export interface ReSearchResultItem {
+  complex_key: string
+  apt_name: string
+  display_name: string | null
+  sigungu_code: string
+  sigungu_name: string | null
+  eupmyeondong: string
+  rank: number | null
+  change_pct: number | null
+  start_price: number | null        // 만원/㎡
+  end_price: number | null          // 만원/㎡
+  start_deal_amount: number | null  // 만원, 중위 거래금액
+  end_deal_amount: number | null
+  start_tx_count: number | null
+  end_tx_count: number | null
+  start_ym: string | null
+  end_ym: string | null
+  data_status: SearchDataStatus
+  insufficient_reason: string | null
+}
+
+export interface ReSearchResponse {
+  query: string
+  period: string
+  snapshot_ym: string | null
+  results: ReSearchResultItem[]
+}
+
 // ── 주식 검색 / Quote ────────────────────────────────────────────────────
 export interface SecurityItem {
   ticker: string
