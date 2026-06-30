@@ -14,17 +14,29 @@ import argparse
 import logging
 import sys
 import os
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from dotenv import load_dotenv
 load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
 
+_fmt = logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s")
+
+_log_dir = os.path.join(os.path.dirname(__file__), "..", "logs")
+os.makedirs(_log_dir, exist_ok=True)
+_log_file = os.path.join(_log_dir, f"backfill_rankings_{datetime.now():%Y%m%d_%H%M%S}.log")
+
+_file_handler = logging.FileHandler(_log_file, encoding="utf-8")
+_file_handler.setFormatter(_fmt)
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    handlers=[logging.StreamHandler(), _file_handler],
 )
+
+print(f"로그 파일: {_log_file}")
 
 logger = logging.getLogger(__name__)
 
@@ -107,6 +119,8 @@ def main():
                 )
 
         logger.info("%s 백필 완료", market.upper())
+
+    logger.info("전체 완료. 로그: %s", _log_file)
 
 
 if __name__ == "__main__":

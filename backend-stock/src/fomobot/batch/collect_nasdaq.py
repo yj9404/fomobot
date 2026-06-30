@@ -256,15 +256,42 @@ def run_nasdaq_collection(target_date: date | None = None) -> None:
     logger.info("NASDAQ 수집 완료")
 
 
+def _get_covered_tickers(market: str, start_date: date, end_date: date, min_rows: int = 100) -> set[str]:
+    """DB에 min_rows 이상의 데이터가 있는 티커를 반환한다."""
+    from sqlalchemy import text
+    with SyncSessionLocal() as session:
+        rows = session.execute(
+            text(
+                "SELECT ticker FROM price_daily "
+                "WHERE market = :market AND date BETWEEN :start AND :end "
+                "GROUP BY ticker HAVING COUNT(*) >= :min_rows"
+            ),
+            {"market": market, "start": start_date, "end": end_date, "min_rows": min_rows},
+        ).fetchall()
+    return {r[0] for r in rows}
+
+
 def run_nasdaq_full_history(start_date: date, end_date: date) -> None:
-    """초기 풀 히스토리 수집 (CLI로 1회 실행)."""
+    """초기 풀 히스토리 수집 (CLI로 1회 실행). 이미 데이터가 있는 티커는 스킵."""
     start_str = start_date.strftime("%Y-%m-%d")
     end_str = (end_date + timedelta(days=1)).strftime("%Y-%m-%d")
 
     logger.info("NASDAQ 풀 히스토리 수집: %s ~ %s", start_str, end_str)
 
     name_map = _fetch_nasdaq_name_map()
-    tickers = fetch_nasdaq_tickers()
+    all_tickers = fetch_nasdaq_tickers()
+
+    covered = _get_covered_tickers(MARKET, start_date, end_date)
+    tickers = [t for t in all_tickers if t not in covered]
+    logger.info(
+        "NASDAQ: 전체 %d개 중 %d개 스킵(기존 데이터), %d개 수집 예정",
+        len(all_tickers), len(covered), len(tickers),
+    )
+
+    if not tickers:
+        logger.info("모든 NASDAQ 티커의 데이터가 이미 존재합니다.")
+        return
+
     batch_size = settings.batch_size_nasdaq
     batches = [tickers[i:i + batch_size] for i in range(0, len(tickers), batch_size)]
 

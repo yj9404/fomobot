@@ -229,21 +229,44 @@ def run_kospi_collection(target_date: date | None = None) -> None:
     logger.info("KOSPI 수집 완료")
 
 
+def _get_covered_tickers(market: str, start_date: date, end_date: date, min_rows: int = 100) -> set[str]:
+    """DB에 min_rows 이상의 데이터가 있는 티커를 반환한다."""
+    from sqlalchemy import text
+    with SyncSessionLocal() as session:
+        rows = session.execute(
+            text(
+                "SELECT ticker FROM price_daily "
+                "WHERE market = :market AND date BETWEEN :start AND :end "
+                "GROUP BY ticker HAVING COUNT(*) >= :min_rows"
+            ),
+            {"market": market, "start": start_date, "end": end_date, "min_rows": min_rows},
+        ).fetchall()
+    return {r[0] for r in rows}
+
+
 def run_kospi_full_history(start_date: date, end_date: date) -> None:
     """
-    초기 풀 히스토리 수집 (CLI로 1회 실행).
-    run_kospi_collection()과 동일 로직, 날짜 범위만 다름.
+    초기 풀 히스토리 수집 (CLI로 1회 실행). 이미 데이터가 있는 티커는 스킵.
     """
-    run_kospi_collection.__wrapped__ if hasattr(run_kospi_collection, "__wrapped__") else None
-
     start_str = start_date.strftime("%Y%m%d")
     end_str = end_date.strftime("%Y%m%d")
     logger.info("KOSPI 풀 히스토리 수집: %s ~ %s", start_str, end_str)
 
     try:
-        tickers = _fetch_ticker_list(end_str)
+        all_tickers = _fetch_ticker_list(end_str)
     except Exception:
         logger.exception("KOSPI 티커 목록 조회 실패")
+        return
+
+    covered = _get_covered_tickers(MARKET, start_date, end_date)
+    tickers = [t for t in all_tickers if t not in covered]
+    logger.info(
+        "KOSPI: 전체 %d개 중 %d개 스킵(기존 데이터), %d개 수집 예정",
+        len(all_tickers), len(covered), len(tickers),
+    )
+
+    if not tickers:
+        logger.info("모든 KOSPI 티커의 데이터가 이미 존재합니다.")
         return
 
     price_records: list[dict] = []
