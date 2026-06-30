@@ -115,6 +115,41 @@ export interface ReRankingsResponse {
   excluded: ReRankingItem[]
 }
 
+// ── 주식 검색 / Quote ────────────────────────────────────────────────────
+export interface SecurityItem {
+  ticker: string
+  name: string | null
+  is_active: boolean
+}
+
+export interface StockSearchResponse {
+  market: Market
+  query: string
+  results: SecurityItem[]
+}
+
+export interface DataCoverage {
+  actual_start: string | null   // "YYYY-MM-DD"
+  actual_end: string | null
+  available_from: string | null
+  trading_days: number
+  warning: string | null
+}
+
+export interface StockQuoteResponse {
+  ticker: string
+  market: Market
+  name: string | null
+  start_date: string | null
+  end_date: string | null
+  start_price: number | null
+  end_price: number | null
+  return_pct: number | null
+  mdd_pct: number | null
+  volatility_annualized_pct: number | null
+  data_coverage: DataCoverage
+}
+
 export const PERIODS: PeriodDef[] = [
   { label: { ko: '전일', en: '1D'  }, value: '1d',    days: 1    },
   { label: { ko: '7일', en: '7D'   }, value: '7d',    days: 7    },

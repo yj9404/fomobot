@@ -8,6 +8,7 @@ import { SkeletonList } from './components/SkeletonList'
 import { EmptyState } from './components/EmptyState'
 import { ErrorState } from './components/ErrorState'
 import { RealEstateView } from './views/RealEstateView'
+import { StockSearchArea } from './components/StockSearchArea'
 import { useRankings } from './hooks/useRankings'
 import { useBacktest } from './hooks/useBacktest'
 import { useWindowWidth } from './hooks/useWindowWidth'
@@ -127,6 +128,7 @@ export default function App() {
           <div style={{ flex: 1, minWidth: 0, background: C.surface, borderRight: `1px solid ${C.borderSub}` }}>
             {tab === 'stock' && (
               <>
+                <StockSearchArea market={market} lang={lang} t={t} />
                 {status === 'loading' && <SkeletonList t={t} />}
                 {status === 'empty' && <EmptyState t={t} onRetry={() => handlePeriod(2)} />}
                 {status === 'error' && <ErrorState t={t} onRetry={() => setRetryKey((k) => k + 1)} />}
@@ -180,6 +182,7 @@ export default function App() {
 
         {tab === 'stock' && (
           <>
+            <StockSearchArea market={market} lang={lang} t={t} />
             {status === 'loading' && <SkeletonList t={t} />}
             {status === 'empty' && <EmptyState t={t} onRetry={() => handlePeriod(2)} />}
             {status === 'error' && <ErrorState t={t} onRetry={() => setRetryKey((k) => k + 1)} />}
