@@ -90,6 +90,8 @@ export interface ReRankingItem {
   end_ym: string
   start_price: number | null   // 만원/㎡
   end_price: number | null     // 만원/㎡
+  start_deal_amount: number | null  // 만원, 중위 거래금액
+  end_deal_amount: number | null    // 만원
   data_status: DataStatus
   start_tx_count: number | null
   end_tx_count: number | null

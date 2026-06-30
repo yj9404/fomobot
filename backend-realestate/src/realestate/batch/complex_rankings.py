@@ -109,7 +109,7 @@ def _load_transactions_window(
 ) -> pd.DataFrame:
     """수도권 전체 대상으로 윈도우 내 유효 거래를 로드한다."""
     sql = text("""
-        SELECT sigungu_code, eupmyeondong, apt_name, deal_ym, price_per_sqm
+        SELECT sigungu_code, eupmyeondong, apt_name, deal_ym, price_per_sqm, deal_amount
         FROM re_transaction
         WHERE deal_ym BETWEEN :start AND :end
           AND price_per_sqm > 0
@@ -118,10 +118,11 @@ def _load_transactions_window(
     rows = [dict(r._mapping) for r in result]
     if not rows:
         return pd.DataFrame(
-            columns=["sigungu_code", "eupmyeondong", "apt_name", "deal_ym", "price_per_sqm"]
+            columns=["sigungu_code", "eupmyeondong", "apt_name", "deal_ym", "price_per_sqm", "deal_amount"]
         )
     df = pd.DataFrame(rows)
     df["price_per_sqm"] = df["price_per_sqm"].astype(float)
+    df["deal_amount"] = df["deal_amount"].astype(float)
     return df
 
 
@@ -138,14 +139,14 @@ def _add_complex_key(df: pd.DataFrame) -> pd.DataFrame:
 
 def _compute_window_stats(df: pd.DataFrame) -> pd.DataFrame:
     """
-    complex_key 단위로 중위 평단가와 거래건수를 집계한다.
+    complex_key 단위로 중위 평단가·중위 거래금액·거래건수를 집계한다.
 
-    반환 컬럼: complex_key, median_price, tx_count,
+    반환 컬럼: complex_key, median_price, median_deal_amount, tx_count,
                sigungu_code, eupmyeondong, apt_name, apt_name_norm
     """
     if df.empty:
         return pd.DataFrame(columns=[
-            "complex_key", "median_price", "tx_count",
+            "complex_key", "median_price", "median_deal_amount", "tx_count",
             "sigungu_code", "eupmyeondong", "apt_name", "apt_name_norm",
         ])
 
@@ -160,8 +161,12 @@ def _compute_window_stats(df: pd.DataFrame) -> pd.DataFrame:
         .reset_index()
     )
     stats = (
-        df.groupby("complex_key")["price_per_sqm"]
-        .agg(median_price="median", tx_count="count")
+        df.groupby("complex_key")
+        .agg(
+            median_price=("price_per_sqm", "median"),
+            median_deal_amount=("deal_amount", "median"),
+            tx_count=("price_per_sqm", "count"),
+        )
         .reset_index()
     )
     return meta.merge(stats, on="complex_key")
@@ -278,8 +283,10 @@ def compute_complex_rankings(snapshot_ym: str | None = None) -> int:
                 )
 
                 start_price = float(start_lookup.loc[key, "median_price"]) if has_start else None
+                start_deal_amount = float(start_lookup.loc[key, "median_deal_amount"]) if has_start else None
                 start_tx = int(start_lookup.loc[key, "tx_count"]) if has_start else None
                 end_price = float(end_lookup.loc[key, "median_price"]) if has_end else None
+                end_deal_amount = float(end_lookup.loc[key, "median_deal_amount"]) if has_end else None
                 end_tx = int(end_lookup.loc[key, "tx_count"]) if has_end else None
 
                 data_status, reason, change_pct = _determine_status(
@@ -303,6 +310,12 @@ def compute_complex_rankings(snapshot_ym: str | None = None) -> int:
                     ),
                     "end_price": (
                         round(Decimal(str(end_price)), 2) if end_price is not None else None
+                    ),
+                    "start_deal_amount": (
+                        round(Decimal(str(start_deal_amount))) if start_deal_amount is not None else None
+                    ),
+                    "end_deal_amount": (
+                        round(Decimal(str(end_deal_amount))) if end_deal_amount is not None else None
                     ),
                     "change_pct": change_pct,
                     "start_tx_count": start_tx,

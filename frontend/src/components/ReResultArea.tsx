@@ -14,6 +14,17 @@ function fmtPct(n: number | null): string {
   return (n >= 0 ? '+' : '') + n.toFixed(1) + '%'
 }
 
+function fmtWon(manwon: number | null): string {
+  if (manwon == null) return '—'
+  const eok = Math.floor(manwon / 10000)
+  const remainder = Math.round(manwon % 10000)
+  const cheon = Math.floor(remainder / 1000)
+  if (eok > 0 && cheon > 0) return `${eok}억 ${cheon}천`
+  if (eok > 0) return `${eok}억`
+  if (cheon > 0) return `${cheon}천만`
+  return `${remainder}만`
+}
+
 const DATA_STATUS_LABEL: Record<string, Record<Lang, string>> = {
   insufficient: { ko: '거래량 부족', en: 'Insufficient trades' },
   no_start:     { ko: '시작 시점 데이터 없음', en: 'No start data' },
@@ -82,7 +93,7 @@ export function ReResultArea({ rankings, excluded, meta, lang }: Props) {
                 {item.display_name}
               </div>
               <div style={{ fontSize: 11, color: C.textDim, marginTop: 2, fontFamily: FONT.mono }}>
-                {item.start_ym} → {item.end_ym}
+                {fmtWon(item.start_deal_amount)} → {fmtWon(item.end_deal_amount)}
               </div>
             </div>
 

@@ -86,6 +86,8 @@ async def get_rankings_endpoint(
             end_ym=row.end_ym,
             start_price=float(row.start_price) if row.start_price is not None else None,
             end_price=float(row.end_price) if row.end_price is not None else None,
+            start_deal_amount=int(row.start_deal_amount) if row.start_deal_amount is not None else None,
+            end_deal_amount=int(row.end_deal_amount) if row.end_deal_amount is not None else None,
             change_pct=float(row.change_pct) if row.change_pct is not None else None,
             start_tx_count=row.start_tx_count,
             end_tx_count=row.end_tx_count,

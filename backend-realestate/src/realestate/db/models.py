@@ -103,6 +103,8 @@ class ReComplexRankingSnapshot(Base):
     end_ym = Column(String(6), nullable=False)
     start_price = Column(Numeric(12, 2))                   # 만원/㎡ (NULL = 데이터 없음)
     end_price = Column(Numeric(12, 2))
+    start_deal_amount = Column(BigInteger)                 # 만원, 중위 거래금액 (NULL = 데이터 없음)
+    end_deal_amount = Column(BigInteger)
     change_pct = Column(Numeric(8, 2))                     # 상승률 % (NULL = 계산 불가)
     start_tx_count = Column(Integer)
     end_tx_count = Column(Integer)

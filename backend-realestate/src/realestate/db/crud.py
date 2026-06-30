@@ -203,6 +203,8 @@ def upsert_complex_ranking_snapshots_sync(
                 "display_name": text("excluded.display_name"),
                 "start_price": text("excluded.start_price"),
                 "end_price": text("excluded.end_price"),
+                "start_deal_amount": text("excluded.start_deal_amount"),
+                "end_deal_amount": text("excluded.end_deal_amount"),
                 "change_pct": text("excluded.change_pct"),
                 "start_tx_count": text("excluded.start_tx_count"),
                 "end_tx_count": text("excluded.end_tx_count"),

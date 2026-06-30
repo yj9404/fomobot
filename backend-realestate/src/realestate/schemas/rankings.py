@@ -28,6 +28,8 @@ class ComplexRankingItem(BaseModel):
     end_ym: str
     start_price: float | None       # 만원/㎡
     end_price: float | None         # 만원/㎡
+    start_deal_amount: int | None   # 만원, 중위 거래금액
+    end_deal_amount: int | None     # 만원
     change_pct: float | None        # % (None = 계산 불가)
     start_tx_count: int | None
     end_tx_count: int | None
