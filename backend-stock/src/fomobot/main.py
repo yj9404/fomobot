@@ -83,11 +83,15 @@ async def health_check():
             latest = max(dates)
             last_updated = latest.isoformat()
             now_utc = datetime.now(timezone.utc).date()
-            # 주말에는 시장이 쉬므로 시간 단순 비교 대신 영업일 기준으로 판단:
-            # 전날(now - 1)의 가장 최근 영업일보다 데이터가 오래됐으면 stale.
-            threshold = now_utc - timedelta(days=1)
-            while threshold.weekday() >= 5:  # 토=5, 일=6
+            # 수집 cron은 T-1 종가를 저장하므로 2 영업일 전을 threshold로 사용한다.
+            # 예: 화요일 체크 → threshold=금요일, 금요일 데이터 → OK
+            #     수요일 체크 → threshold=월요일, 금요일 데이터 → STALE(월요일 수집 실패)
+            threshold = now_utc
+            count = 0
+            while count < 2:
                 threshold -= timedelta(days=1)
+                if threshold.weekday() < 5:  # 토=5, 일=6
+                    count += 1
             stale = latest < threshold
         # else: 데이터 없음(초기 배포) → stale=False 유지, 200 반환
 

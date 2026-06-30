@@ -77,10 +77,9 @@ async def health_check():
         if last_snapshot_ym:
             snap_year = int(last_snapshot_ym[:4])
             snap_month = int(last_snapshot_ym[4:])
-            snap_date = date(snap_year, snap_month, 1)
             today = date.today()
-            delta_days = (today - snap_date).days
-            stale = delta_days >= settings.health_stale_days
+            months_behind = (today.year - snap_year) * 12 + (today.month - snap_month)
+            stale = months_behind >= settings.health_stale_months
 
     except Exception:
         logger.exception("헬스체크 DB 조회 실패")
@@ -96,14 +95,14 @@ async def health_check():
                 "status": "unhealthy",
                 "reason": "stale_data",
                 "last_snapshot_ym": last_snapshot_ym,
-                "stale_threshold_days": settings.health_stale_days,
+                "stale_threshold_months": settings.health_stale_months,
             },
         )
 
     body: dict = {
         "status": "ok",
         "last_snapshot_ym": last_snapshot_ym,
-        "stale_threshold_days": settings.health_stale_days,
+        "stale_threshold_months": settings.health_stale_months,
     }
     if last_snapshot_ym is None:
         body["note"] = "no data yet"

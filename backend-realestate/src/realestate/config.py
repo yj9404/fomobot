@@ -46,8 +46,9 @@ class Settings(BaseSettings):
     # Scheduler — dev only
     enable_scheduler: bool = False
 
-    # Health check
-    health_stale_days: int = 40
+    # Health check — 마지막 월별 스냅샷이 이 개월 수 이상 뒤처지면 unhealthy
+    # 한국 부동산 실거래가는 통상 1~2개월 후행 공개되므로 3개월을 기본값으로 사용
+    health_stale_months: int = 3
 
     # MOLIT API key (공공데이터포털 서비스키)
     molit_api_key: str = ""
