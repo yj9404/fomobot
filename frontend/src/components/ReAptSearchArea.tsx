@@ -423,8 +423,17 @@ export function ReAptSearchArea({ period: globalPeriod, lang, t }: Props) {
                 {/* 거래금액 변화 */}
                 {(d.start_deal_amount != null || d.end_deal_amount != null) && (
                   <div>
-                    <div style={{ fontSize: 10, color: C.textDim, marginBottom: 4 }}>
-                      {lang === 'ko' ? '중위 거래금액' : 'Median deal price'}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 4 }}>
+                      <span style={{ fontSize: 10, color: C.textDim }}>
+                        {lang === 'ko' ? '추정 거래금액' : 'Est. deal price'}
+                      </span>
+                      <span style={{
+                        fontSize: 9, color: C.textDim,
+                        background: C.surfaceAlt, border: `1px solid ${C.borderSub}`,
+                        padding: '1px 5px', borderRadius: 4,
+                      }}>
+                        {lang === 'ko' ? '국평기준' : '84㎡'}
+                      </span>
                     </div>
                     <div style={{
                       display: 'flex', alignItems: 'center', gap: 8,
@@ -443,11 +452,6 @@ export function ReAptSearchArea({ period: globalPeriod, lang, t }: Props) {
                 {ymRange && (
                   <div style={{ fontSize: 10.5, color: C.textDim, fontFamily: FONT.mono }}>
                     {ymRange}
-                    {d.start_tx_count != null && d.end_tx_count != null && (
-                      <span style={{ marginLeft: 8, color: C.textDim }}>
-                        ({d.start_tx_count}건 → {d.end_tx_count}건)
-                      </span>
-                    )}
                   </div>
                 )}
               </div>

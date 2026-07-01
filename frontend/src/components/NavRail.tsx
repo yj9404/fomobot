@@ -62,6 +62,7 @@ function RegionSearch({
   const C = useC()
   const [q, setQ] = useState('')
   const [open, setOpen] = useState(false)
+  const [selectedLabel, setSelectedLabel] = useState('')
   const containerRef = useRef<HTMLDivElement>(null)
 
   const { results, loading } = useReRegionSearch(open ? q : '')
@@ -95,6 +96,7 @@ function RegionSearch({
   const handleSelect = useCallback((item: RegionItem, type: 'gu' | 'dong') => {
     const dong = type === 'dong' ? item.eupmyeondong : ''
     onReGu(item.sigungu_code, dong)
+    setSelectedLabel(dong ? `${item.sido_name} ${item.sigungu_name} ${dong}` : `${item.sido_name} ${item.sigungu_name} 전체`)
     setQ('')
     setOpen(false)
   }, [onReGu])
@@ -103,12 +105,12 @@ function RegionSearch({
     onReGu('', '')
     setQ('')
     setOpen(false)
+    setSelectedLabel('')
   }, [onReGu])
 
   // 선택된 구/동 칩
   if (reGu && !open) {
-    const guName = results.find(r => r.sigungu_code === reGu)?.sigungu_name ?? reGu
-    const chipLabel = reDong ? `${guName} ${reDong}` : `${guName} 전체`
+    const chipLabel = selectedLabel || (reDong ? `${reGu} ${reDong}` : `${reGu} 전체`)
     return (
       <div ref={containerRef} style={{ marginTop: 6 }}>
         <div style={{
