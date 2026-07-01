@@ -231,6 +231,8 @@ export default function App() {
             lang={lang}
             period={RE_PERIODS[rePeriodIdx]!.value}
             sido={reRegion}
+            gu={reGu}
+            dong={reDong}
             retryKey={reRetryKey}
             onRetry={() => setReRetryKey((k) => k + 1)}
             t={t}
