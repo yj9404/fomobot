@@ -59,6 +59,16 @@ class Settings(BaseSettings):
     nasdaq_min_avg_volume_30d_usd: int = 5_000_000      # $500만/일
     nasdaq_min_price_usd: float = 5.0                   # $5
 
+    # NASDAQ corporate action / sanity filters
+    # True: market_cap=0(미수집)인 종목을 랭킹에서 제외 (보수적)
+    # False(기본): 기존 동작 유지 - market_cap 미수집이면 시총 조건 생략
+    nasdaq_exclude_unknown_market_cap: bool = False
+    # 단일 거래일 변동률 상한 (pct_change 기준, 3.0 = 300%)
+    # 이 값을 초과하는 날이 하나라도 있으면 데이터 오염(액면분할·병합)으로 간주해 제외
+    nasdaq_max_daily_move_pct: float = 3.0
+    # 연율화 변동성 상한 (%) — 이를 초과하면 이중 안전장치로 추가 제외
+    nasdaq_max_volatility_pct: float = 1000.0
+
     # Batch settings
     batch_size_nasdaq: int = 100
     nasdaq_batch_delay_sec: float = 2.0

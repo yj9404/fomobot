@@ -7,9 +7,13 @@
 """
 
 import logging
+
+import numpy as np
 import pandas as pd
 
 from fomobot.config import settings
+
+TRADING_DAYS_PER_YEAR = 252
 
 logger = logging.getLogger(__name__)
 
@@ -63,8 +67,14 @@ def apply_nasdaq_filter(df: pd.DataFrame) -> pd.DataFrame:
     """
     before = len(df)
 
-    # market_cap이 0이면 수집 안 된 것(yfinance 배치 미지원) → 시총 조건 생략
-    cap_mask = (df["market_cap"] == 0) | (df["market_cap"] >= settings.nasdaq_min_market_cap_usd)
+    # market_cap 필터:
+    # - nasdaq_exclude_unknown_market_cap=True : 0(미수집)이면 보수적으로 제외
+    # - nasdaq_exclude_unknown_market_cap=False: 기존 동작 — 0이면 시총 조건 생략
+    if settings.nasdaq_exclude_unknown_market_cap:
+        cap_mask = (df["market_cap"] > 0) & (df["market_cap"] >= settings.nasdaq_min_market_cap_usd)
+    else:
+        cap_mask = (df["market_cap"] == 0) | (df["market_cap"] >= settings.nasdaq_min_market_cap_usd)
+
     mask = (
         cap_mask
         & (df["avg_volume_30d"] >= settings.nasdaq_min_avg_volume_30d_usd)
@@ -72,14 +82,72 @@ def apply_nasdaq_filter(df: pd.DataFrame) -> pd.DataFrame:
     )
     result = df[mask].copy()
 
+    unknown_cap_count = int((df["market_cap"] == 0).sum())
     logger.info(
-        "NASDAQ 필터: %d → %d종목 (제거 %d, 시총≥$%sM / 거래대금≥$%sM / 가격≥$%s)",
+        "NASDAQ 필터: %d → %d종목 (제거 %d, 시총≥$%sM / 거래대금≥$%sM / 가격≥$%s, 시총미확인 %d종목)",
         before, len(result), before - len(result),
         settings.nasdaq_min_market_cap_usd // 1_000_000,
         settings.nasdaq_min_avg_volume_30d_usd // 1_000_000,
         settings.nasdaq_min_price_usd,
+        unknown_cap_count,
     )
     return result
+
+
+def apply_price_sanity_filter(price_matrix: pd.DataFrame) -> pd.DataFrame:
+    """
+    corporate action(액면분할·병합) 왜곡 종목을 price_matrix에서 제거.
+
+    두 가지 조건 중 하나라도 해당하면 데이터 오염 종목으로 간주한다:
+      1. 단일 거래일 pct_change 절댓값 > nasdaq_max_daily_move_pct (기본 3.0 = 300%)
+      2. 연율화 변동성 > nasdaq_max_volatility_pct (기본 1000%)
+
+    Parameters
+    ----------
+    price_matrix : pd.DataFrame
+        index=날짜(DatetimeIndex), columns=ticker, 값=수정주가
+
+    Returns
+    -------
+    오염 의심 종목이 제거된 price_matrix
+    """
+    if price_matrix.empty or len(price_matrix) < 2:
+        return price_matrix
+
+    daily_returns = price_matrix.pct_change()
+
+    # 1. 단일 거래일 변동률 임계값 초과
+    max_daily = settings.nasdaq_max_daily_move_pct
+    extreme_move_mask = (daily_returns.abs() > max_daily).any()
+    removed_by_move = set(extreme_move_mask[extreme_move_mask].index.tolist())
+
+    # 2. 연율화 변동성 임계값 초과
+    max_vol = settings.nasdaq_max_volatility_pct
+    annualized_vol = daily_returns.std() * np.sqrt(TRADING_DAYS_PER_YEAR) * 100
+    removed_by_vol = set(annualized_vol[annualized_vol > max_vol].index.tolist())
+
+    all_removed = removed_by_move | removed_by_vol
+    only_vol = removed_by_vol - removed_by_move  # 변동률은 통과했지만 변동성에서 걸린 종목
+
+    if removed_by_move:
+        logger.warning(
+            "NASDAQ sanity 필터 — 단일 거래일 변동률 >%.0f%% 종목 %d개 제외: %s",
+            max_daily * 100,
+            len(removed_by_move),
+            sorted(removed_by_move)[:20],
+        )
+    if only_vol:
+        logger.warning(
+            "NASDAQ sanity 필터 — 연율화 변동성 >%.0f%% 종목 %d개 추가 제외: %s",
+            max_vol,
+            len(only_vol),
+            sorted(only_vol)[:20],
+        )
+    if all_removed:
+        keep = [t for t in price_matrix.columns if t not in all_removed]
+        return price_matrix[keep]
+
+    return price_matrix
 
 
 def drop_low_data_tickers(

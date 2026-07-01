@@ -24,7 +24,12 @@ from fomobot.services.calculator import (
     PERIOD_TO_DAYS,
     build_ranking_df,
 )
-from fomobot.services.noise_filter import apply_kospi_filter, apply_nasdaq_filter, drop_low_data_tickers
+from fomobot.services.noise_filter import (
+    apply_kospi_filter,
+    apply_nasdaq_filter,
+    apply_price_sanity_filter,
+    drop_low_data_tickers,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -32,10 +37,12 @@ MARKET_CONFIG = {
     "kospi": {
         "index_code": "KOSPI",
         "filter_fn": apply_kospi_filter,
+        "sanity_filter_fn": None,
     },
     "nasdaq": {
         "index_code": "QQQ",
         "filter_fn": apply_nasdaq_filter,
+        "sanity_filter_fn": apply_price_sanity_filter,
     },
 }
 
@@ -161,6 +168,14 @@ def compute_rankings_for_market(market: str, snapshot_date: date, top: int = 100
             price_matrix = drop_low_data_tickers(price_matrix)
             if price_matrix.empty:
                 continue
+
+            # 가격 sanity 필터: corporate action(액면분할·병합) 왜곡 종목 제거
+            sanity_fn = config.get("sanity_filter_fn")
+            if sanity_fn is not None:
+                price_matrix = sanity_fn(price_matrix)
+                if price_matrix.empty:
+                    logger.warning("%s %s: sanity 필터 후 종목 없음", market, period_key)
+                    continue
 
             # 노이즈 필터 (메타 기준)
             if not meta_df.empty:
