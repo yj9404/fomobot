@@ -78,7 +78,7 @@ def _fetch_nasdaq_name_map() -> dict[str, str]:
         df = df[df["Symbol"].str.isalpha() & (df["Symbol"].str.len() <= 5)]
         if "Security Name" not in df.columns:
             return {}
-        return dict(zip(df["Symbol"].str.strip(), df["Security Name"].str.strip()))
+        return dict(zip(df["Symbol"].str.strip(), df["Security Name"].str.strip().str[:200]))
     except Exception:
         logger.warning("NASDAQ 종목명 매핑 조회 실패")
         return {}

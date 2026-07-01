@@ -17,6 +17,7 @@ def init_sentry(release: str | None = None) -> None:
         return
 
     import sentry_sdk
+    from sentry_sdk.integrations.logging import LoggingIntegration
 
     sentry_sdk.init(
         dsn=settings.sentry_dsn,
@@ -26,5 +27,10 @@ def init_sentry(release: str | None = None) -> None:
         send_default_pii=True,
         enable_tracing=True,
         enable_logs=True,
+        integrations=[
+            # breadcrumb는 INFO 이상, 이슈 생성은 ERROR 이상만
+            # yfinance WARNING("possibly delisted" 등)은 이슈로 올라오지 않음
+            LoggingIntegration(level=logging.INFO, event_level=logging.ERROR),
+        ],
     )
     logger.info("Sentry 초기화 완료 (env=%s)", settings.app_env)
