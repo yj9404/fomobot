@@ -8,11 +8,11 @@ interface ThemeCtx {
   toggle: () => void
 }
 
-const Ctx = createContext<ThemeCtx>({ theme: 'dark', C: DARK, toggle: () => {} })
+const Ctx = createContext<ThemeCtx>({ theme: 'light', C: LIGHT, toggle: () => {} })
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<Theme>(() => {
-    try { return (localStorage.getItem('fomobot-theme') as Theme) ?? 'dark' } catch { return 'dark' }
+    try { return (localStorage.getItem('fomobot-theme') as Theme) ?? 'light' } catch { return 'light' }
   })
 
   const C = theme === 'dark' ? DARK : LIGHT
