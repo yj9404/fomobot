@@ -176,6 +176,10 @@ export function ReResultArea({ rankings, excluded, meta, lang, period }: Props) 
           <span style={{ fontSize: 11, color: C.textDim }}>
             {meta.total_complexes}{lang === 'ko' ? '개 단지' : ' complexes'}
           </span>
+          <span style={{ fontSize: 11, color: C.textDim }}>·</span>
+          <span style={{ fontSize: 11, color: C.textDim }}>
+            {lang === 'ko' ? '84㎡ 환산 기준' : 'Based on 84㎡'}
+          </span>
           {meta.is_recent_incomplete && (
             <span style={{
               fontSize: 10, color: C.orange,
@@ -229,7 +233,12 @@ export function ReResultArea({ rankings, excluded, meta, lang, period }: Props) 
                 </span>
 
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 14.5, fontWeight: 700, color: C.textPrimary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <div style={{ 
+                    fontSize: 14.5, fontWeight: 700, color: C.textPrimary, 
+                    overflow: 'hidden', textOverflow: 'ellipsis', 
+                    whiteSpace: isSelected ? 'normal' : 'nowrap',
+                    lineHeight: 1.3, wordBreak: 'keep-all'
+                  }}>
                     {item.display_name}
                   </div>
                   <div style={{ fontSize: 11, color: C.textDim, marginTop: 2, fontFamily: FONT.mono }}>
