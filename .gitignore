@@ -9,6 +9,7 @@ wheels/
 
 # Env secrets
 .env
+.env.prod
 
 # IDE
 .vscode/

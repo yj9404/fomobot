@@ -79,7 +79,7 @@ async def health_check():
             snap_month = int(last_snapshot_ym[4:])
             today = date.today()
             months_behind = (today.year - snap_year) * 12 + (today.month - snap_month)
-            stale = months_behind >= settings.health_stale_months
+            stale = months_behind > settings.health_stale_months
 
     except Exception:
         logger.exception("헬스체크 DB 조회 실패")
