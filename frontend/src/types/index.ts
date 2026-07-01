@@ -4,6 +4,7 @@ export type Lang = 'ko' | 'en'
 export type Tab = 'stock' | 'realestate'
 export type RealEstatePeriod = '3m' | '6m' | '1y' | '3y' | '5y' | '10y' | '20y'
 export type DataStatus = 'ok' | 'insufficient' | 'no_start' | 'no_end'
+export type CapTier = 'all' | 'small' | 'mid' | 'large'
 
 export interface RankingItem {
   rank: number
@@ -205,4 +206,46 @@ export const PERIODS: PeriodDef[] = [
   { label: { ko: '90일', en: '90D' }, value: '90d',   days: 90   },
   { label: { ko: '1년', en: '1Y'   }, value: '365d',  days: 365  },
   { label: { ko: '5년', en: '5Y'   }, value: '1825d', days: 1825 },
+]
+
+export interface CapTierDef {
+  label: { ko: string; en: string }
+  value: CapTier
+  /** 마켓별 간략 설명 (툴팁 등에 사용) */
+  desc: { kospi: { ko: string; en: string }; nasdaq: { ko: string; en: string } }
+}
+
+export const CAP_TIERS: CapTierDef[] = [
+  {
+    label: { ko: '전체', en: 'All' },
+    value: 'all',
+    desc: {
+      kospi:  { ko: '시총 제한 없음', en: 'No cap filter' },
+      nasdaq: { ko: '시총 제한 없음', en: 'No cap filter' },
+    },
+  },
+  {
+    label: { ko: '소형', en: 'Small' },
+    value: 'small',
+    desc: {
+      kospi:  { ko: '5,000억 미만', en: '< ₩500B' },
+      nasdaq: { ko: '$2B 미만',     en: '< $2B'   },
+    },
+  },
+  {
+    label: { ko: '중형', en: 'Mid' },
+    value: 'mid',
+    desc: {
+      kospi:  { ko: '5,000억 ~ 5조', en: '₩500B – ₩5T' },
+      nasdaq: { ko: '$2B ~ $10B',    en: '$2B – $10B'   },
+    },
+  },
+  {
+    label: { ko: '대형', en: 'Large' },
+    value: 'large',
+    desc: {
+      kospi:  { ko: '5조 이상', en: '≥ ₩5T' },
+      nasdaq: { ko: '$10B 이상', en: '≥ $10B' },
+    },
+  },
 ]

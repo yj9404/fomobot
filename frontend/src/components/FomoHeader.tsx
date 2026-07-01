@@ -1,9 +1,9 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useC, useTheme } from '../ThemeContext'
 import { FONT } from '../tokens'
-import { PERIODS, RE_PERIODS, RE_REGIONS } from '../types'
+import { PERIODS, RE_PERIODS, RE_REGIONS, CAP_TIERS } from '../types'
 import { useReRegionSearch } from '../hooks/useReRegionSearch'
-import type { Lang, Market, Tab, RegionItem } from '../types'
+import type { Lang, Market, Tab, RegionItem, CapTier } from '../types'
 import type { Strings } from '../i18n/strings'
 
 interface Props {
@@ -17,6 +17,8 @@ interface Props {
   onTab: (t: Tab) => void
   onMarket: (m: Market) => void
   onPeriod: (i: number) => void
+  capTier: CapTier
+  onCapTier: (c: CapTier) => void
   // RE controls
   reRegion: string
   rePeriodIdx: number
@@ -68,16 +70,22 @@ function RegionSearchMobile({
   const { results, loading } = useReRegionSearch(open ? q : '')
 
   const grouped = (() => {
-    const seen = new Set<string>()
-    const items: Array<{ type: 'gu' | 'dong'; item: RegionItem }> = []
+    const byGu = new Map<string, RegionItem[]>()
     for (const r of results) {
-      if (!seen.has(r.sigungu_code)) {
-        seen.add(r.sigungu_code)
-        items.push({ type: 'gu', item: r })
+      if (!byGu.has(r.sigungu_code)) {
+        byGu.set(r.sigungu_code, [])
       }
+      byGu.get(r.sigungu_code)!.push(r)
     }
-    for (const r of results) {
-      items.push({ type: 'dong', item: r })
+
+    const items: Array<{ type: 'gu' | 'dong'; item: RegionItem }> = []
+    for (const dongs of byGu.values()) {
+      if (dongs.length > 0) {
+        items.push({ type: 'gu', item: dongs[0] })
+        for (const r of dongs) {
+          items.push({ type: 'dong', item: r })
+        }
+      }
     }
     return items
   })()
@@ -144,12 +152,12 @@ function RegionSearchMobile({
     <div ref={containerRef} style={{ padding: '0 16px 8px', position: 'relative' }}>
       <div style={{
         display: 'flex', alignItems: 'center', gap: 7,
-        background: C.surfaceAlt,
-        border: `1px solid ${open ? 'rgba(62,123,250,0.45)' : C.borderSub}`,
+        background: C.inputBg,
+        border: `1.5px solid ${open ? 'rgba(62,123,250,0.65)' : C.inputBorder}`,
         borderRadius: 8, padding: '7px 12px',
         transition: 'border-color 0.15s',
       }}>
-        <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke={C.textDim} strokeWidth="1.8" strokeLinecap="round">
+        <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke={C.textMuted} strokeWidth="1.8" strokeLinecap="round">
           <circle cx="6.5" cy="6.5" r="4.5" />
           <line x1="10.5" y1="10.5" x2="14" y2="14" />
         </svg>
@@ -233,7 +241,7 @@ function RegionSearchMobile({
 
 export function FomoHeader({
   lang, tab, market, periodIdx, disclaimer, t,
-  onLang, onTab, onMarket, onPeriod,
+  onLang, onTab, onMarket, onPeriod, capTier, onCapTier,
   reRegion, rePeriodIdx, reGu, reDong,
   onReRegion, onRePeriod, onReGu,
 }: Props) {
@@ -333,7 +341,7 @@ export function FomoHeader({
               ))}
             </div>
           </div>
-          <div style={{ display: 'flex', gap: 6, padding: '12px 16px 10px', overflowX: 'auto', scrollbarWidth: 'none' }}>
+          <div style={{ display: 'flex', gap: 6, padding: '12px 16px 4px', overflowX: 'auto', scrollbarWidth: 'none' }}>
             {PERIODS.map((p, i) => (
               <button
                 key={p.value}
@@ -347,6 +355,24 @@ export function FomoHeader({
                 }}
               >
                 {p.label[lang]}
+              </button>
+            ))}
+          </div>
+          <div style={{ display: 'flex', gap: 6, padding: '4px 16px 10px', overflowX: 'auto', scrollbarWidth: 'none' }}>
+            {CAP_TIERS.map((c) => (
+              <button
+                key={c.value}
+                onClick={() => onCapTier(c.value)}
+                title={c.desc[market][lang]}
+                style={{
+                  padding: '6px 11px', borderRadius: 9, border: 'none',
+                  fontSize: 12, fontWeight: 600, fontFamily: FONT.sans, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
+                  background: capTier === c.value ? 'rgba(62,123,250,0.14)' : C.surfaceAlt,
+                  color: capTier === c.value ? C.blueSoft : C.textMuted,
+                  outline: capTier === c.value ? '1px solid rgba(62,123,250,0.32)' : 'none',
+                }}
+              >
+                {c.label[lang]}
               </button>
             ))}
           </div>

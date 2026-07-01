@@ -16,7 +16,7 @@ import { useStrings } from './i18n/strings'
 import { useC } from './ThemeContext'
 import { PERIODS, RE_PERIODS, RE_DISCLAIMER } from './types'
 import { FONT } from './tokens'
-import type { Lang, Market, Tab } from './types'
+import type { Lang, Market, Tab, CapTier } from './types'
 
 function initTab(): Tab {
   const p = new URLSearchParams(window.location.search)
@@ -40,6 +40,7 @@ export default function App() {
   // ── 주식 상태 (기존 그대로) ────────────────────────────────────────────
   const [market, setMarket] = useState<Market>('kospi')
   const [periodIdx, setPeriodIdx] = useState(2) // default: 30d
+  const [capTier, setCapTier] = useState<CapTier>('all')
   const [openRank, setOpenRank] = useState<number | null>(null)
   const [selectedRank, setSelectedRank] = useState<number | null>(null)
   const [retryKey, setRetryKey] = useState(0)
@@ -54,7 +55,7 @@ export default function App() {
   const C = useC()
   const t = useStrings(lang)
   const period = PERIODS[periodIdx]!
-  const { status, rankings, disclaimer: stockDisclaimer } = useRankings(market, period.value, retryKey)
+  const { status, rankings, disclaimer: stockDisclaimer } = useRankings(market, period.value, capTier, retryKey)
   const { load: loadBt, get: getBt } = useBacktest(market, period.value, period.days)
 
   const windowWidth = useWindowWidth()
@@ -88,6 +89,7 @@ export default function App() {
   const handleMarket = useCallback((m: Market) => {
     setOpenRank(null)
     setSelectedRank(null)
+    setCapTier('all') // market 변경 시 시총 필터 초기화
     setMarket(m)
   }, [])
 
@@ -122,6 +124,7 @@ export default function App() {
     onTab: handleTab,
     onMarket: handleMarket,
     onPeriod: handlePeriod,
+    capTier, onCapTier: setCapTier,
     reRegion, rePeriodIdx, reGu, reDong,
     onReRegion: handleReRegion,
     onRePeriod: setRePeriodIdx,

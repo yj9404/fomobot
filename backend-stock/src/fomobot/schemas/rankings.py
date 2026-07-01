@@ -7,6 +7,7 @@ DISCLAIMER = "투자 조언이 아닙니다. FomoBot은 지나간 걸 보여줄 
 
 PeriodLiteral = Literal["1d", "7d", "30d", "90d", "365d", "1825d"]
 MarketLiteral = Literal["kospi", "nasdaq"]
+CapTierLiteral = Literal["all", "small", "mid", "large"]
 
 
 class RankingItem(BaseModel):
@@ -25,4 +26,5 @@ class RankingsResponse(BaseModel):
     period: PeriodLiteral
     as_of: date
     top: int
+    cap_tier: CapTierLiteral = "all"
     rankings: list[RankingItem]

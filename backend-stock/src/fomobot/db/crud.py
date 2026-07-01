@@ -16,21 +16,66 @@ async def get_rankings(
     period: str,
     top: int,
     snapshot_date: date | None = None,
+    min_market_cap: int | None = None,
+    max_market_cap: int | None = None,
 ) -> Sequence[RankingSnapshot]:
-    stmt = (
-        select(RankingSnapshot)
-        .where(
-            RankingSnapshot.market == market,
-            RankingSnapshot.period == period,
-            RankingSnapshot.rank <= top,
+    """
+    랭킹 스냅샷 조회.
+
+    min_market_cap / max_market_cap 지정 시 snapshot_date 기준
+    PriceDaily 최신 market_cap을 서브쿼리로 조인해 필터링한다.
+    market_cap이 NULL인 종목은 필터 적용 시 자동 제외된다.
+    """
+    need_cap_filter = min_market_cap is not None or max_market_cap is not None
+
+    if need_cap_filter:
+        # snapshot_date 기준 PriceDaily 최신 날짜의 market_cap을 서브쿼리로 조인
+        # 한 마켓 내 모든 종목의 최신 날짜는 동일하다고 가정 (배치 수집 단위)
+        latest_date_sq = (
+            select(func.max(PriceDaily.date))
+            .where(PriceDaily.market == market)
+            .scalar_subquery()
         )
-        .order_by(RankingSnapshot.snapshot_date.desc(), RankingSnapshot.rank)
-    )
+        cap_sq = (
+            select(PriceDaily.ticker, PriceDaily.market_cap)
+            .where(
+                PriceDaily.market == market,
+                PriceDaily.date == latest_date_sq,
+                PriceDaily.market_cap.isnot(None),
+            )
+            .subquery()
+        )
+        stmt = (
+            select(RankingSnapshot)
+            .join(cap_sq, RankingSnapshot.ticker == cap_sq.c.ticker)
+            .where(
+                RankingSnapshot.market == market,
+                RankingSnapshot.period == period,
+                RankingSnapshot.rank <= top,
+            )
+            .order_by(RankingSnapshot.snapshot_date.desc(), RankingSnapshot.rank)
+        )
+        if min_market_cap is not None:
+            stmt = stmt.where(cap_sq.c.market_cap >= min_market_cap)
+        if max_market_cap is not None:
+            stmt = stmt.where(cap_sq.c.market_cap < max_market_cap)
+    else:
+        stmt = (
+            select(RankingSnapshot)
+            .where(
+                RankingSnapshot.market == market,
+                RankingSnapshot.period == period,
+                RankingSnapshot.rank <= top,
+            )
+            .order_by(RankingSnapshot.snapshot_date.desc(), RankingSnapshot.rank)
+        )
+
     if snapshot_date:
         stmt = stmt.where(RankingSnapshot.snapshot_date == snapshot_date)
 
     result = await session.execute(stmt)
     return result.scalars().all()
+
 
 
 async def get_nearest_snapshot_date(
