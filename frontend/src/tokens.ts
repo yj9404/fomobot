@@ -38,6 +38,8 @@ export const DARK = {
   langBorder:       'rgba(255,255,255,0.07)',
   hoverBg:          'rgba(255,255,255,0.025)',
   barTrack:         'rgba(255,255,255,0.06)',
+  inputBg:          '#1B2130',
+  inputBorder:      'rgba(255,255,255,0.20)',
 } as const
 
 export const LIGHT = {
@@ -78,6 +80,8 @@ export const LIGHT = {
   langBorder:       'rgba(0,0,0,0.09)',
   hoverBg:          'rgba(0,0,0,0.03)',
   barTrack:         'rgba(0,0,0,0.07)',
+  inputBg:          '#FFFFFF',
+  inputBorder:      'rgba(0,0,0,0.18)',
 } as const
 
 export type Colors = typeof DARK | typeof LIGHT

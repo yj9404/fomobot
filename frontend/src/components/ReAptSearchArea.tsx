@@ -163,8 +163,8 @@ export function ReAptSearchArea({ period: globalPeriod, lang, t }: Props) {
 
         <div style={{
           display: 'flex', alignItems: 'center', gap: 9,
-          background: C.surfaceAlt,
-          border: `1.5px solid ${open ? 'rgba(62,123,250,0.55)' : 'rgba(62,123,250,0.22)'}`,
+          background: C.inputBg,
+          border: `1.5px solid ${open ? 'rgba(62,123,250,0.65)' : C.inputBorder}`,
           borderRadius: 10, padding: '9px 13px',
           transition: 'border-color 0.15s',
         }}>
@@ -432,7 +432,7 @@ export function ReAptSearchArea({ period: globalPeriod, lang, t }: Props) {
                         background: C.surfaceAlt, border: `1px solid ${C.borderSub}`,
                         padding: '1px 5px', borderRadius: 4,
                       }}>
-                        {lang === 'ko' ? '국평기준' : '84㎡'}
+                        {lang === 'ko' ? '84㎡ 가정' : '84㎡'}
                       </span>
                     </div>
                     <div style={{

@@ -116,11 +116,10 @@ export function StockSearchArea({ market, lang, t }: Props) {
           {lang === 'ko' ? '종목 검색' : 'Stock Search'}
         </div>
 
-        {/* 입력창 — 라이트/다크 모두 잘 보이도록 border 강화 */}
         <div style={{
           display: 'flex', alignItems: 'center', gap: 9,
-          background: C.surfaceAlt,
-          border: `1.5px solid ${open ? 'rgba(62,123,250,0.55)' : 'rgba(62,123,250,0.22)'}`,
+          background: C.inputBg,
+          border: `1.5px solid ${open ? 'rgba(62,123,250,0.65)' : C.inputBorder}`,
           borderRadius: 10, padding: '9px 13px',
           transition: 'border-color 0.15s',
         }}>
@@ -298,8 +297,8 @@ export function StockSearchArea({ market, lang, t }: Props) {
               display: 'flex', gap: 6, alignItems: 'center',
               flexWrap: 'wrap', marginBottom: 12,
               padding: '10px 12px',
-              background: C.surfaceAlt,
-              border: `1px solid ${C.borderSub}`,
+              background: C.inputBg,
+              border: `1px solid ${C.inputBorder}`,
               borderRadius: 8,
             }}>
               <span style={{ fontSize: 11, color: C.textDim }}>
@@ -313,7 +312,7 @@ export function StockSearchArea({ market, lang, t }: Props) {
                 onChange={(e) => setStartInput(e.target.value)}
                 style={{
                   padding: '5px 8px', borderRadius: 7, fontSize: 12,
-                  border: `1px solid ${C.border}`, background: C.surface,
+                  border: `1px solid ${C.inputBorder}`, background: C.inputBg,
                   color: C.textPrimary, fontFamily: FONT.sans,
                 }}
               />
@@ -328,7 +327,7 @@ export function StockSearchArea({ market, lang, t }: Props) {
                 onChange={(e) => setEndInput(e.target.value)}
                 style={{
                   padding: '5px 8px', borderRadius: 7, fontSize: 12,
-                  border: `1px solid ${C.border}`, background: C.surface,
+                  border: `1px solid ${C.inputBorder}`, background: C.inputBg,
                   color: C.textPrimary, fontFamily: FONT.sans,
                 }}
               />

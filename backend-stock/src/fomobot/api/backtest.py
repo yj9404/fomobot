@@ -25,7 +25,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from fomobot.db.crud import (
     get_latest_prices_async,
-    get_latest_snapshot_date,
     get_nearest_snapshot_date,
     get_rankings,
 )
@@ -73,12 +72,8 @@ async def backtest_endpoint(
             ),
         )
 
-    # 2) 기준일과 최신 날짜가 같으면 오늘 가격 미수집 상태 — 모두 None
-    latest_date = await get_latest_snapshot_date(session, market, "1d")
-    if latest_date is not None and actual_date >= latest_date:
-        current_returns: dict[str, float | None] = {}
-    else:
-        current_returns = await _compute_current_returns(session, market, snapshot_rows)
+    # 2) 현재 수익률 계산 — price_daily 최신 종가 기준 (period와 무관)
+    current_returns = await _compute_current_returns(session, market, snapshot_rows)
 
     items = []
     for row in snapshot_rows:

@@ -16,6 +16,7 @@ style.textContent = `
   body { background: #0B0D12; }
   ::-webkit-scrollbar { height: 8px; width: 8px; }
   ::-webkit-scrollbar-thumb { background: rgba(128,128,128,.25); border-radius: 8px; }
+  input::placeholder { color: #9AA5B8; }
 `
 document.head.appendChild(style)
 
