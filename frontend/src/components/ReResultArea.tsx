@@ -239,9 +239,12 @@ export function ReResultArea({ rankings, excluded, meta, lang, period }: Props) 
                     whiteSpace: isSelected ? 'normal' : 'nowrap',
                     lineHeight: 1.3, wordBreak: 'keep-all'
                   }}>
-                    {item.display_name}
+                    {item.apt_name}
                   </div>
-                  <div style={{ fontSize: 11, color: C.textDim, marginTop: 2, fontFamily: FONT.mono }}>
+                  <div style={{ fontSize: 10.5, color: C.textDim, marginTop: 4 }}>
+                    {item.display_name.replace(item.apt_name, '').trim()}
+                  </div>
+                  <div style={{ fontSize: 11, color: C.textDim, marginTop: 4, fontFamily: FONT.mono }}>
                     {fmtWon(item.start_price != null ? item.start_price * 84 : null)} → {fmtWon(item.end_price != null ? item.end_price * 84 : null)}
                   </div>
                 </div>
