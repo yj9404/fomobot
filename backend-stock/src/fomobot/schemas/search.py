@@ -35,3 +35,8 @@ class QuoteResponse(BaseModel):
     mdd_pct: float | None = Field(None, description="최대낙폭 MDD (%, ≤ 0)")
     volatility_annualized_pct: float | None = Field(None, description="연율화 변동성 (%)")
     data_coverage: DataCoverage
+
+
+class DateBoundsResponse(BaseModel):
+    market: str
+    min_date: date | None = None

@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from fomobot.db.crud import (
+    get_global_price_min_date_async,
     get_price_history_bounds_async,
     get_price_series_async,
     get_security_name,
@@ -12,7 +13,7 @@ from fomobot.db.crud import (
 )
 from fomobot.db.session import AsyncSessionLocal
 from fomobot.schemas.rankings import MarketLiteral, PeriodLiteral
-from fomobot.schemas.search import DataCoverage, QuoteResponse, SearchResponse, SecurityItem
+from fomobot.schemas.search import DataCoverage, DateBoundsResponse, QuoteResponse, SearchResponse, SecurityItem
 from fomobot.services.calculator import PERIOD_TO_DAYS, compute_quote_metrics
 
 router = APIRouter(prefix="/api/stock", tags=["Search"])
@@ -21,6 +22,16 @@ router = APIRouter(prefix="/api/stock", tags=["Search"])
 async def _get_session():
     async with AsyncSessionLocal() as session:
         yield session
+
+
+@router.get("/date-bounds", response_model=DateBoundsResponse)
+async def get_date_bounds(
+    market: MarketLiteral,
+    session: AsyncSession = Depends(_get_session),
+):
+    """시장 전체 주가 데이터의 가장 이른 날짜를 반환한다. 날짜 선택기의 min 범위 설정에 사용."""
+    min_date = await get_global_price_min_date_async(session, market)
+    return DateBoundsResponse(market=market, min_date=min_date)
 
 
 @router.get("/search", response_model=SearchResponse)

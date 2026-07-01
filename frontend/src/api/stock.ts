@@ -1,5 +1,9 @@
 import { apiFetch } from './client'
-import type { Market, Period, StockSearchResponse, StockQuoteResponse } from '../types'
+import type { Market, Period, StockSearchResponse, StockQuoteResponse, StockDateBoundsResponse } from '../types'
+
+export function fetchStockDateBounds(market: Market): Promise<StockDateBoundsResponse> {
+  return apiFetch<StockDateBoundsResponse>('/api/stock/date-bounds', { market })
+}
 
 export function fetchStockSearch(market: Market, q: string): Promise<StockSearchResponse> {
   return apiFetch<StockSearchResponse>('/api/stock/search', { market, q })

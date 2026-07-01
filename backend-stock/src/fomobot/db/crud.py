@@ -267,3 +267,13 @@ async def get_price_history_bounds_async(
     result = await session.execute(stmt)
     row = result.one()
     return row[0], row[1]
+
+
+async def get_global_price_min_date_async(
+    session: AsyncSession,
+    market: str,
+) -> date | None:
+    """시장 전체 PriceDaily에서 가장 이른 날짜 반환."""
+    stmt = select(func.min(PriceDaily.date)).where(PriceDaily.market == market)
+    result = await session.execute(stmt)
+    return result.scalar_one_or_none()

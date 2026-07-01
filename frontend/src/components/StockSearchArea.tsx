@@ -4,6 +4,7 @@ import { FONT } from '../tokens'
 import { PERIODS } from '../types'
 import { useStockSearch } from '../hooks/useStockSearch'
 import { useStockQuote } from '../hooks/useStockQuote'
+import { fetchStockDateBounds } from '../api/stock'
 import type { Market, Lang, Period } from '../types'
 import type { Strings } from '../i18n/strings'
 
@@ -35,7 +36,10 @@ export function StockSearchArea({ market, lang, t }: Props) {
   const [startInput, setStartInput] = useState('')
   const [endInput, setEndInput] = useState('')
   const [applied, setApplied] = useState<{ start: string; end: string } | null>(null)
+  const [minDate, setMinDate] = useState<string | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+
+  const today = new Date().toISOString().slice(0, 10)
 
   const { results, loading: searching } = useStockSearch(market, open ? q : '')
 
@@ -49,6 +53,10 @@ export function StockSearchArea({ market, lang, t }: Props) {
     setOpen(false)
     setApplied(null)
     setCustomMode(false)
+  }, [market])
+
+  useEffect(() => {
+    fetchStockDateBounds(market).then((r) => setMinDate(r.min_date)).catch(() => {})
   }, [market])
 
   useEffect(() => {
@@ -300,6 +308,8 @@ export function StockSearchArea({ market, lang, t }: Props) {
               <input
                 type="date"
                 value={startInput}
+                min={minDate ?? undefined}
+                max={today}
                 onChange={(e) => setStartInput(e.target.value)}
                 style={{
                   padding: '5px 8px', borderRadius: 7, fontSize: 12,
@@ -313,6 +323,8 @@ export function StockSearchArea({ market, lang, t }: Props) {
               <input
                 type="date"
                 value={endInput}
+                min={minDate ?? undefined}
+                max={today}
                 onChange={(e) => setEndInput(e.target.value)}
                 style={{
                   padding: '5px 8px', borderRadius: 7, fontSize: 12,
