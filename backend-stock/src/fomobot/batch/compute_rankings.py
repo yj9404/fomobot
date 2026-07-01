@@ -188,14 +188,22 @@ def compute_rankings_for_market(market: str, snapshot_date: date, top: int = 100
             # 랭킹 계산 (벡터 연산)
             ranking_df = build_ranking_df(price_matrix, idx_series, top=top)
 
+            # snapshot_date 당일 종가 맵 (ticker → close_adj).
+            # price_matrix의 마지막 행(= snapshot_date)에서 추출.
+            # as_of 시점 주가를 스냅샷에 저장해 두면, 백테스트가
+            # price_daily 과거분 없이도 기준 주가를 참조할 수 있다.
+            last_row = price_matrix.iloc[-1]  # snapshot_date 행
+
             period_records: list[dict] = []
             for _, row in ranking_df.iterrows():
+                ticker_str = str(row["ticker"])
+                close_at_snapshot = last_row.get(ticker_str)
                 period_records.append({
                     "snapshot_date": snapshot_date,
                     "market": market,
                     "period": period_key,
                     "rank": int(row["rank"]),
-                    "ticker": str(row["ticker"]),
+                    "ticker": ticker_str,
                     "name": None,
                     "return_pct": float(row["return_pct"]),
                     "mdd_pct": float(row["mdd_pct"]) if pd.notna(row["mdd_pct"]) else None,
@@ -206,6 +214,11 @@ def compute_rankings_for_market(market: str, snapshot_date: date, top: int = 100
                     "excess_return_pct": (
                         float(row["excess_return_pct"])
                         if pd.notna(row["excess_return_pct"]) else None
+                    ),
+                    "close_price_at_snapshot": (
+                        float(close_at_snapshot)
+                        if close_at_snapshot is not None and pd.notna(close_at_snapshot)
+                        else None
                     ),
                 })
 

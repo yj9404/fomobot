@@ -69,6 +69,9 @@ class RankingSnapshot(Base):
     mdd_pct = Column(Float)
     volatility_annualized_pct = Column(Float)
     excess_return_pct = Column(Float)
+    # 스냅샷 날짜 기준 수정종가 — 백테스트에서 price_daily 과거분 없이 as_of 주가를 참조하기 위해 저장.
+    # backfill 완료 전 또는 수집 실패 종목은 NULL 허용.
+    close_price_at_snapshot = Column(Float, nullable=True)
 
     __table_args__ = (
         UniqueConstraint(

@@ -18,7 +18,7 @@ class BacktestItem(BaseModel):
 class BacktestResponse(BaseModel):
     disclaimer: str = DISCLAIMER
     survival_bias_warning: str = (
-        "상장폐지 종목은 price_daily 테이블에서 누락되어 포함되지 않습니다. "
+        "상장폐지 종목은 최신 주가가 없어 포함되지 않습니다. "
         "생존 편향(survivorship bias)으로 인해 실제 수익률보다 과대 계상될 수 있습니다."
     )
     market: MarketLiteral

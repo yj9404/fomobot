@@ -1,0 +1,19 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: fomobot
+    ports:
+      - "5432:5432"
+    volumes:
+      - stock_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d fomobot"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  stock_pgdata:

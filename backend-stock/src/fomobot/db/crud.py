@@ -116,6 +116,11 @@ def upsert_ranking_snapshots_sync(session: Session, records: list[dict]) -> None
             "mdd_pct": stmt.excluded.mdd_pct,
             "volatility_annualized_pct": stmt.excluded.volatility_annualized_pct,
             "excess_return_pct": stmt.excluded.excess_return_pct,
+            # close_price_at_snapshot: 기존 NULL만 덮어씌움 (이미 값이 있으면 유지)
+            "close_price_at_snapshot": func.coalesce(
+                RankingSnapshot.close_price_at_snapshot,
+                stmt.excluded.close_price_at_snapshot,
+            ),
         },
     )
     session.execute(stmt)
@@ -277,3 +282,41 @@ async def get_global_price_min_date_async(
     stmt = select(func.min(PriceDaily.date)).where(PriceDaily.market == market)
     result = await session.execute(stmt)
     return result.scalar_one_or_none()
+
+
+async def get_latest_prices_async(
+    session: AsyncSession,
+    market: str,
+    tickers: list[str],
+) -> dict[str, float | None]:
+    """
+    주어진 티커 목록에 대해 price_daily 최신 날짜의 close_adj를 반환.
+
+    오늘 주가가 없는 종목(상장폐지 등)은 반환 dict에 포함되지 않거나
+    값이 None — 호출자가 None 처리해야 한다(생존 편향 유지).
+    """
+    if not tickers:
+        return {}
+
+    from sqlalchemy import text
+
+    placeholders = ", ".join(f":t{i}" for i in range(len(tickers)))
+    params = {f"t{i}": t for i, t in enumerate(tickers)}
+    params["market"] = market
+
+    # 단일 서브쿼리로 최신 날짜를 구한 뒤 해당 날짜의 가격만 반환.
+    # 상장폐지 종목은 최신 날짜에 행이 없으므로 자연스럽게 누락된다.
+    query = text(f"""
+        SELECT pd.ticker, pd.close_adj
+        FROM price_daily pd
+        WHERE pd.market = :market
+          AND pd.ticker IN ({placeholders})
+          AND pd.date = (
+              SELECT MAX(date)
+              FROM price_daily
+              WHERE market = :market
+          )
+    """)
+
+    result = await session.execute(query, params)
+    return {row.ticker: row.close_adj for row in result.fetchall()}
