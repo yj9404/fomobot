@@ -3,7 +3,7 @@ import { useC, useTheme } from '../ThemeContext'
 import { FONT } from '../tokens'
 import { PERIODS, RE_PERIODS, RE_REGIONS } from '../types'
 import { useReRegionSearch } from '../hooks/useReRegionSearch'
-import type { Lang, Market, Tab, ReLevel, RegionItem } from '../types'
+import type { Lang, Market, Tab, RegionItem } from '../types'
 import type { Strings } from '../i18n/strings'
 
 interface Props {
@@ -18,12 +18,10 @@ interface Props {
   onMarket: (m: Market) => void
   onPeriod: (i: number) => void
   // RE controls
-  reLevel: ReLevel
   reRegion: string
   rePeriodIdx: number
   reGu: string
   reDong: string
-  onReLevel: (l: ReLevel) => void
   onReRegion: (r: string) => void
   onRePeriod: (i: number) => void
   onReGu: (gu: string, dong: string) => void
@@ -239,8 +237,8 @@ function RegionSearch({
 export function NavRail({
   lang, tab, market, periodIdx, disclaimer, t,
   onLang, onTab, onMarket, onPeriod,
-  reLevel, reRegion, rePeriodIdx, reGu, reDong,
-  onReLevel, onReRegion, onRePeriod, onReGu,
+  reRegion, rePeriodIdx, reGu, reDong,
+  onReRegion, onRePeriod, onReGu,
 }: Props) {
   const C = useC()
   const { theme, toggle } = useTheme()
@@ -414,29 +412,6 @@ export function NavRail({
               reDong={reDong}
               onReGu={onReGu}
             />
-          </div>
-
-          <div>
-            <div style={sectionLabel(C)}>{lang === 'ko' ? '단위' : 'Level'}</div>
-            <div style={{ display: 'flex', background: C.langBg, border: `1px solid ${C.langBorder}`, borderRadius: 9, padding: 2, gap: 2 }}>
-              {([
-                { value: 'gu',   ko: '구 단위', en: 'Gu' },
-                { value: 'dong', ko: '동 단위', en: 'Dong' },
-              ] as { value: ReLevel; ko: string; en: string }[]).map((lv) => (
-                <button
-                  key={lv.value}
-                  onClick={() => onReLevel(lv.value)}
-                  style={{
-                    flex: 1, padding: '6px 0', border: 'none', borderRadius: 7,
-                    fontSize: 11, fontWeight: 700, fontFamily: FONT.sans, cursor: 'pointer',
-                    background: reLevel === lv.value ? C.langActive : 'transparent',
-                    color: reLevel === lv.value ? C.textPrimary : C.textDim,
-                  }}
-                >
-                  {lang === 'ko' ? lv.ko : lv.en}
-                </button>
-              ))}
-            </div>
           </div>
 
           <div>

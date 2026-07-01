@@ -16,7 +16,7 @@ import { useStrings } from './i18n/strings'
 import { useC } from './ThemeContext'
 import { PERIODS, RE_PERIODS, RE_DISCLAIMER } from './types'
 import { FONT } from './tokens'
-import type { Lang, Market, Tab, ReLevel } from './types'
+import type { Lang, Market, Tab } from './types'
 
 function initTab(): Tab {
   const p = new URLSearchParams(window.location.search)
@@ -45,7 +45,6 @@ export default function App() {
   const [retryKey, setRetryKey] = useState(0)
 
   // ── 부동산 상태 ────────────────────────────────────────────────────────
-  const [reLevel, setReLevel] = useState<ReLevel>('gu')
   const [reRegion, setReRegion] = useState('')       // '' = 수도권 전체
   const [rePeriodIdx, setRePeriodIdx] = useState(2)  // 1y
   const [reGu, setReGu] = useState('')               // 5자리 시군구 코드 ('' = 미설정)
@@ -123,8 +122,7 @@ export default function App() {
     onTab: handleTab,
     onMarket: handleMarket,
     onPeriod: handlePeriod,
-    reLevel, reRegion, rePeriodIdx, reGu, reDong,
-    onReLevel: setReLevel,
+    reRegion, rePeriodIdx, reGu, reDong,
     onReRegion: handleReRegion,
     onRePeriod: setRePeriodIdx,
     onReGu: handleReGu,

@@ -3,7 +3,7 @@ import { useC, useTheme } from '../ThemeContext'
 import { FONT } from '../tokens'
 import { PERIODS, RE_PERIODS, RE_REGIONS } from '../types'
 import { useReRegionSearch } from '../hooks/useReRegionSearch'
-import type { Lang, Market, Tab, ReLevel, RegionItem } from '../types'
+import type { Lang, Market, Tab, RegionItem } from '../types'
 import type { Strings } from '../i18n/strings'
 
 interface Props {
@@ -18,12 +18,10 @@ interface Props {
   onMarket: (m: Market) => void
   onPeriod: (i: number) => void
   // RE controls
-  reLevel: ReLevel
   reRegion: string
   rePeriodIdx: number
   reGu: string
   reDong: string
-  onReLevel: (l: ReLevel) => void
   onReRegion: (r: string) => void
   onRePeriod: (i: number) => void
   onReGu: (gu: string, dong: string) => void
@@ -234,8 +232,8 @@ function RegionSearchMobile({
 export function FomoHeader({
   lang, tab, market, periodIdx, disclaimer, t,
   onLang, onTab, onMarket, onPeriod,
-  reLevel, reRegion, rePeriodIdx, reGu, reDong,
-  onReLevel, onReRegion, onRePeriod, onReGu,
+  reRegion, rePeriodIdx, reGu, reDong,
+  onReRegion, onRePeriod, onReGu,
 }: Props) {
   const C = useC()
   const { theme, toggle } = useTheme()
@@ -356,45 +354,23 @@ export function FomoHeader({
       {/* ── 부동산 컨트롤 ── */}
       {tab === 'realestate' && (
         <>
-          {/* 지역(sido) + 구/동 토글 한 줄 */}
-          <div style={{ display: 'flex', gap: 6, padding: '0 16px 6px', alignItems: 'center' }}>
-            <div style={{ display: 'flex', gap: 4, overflowX: 'auto', scrollbarWidth: 'none', flex: 1 }}>
-              {RE_REGIONS.map((r) => (
-                <button
-                  key={r.value}
-                  onClick={() => onReRegion(r.value)}
-                  style={{
-                    padding: '6px 11px', borderRadius: 9, border: 'none',
-                    fontSize: 12, fontWeight: 600, fontFamily: FONT.sans, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
-                    background: reRegion === r.value && !reGu ? 'rgba(62,123,250,0.14)' : C.surfaceAlt,
-                    color: reRegion === r.value && !reGu ? C.blueSoft : C.textMuted,
-                    outline: reRegion === r.value && !reGu ? '1px solid rgba(62,123,250,0.32)' : 'none',
-                  }}
-                >
-                  {r.label[lang]}
-                </button>
-              ))}
-            </div>
-            {/* 구/동 토글 */}
-            <div style={{ display: 'flex', background: C.langBg, border: `1px solid ${C.langBorder}`, borderRadius: 8, padding: 2, gap: 2, flexShrink: 0 }}>
-              {([
-                { value: 'gu',   ko: '구', en: 'Gu' },
-                { value: 'dong', ko: '동', en: 'Dong' },
-              ] as { value: ReLevel; ko: string; en: string }[]).map((lv) => (
-                <button
-                  key={lv.value}
-                  onClick={() => onReLevel(lv.value)}
-                  style={{
-                    padding: '5px 10px', border: 'none', borderRadius: 6,
-                    fontSize: 11, fontWeight: 700, fontFamily: FONT.sans, cursor: 'pointer',
-                    background: reLevel === lv.value ? C.langActive : 'transparent',
-                    color: reLevel === lv.value ? C.textPrimary : C.textDim,
-                  }}
-                >
-                  {lang === 'ko' ? lv.ko : lv.en}
-                </button>
-              ))}
-            </div>
+          {/* 지역(sido) */}
+          <div style={{ display: 'flex', gap: 4, padding: '0 16px 6px', overflowX: 'auto', scrollbarWidth: 'none' }}>
+            {RE_REGIONS.map((r) => (
+              <button
+                key={r.value}
+                onClick={() => onReRegion(r.value)}
+                style={{
+                  padding: '6px 11px', borderRadius: 9, border: 'none',
+                  fontSize: 12, fontWeight: 600, fontFamily: FONT.sans, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
+                  background: reRegion === r.value && !reGu ? 'rgba(62,123,250,0.14)' : C.surfaceAlt,
+                  color: reRegion === r.value && !reGu ? C.blueSoft : C.textMuted,
+                  outline: reRegion === r.value && !reGu ? '1px solid rgba(62,123,250,0.32)' : 'none',
+                }}
+              >
+                {r.label[lang]}
+              </button>
+            ))}
           </div>
 
           {/* 구/동 세부 검색 (모바일) */}

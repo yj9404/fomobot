@@ -2,7 +2,6 @@ export type Market = 'kospi' | 'nasdaq'
 export type Period = '1d' | '7d' | '30d' | '90d' | '365d' | '1825d'
 export type Lang = 'ko' | 'en'
 export type Tab = 'stock' | 'realestate'
-export type ReLevel = 'gu' | 'dong'
 export type RealEstatePeriod = '3m' | '6m' | '1y' | '3y' | '5y' | '10y' | '20y'
 export type DataStatus = 'ok' | 'insufficient' | 'no_start' | 'no_end'
 
@@ -170,6 +169,11 @@ export interface StockSearchResponse {
   market: Market
   query: string
   results: SecurityItem[]
+}
+
+export interface StockDateBoundsResponse {
+  market: Market
+  min_date: string | null
 }
 
 export interface DataCoverage {
