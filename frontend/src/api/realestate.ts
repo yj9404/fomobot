@@ -4,6 +4,7 @@ import type {
   ReRankingsResponse,
   RegionSearchResponse,
   ReSearchResponse,
+  SegmentsResponse,
 } from '../types'
 
 export function fetchReRankings(
@@ -12,11 +13,16 @@ export function fetchReRankings(
   gu?: string,     // 5자리 시군구 코드
   dong?: string,   // 법정동명 부분일치
   top = 20,
+  seg?: string,    // 학군 세그먼트 키 (지정 시 sido/gu/dong 무시)
 ): Promise<ReRankingsResponse> {
   const params: Record<string, string | number> = { period, top }
-  if (sido) params.sido = sido
-  if (gu) params.gu = gu
-  if (dong) params.dong = dong
+  if (seg) {
+    params.seg = seg
+  } else {
+    if (sido) params.sido = sido
+    if (gu) params.gu = gu
+    if (dong) params.dong = dong
+  }
   return apiFetch<ReRankingsResponse>('/api/realestate/rankings', params)
 }
 
@@ -34,4 +40,8 @@ export function fetchReAptSearch(
   if (gu) params.gu = gu
   if (dong) params.dong = dong
   return apiFetch<ReSearchResponse>('/api/realestate/search', params)
+}
+
+export function fetchReSegments(): Promise<SegmentsResponse> {
+  return apiFetch<SegmentsResponse>('/api/realestate/segments', {})
 }

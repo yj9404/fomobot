@@ -50,6 +50,10 @@ export default function App() {
   const [rePeriodIdx, setRePeriodIdx] = useState(2)  // 1y
   const [reGu, setReGu] = useState('')               // 5자리 시군구 코드 ('' = 미설정)
   const [reDong, setReDong] = useState('')           // 법정동명 ('' = 미설정)
+  const [reSeg, setReSeg] = useState<string>(() => { // 학군 세그먼트 키 ('' = 미선택)
+    const p = new URLSearchParams(window.location.search)
+    return p.get('seg') ?? ''
+  })
   const [reRetryKey, setReRetryKey] = useState(0)
 
   const C = useC()
@@ -108,13 +112,34 @@ export default function App() {
     setReRegion(r)
     setReGu('')
     setReDong('')
+    setReSeg('')
+    const url = new URL(window.location.href)
+    url.searchParams.delete('seg')
+    history.replaceState(null, '', url.toString())
   }, [])
 
   const handleReGu = useCallback((gu: string, dong: string) => {
     setReGu(gu)
     setReDong(dong)
-    if (gu) setReRegion(gu.slice(0, 2))  // sido를 선택된 gu에 맞게 자동 설정
+    if (gu) setReRegion(gu.slice(0, 2))
     else setReRegion('')
+    setReSeg('')
+    const url = new URL(window.location.href)
+    url.searchParams.delete('seg')
+    history.replaceState(null, '', url.toString())
+  }, [])
+
+  const handleReSeg = useCallback((seg: string) => {
+    setReSeg(seg)
+    if (seg) {
+      setReRegion('')
+      setReGu('')
+      setReDong('')
+    }
+    const url = new URL(window.location.href)
+    if (seg) url.searchParams.set('seg', seg)
+    else url.searchParams.delete('seg')
+    history.replaceState(null, '', url.toString())
   }, [])
 
   // ── 공통 NavRail/FomoHeader props ─────────────────────────────────────
@@ -125,10 +150,11 @@ export default function App() {
     onMarket: handleMarket,
     onPeriod: handlePeriod,
     capTier, onCapTier: setCapTier,
-    reRegion, rePeriodIdx, reGu, reDong,
+    reRegion, rePeriodIdx, reGu, reDong, reSeg,
     onReRegion: handleReRegion,
     onRePeriod: setRePeriodIdx,
     onReGu: handleReGu,
+    onReSeg: handleReSeg,
   }
 
   // ── Desktop layout ───────────────────────────────────────────────────
@@ -168,6 +194,7 @@ export default function App() {
                 sido={reRegion}
                 gu={reGu}
                 dong={reDong}
+                seg={reSeg}
                 retryKey={reRetryKey}
                 onRetry={() => setReRetryKey((k) => k + 1)}
                 t={t}
@@ -236,6 +263,7 @@ export default function App() {
             sido={reRegion}
             gu={reGu}
             dong={reDong}
+            seg={reSeg}
             retryKey={reRetryKey}
             onRetry={() => setReRetryKey((k) => k + 1)}
             t={t}

@@ -14,13 +14,14 @@ interface Props {
   sido: string      // 시도 필터 ('11'=서울 등, ''=수도권 전체)
   gu?: string       // 5자리 시군구 코드 (sido보다 좁은 필터)
   dong?: string     // 법정동명 부분일치
+  seg?: string      // 학군 세그먼트 키 (지정 시 sido/gu/dong 무시)
   retryKey: number
   onRetry: () => void
   t: Strings
 }
 
-export function RealEstateView({ lang, period, sido, gu, dong, retryKey, onRetry, t }: Props) {
-  const { status, rankings, excluded, meta } = useRealEstateRankings(period, sido, retryKey, gu, dong)
+export function RealEstateView({ lang, period, sido, gu, dong, seg, retryKey, onRetry, t }: Props) {
+  const { status, rankings, excluded, meta } = useRealEstateRankings(period, sido, retryKey, gu, dong, seg)
   const C = useC()
 
   if (status === 'loading') return (

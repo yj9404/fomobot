@@ -3,6 +3,7 @@ import { useC, useTheme } from '../ThemeContext'
 import { FONT } from '../tokens'
 import { PERIODS, RE_PERIODS, RE_REGIONS, CAP_TIERS } from '../types'
 import { useReRegionSearch } from '../hooks/useReRegionSearch'
+import { useReSegments } from '../hooks/useReSegments'
 import type { Lang, Market, Tab, RegionItem, CapTier } from '../types'
 import type { Strings } from '../i18n/strings'
 
@@ -24,9 +25,11 @@ interface Props {
   rePeriodIdx: number
   reGu: string
   reDong: string
+  reSeg: string
   onReRegion: (r: string) => void
   onRePeriod: (i: number) => void
   onReGu: (gu: string, dong: string) => void
+  onReSeg: (seg: string) => void
 }
 
 function SunIcon() {
@@ -242,11 +245,12 @@ function RegionSearchMobile({
 export function FomoHeader({
   lang, tab, market, periodIdx, disclaimer, t,
   onLang, onTab, onMarket, onPeriod, capTier, onCapTier,
-  reRegion, rePeriodIdx, reGu, reDong,
-  onReRegion, onRePeriod, onReGu,
+  reRegion, rePeriodIdx, reGu, reDong, reSeg,
+  onReRegion, onRePeriod, onReGu, onReSeg,
 }: Props) {
   const C = useC()
   const { theme, toggle } = useTheme()
+  const segments = useReSegments()
 
   return (
     <div style={{ width: '100%', fontFamily: FONT.sans, background: C.surface, position: 'sticky', top: 0, zIndex: 10 }}>
@@ -382,32 +386,56 @@ export function FomoHeader({
       {/* ── 부동산 컨트롤 ── */}
       {tab === 'realestate' && (
         <>
-          {/* 지역(sido) */}
-          <div style={{ display: 'flex', gap: 4, padding: '0 16px 6px', overflowX: 'auto', scrollbarWidth: 'none' }}>
-            {RE_REGIONS.map((r) => (
-              <button
-                key={r.value}
-                onClick={() => onReRegion(r.value)}
-                style={{
-                  padding: '6px 11px', borderRadius: 9, border: 'none',
-                  fontSize: 12, fontWeight: 600, fontFamily: FONT.sans, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
-                  background: reRegion === r.value && !reGu ? 'rgba(62,123,250,0.14)' : C.surfaceAlt,
-                  color: reRegion === r.value && !reGu ? C.blueSoft : C.textMuted,
-                  outline: reRegion === r.value && !reGu ? '1px solid rgba(62,123,250,0.32)' : 'none',
-                }}
-              >
-                {r.label[lang]}
-              </button>
-            ))}
-          </div>
+          {/* 학군 세그먼트 */}
+          {segments.length > 0 && (
+            <div style={{ display: 'flex', gap: 4, padding: '0 16px 6px', overflowX: 'auto', scrollbarWidth: 'none' }}>
+              {segments.map((seg) => (
+                <button
+                  key={seg.seg_key}
+                  onClick={() => onReSeg(reSeg === seg.seg_key ? '' : seg.seg_key)}
+                  title={seg.description}
+                  style={{
+                    padding: '6px 11px', borderRadius: 9, border: 'none',
+                    fontSize: 12, fontWeight: 600, fontFamily: FONT.sans, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
+                    background: reSeg === seg.seg_key ? 'rgba(62,123,250,0.14)' : C.surfaceAlt,
+                    color: reSeg === seg.seg_key ? C.blueSoft : C.textMuted,
+                    outline: reSeg === seg.seg_key ? '1px solid rgba(62,123,250,0.32)' : 'none',
+                  }}
+                >
+                  {seg.label}
+                </button>
+              ))}
+            </div>
+          )}
 
-          {/* 구/동 세부 검색 (모바일) */}
-          <RegionSearchMobile
-            lang={lang}
-            reGu={reGu}
-            reDong={reDong}
-            onReGu={onReGu}
-          />
+          {/* 지역(sido) — seg 활성 시 비활성 표시 */}
+          <div style={{ opacity: reSeg ? 0.35 : 1, pointerEvents: reSeg ? 'none' : 'auto', transition: 'opacity 0.15s' }}>
+            <div style={{ display: 'flex', gap: 4, padding: '0 16px 6px', overflowX: 'auto', scrollbarWidth: 'none' }}>
+              {RE_REGIONS.map((r) => (
+                <button
+                  key={r.value}
+                  onClick={() => onReRegion(r.value)}
+                  style={{
+                    padding: '6px 11px', borderRadius: 9, border: 'none',
+                    fontSize: 12, fontWeight: 600, fontFamily: FONT.sans, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
+                    background: reRegion === r.value && !reGu ? 'rgba(62,123,250,0.14)' : C.surfaceAlt,
+                    color: reRegion === r.value && !reGu ? C.blueSoft : C.textMuted,
+                    outline: reRegion === r.value && !reGu ? '1px solid rgba(62,123,250,0.32)' : 'none',
+                  }}
+                >
+                  {r.label[lang]}
+                </button>
+              ))}
+            </div>
+
+            {/* 구/동 세부 검색 (모바일) */}
+            <RegionSearchMobile
+              lang={lang}
+              reGu={reGu}
+              reDong={reDong}
+              onReGu={onReGu}
+            />
+          </div>
 
           {/* RE 기간 탭 */}
           <div style={{ display: 'flex', gap: 6, padding: '0 16px 10px', overflowX: 'auto', scrollbarWidth: 'none' }}>

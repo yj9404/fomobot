@@ -115,6 +115,17 @@ export interface ReRankingsResponse {
   excluded: ReRankingItem[]
 }
 
+// ── 부동산 세그먼트 타입 ─────────────────────────────────────────────────
+export interface SegmentItem {
+  seg_key: string
+  label: string
+  description: string
+}
+
+export interface SegmentsResponse {
+  segments: SegmentItem[]
+}
+
 // ── 부동산 검색 타입 ─────────────────────────────────────────────────────
 export type SearchDataStatus = 'ok' | 'insufficient' | 'no_start' | 'no_end' | 'no_snapshot'
 

@@ -17,6 +17,7 @@ export function useRealEstateRankings(
   retryKey: number = 0,
   gu?: string,        // 5자리 시군구 코드 (sido보다 좁은 필터)
   dong?: string,      // 법정동명 부분일치
+  seg?: string,       // 학군 세그먼트 키 (지정 시 sido/gu/dong 무시)
 ): ReRankingsState {
   const [state, setState] = useState<ReRankingsState>({
     status: 'loading',
@@ -29,9 +30,13 @@ export function useRealEstateRankings(
     let cancelled = false
     setState({ status: 'loading', rankings: [], excluded: [], meta: null })
 
-    // gu가 설정되면 sido 대신 gu로 필터 (gu가 더 좁음)
-    const sidoParam = gu ? undefined : (sido || undefined)
-    fetchReRankings(period, sidoParam, gu || undefined, dong || undefined)
+    // seg 있으면 sido/gu/dong 모두 무시 (백엔드와 동일 규칙)
+    const sidoParam = seg ? undefined : (gu ? undefined : (sido || undefined))
+    const guParam   = seg ? undefined : (gu || undefined)
+    const dongParam = seg ? undefined : (dong || undefined)
+    const segParam  = seg || undefined
+
+    fetchReRankings(period, sidoParam, guParam, dongParam, 20, segParam)
       .then((data) => {
         if (cancelled) return
         if (data.rankings.length === 0 && data.excluded.length === 0) {
@@ -47,7 +52,7 @@ export function useRealEstateRankings(
       })
 
     return () => { cancelled = true }
-  }, [period, sido, gu, dong, retryKey])
+  }, [period, sido, gu, dong, seg, retryKey])
 
   return state
 }
