@@ -22,56 +22,37 @@ async def get_rankings(
     """
     랭킹 스냅샷 조회.
 
-    min_market_cap / max_market_cap 지정 시 snapshot_date 기준
-    PriceDaily 최신 market_cap을 서브쿼리로 조인해 필터링한다.
-    market_cap이 NULL인 종목은 필터 적용 시 자동 제외된다.
+    cap_tier 필터는 RankingSnapshot.market_cap 컬럼을 직접 사용한다.
+    (구 PriceDaily 조인 방식 제거 — NASDAQ는 market_cap이 항상 NULL이었음)
+    market_cap이 NULL 또는 0인 종목은 cap_tier 필터 적용 시 자동 제외된다.
     """
     need_cap_filter = min_market_cap is not None or max_market_cap is not None
 
+    stmt = (
+        select(RankingSnapshot)
+        .where(
+            RankingSnapshot.market == market,
+            RankingSnapshot.period == period,
+        )
+        .order_by(RankingSnapshot.snapshot_date.desc(), RankingSnapshot.rank)
+    )
+
     if need_cap_filter:
-        # snapshot_date 기준 PriceDaily 최신 날짜의 market_cap을 서브쿼리로 조인
-        # 한 마켓 내 모든 종목의 최신 날짜는 동일하다고 가정 (배치 수집 단위)
-        latest_date_sq = (
-            select(func.max(PriceDaily.date))
-            .where(PriceDaily.market == market)
-            .scalar_subquery()
-        )
-        cap_sq = (
-            select(PriceDaily.ticker, PriceDaily.market_cap)
-            .where(
-                PriceDaily.market == market,
-                PriceDaily.date == latest_date_sq,
-                PriceDaily.market_cap.isnot(None),
-            )
-            .subquery()
-        )
-        stmt = (
-            select(RankingSnapshot)
-            .join(cap_sq, RankingSnapshot.ticker == cap_sq.c.ticker)
-            .where(
-                RankingSnapshot.market == market,
-                RankingSnapshot.period == period,
-                RankingSnapshot.rank <= top,
-            )
-            .order_by(RankingSnapshot.snapshot_date.desc(), RankingSnapshot.rank)
+        # market_cap이 저장된 종목만 필터링 대상
+        stmt = stmt.where(
+            RankingSnapshot.market_cap.isnot(None),
+            RankingSnapshot.market_cap > 0,
         )
         if min_market_cap is not None:
-            stmt = stmt.where(cap_sq.c.market_cap >= min_market_cap)
+            stmt = stmt.where(RankingSnapshot.market_cap >= min_market_cap)
         if max_market_cap is not None:
-            stmt = stmt.where(cap_sq.c.market_cap < max_market_cap)
-    else:
-        stmt = (
-            select(RankingSnapshot)
-            .where(
-                RankingSnapshot.market == market,
-                RankingSnapshot.period == period,
-                RankingSnapshot.rank <= top,
-            )
-            .order_by(RankingSnapshot.snapshot_date.desc(), RankingSnapshot.rank)
-        )
+            stmt = stmt.where(RankingSnapshot.market_cap < max_market_cap)
 
     if snapshot_date:
         stmt = stmt.where(RankingSnapshot.snapshot_date == snapshot_date)
+
+    # rank <= top 대신 LIMIT 사용: cap_tier 필터 후 상위 top개를 올바르게 반환
+    stmt = stmt.limit(top)
 
     result = await session.execute(stmt)
     return result.scalars().all()
@@ -165,6 +146,11 @@ def upsert_ranking_snapshots_sync(session: Session, records: list[dict]) -> None
             "close_price_at_snapshot": func.coalesce(
                 RankingSnapshot.close_price_at_snapshot,
                 stmt.excluded.close_price_at_snapshot,
+            ),
+            # market_cap: 새 값이 있으면 업데이트, 없으면 기존 값 유지
+            "market_cap": func.coalesce(
+                stmt.excluded.market_cap,
+                RankingSnapshot.market_cap,
             ),
         },
     )

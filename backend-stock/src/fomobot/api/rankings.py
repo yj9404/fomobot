@@ -51,7 +51,7 @@ def _resolve_cap_bounds(
 async def get_rankings_endpoint(
     market: MarketLiteral = Query(..., description="마켓 (kospi | nasdaq)"),
     period: PeriodLiteral = Query(..., description="기간 (1d|7d|30d|90d|365d|1825d)"),
-    top: int = Query(20, ge=1, le=100, description="상위 N개 (기본 20, 최대 100)"),
+    top: int = Query(20, ge=1, le=300, description="상위 N개 (기본 20, 최대 300)"),
     as_of: date | None = Query(None, description="기준일 (YYYY-MM-DD). 생략 시 최신"),
     cap_tier: CapTierLiteral = Query("all", description="시총 구간 (all|small|mid|large)"),
     session: AsyncSession = Depends(get_async_session),

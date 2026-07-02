@@ -10,6 +10,7 @@ ranking_snapshot 테이블에 저장한다.
 """
 
 import logging
+import time
 from datetime import date, timedelta
 
 import pandas as pd
@@ -45,6 +46,21 @@ MARKET_CONFIG = {
         "sanity_filter_fn": apply_price_sanity_filter,
     },
 }
+
+
+def _fetch_nasdaq_market_caps(tickers: list[str]) -> dict[str, int | None]:
+    """NASDAQ 상위 종목 시총을 yfinance fast_info로 조회한다."""
+    import yfinance as yf
+    caps: dict[str, int | None] = {}
+    for ticker in tickers:
+        try:
+            cap = yf.Ticker(ticker).fast_info.get("market_cap")
+            caps[ticker] = int(cap) if cap else None
+        except Exception:
+            caps[ticker] = None
+        time.sleep(0.05)
+    logger.info("NASDAQ 시총 조회 완료: %d종목", len(caps))
+    return caps
 
 
 def _fetch_name_map(market: str, tickers: list[str]) -> dict[str, str]:
@@ -159,6 +175,13 @@ def compute_rankings_for_market(market: str, snapshot_date: date, top: int = 100
             price_matrix, meta_df = _load_price_matrix(
                 session, market, start_date, snapshot_date
             )
+            # KOSPI는 meta_df에 실제 시총이 있음; NASDAQ는 0으로 채워져 있으므로 None 처리
+            cap_from_meta: dict[str, int | None] = {}
+            if not meta_df.empty and market == "kospi":
+                cap_from_meta = {
+                    row["ticker"]: (int(row["market_cap"]) if row["market_cap"] > 0 else None)
+                    for _, row in meta_df.iterrows()
+                }
 
             if price_matrix.empty:
                 logger.warning("%s %s: 데이터 없음, 스킵", market, period_key)
@@ -235,6 +258,7 @@ def compute_rankings_for_market(market: str, snapshot_date: date, top: int = 100
                         if close_at_snapshot is not None and pd.notna(close_at_snapshot)
                         else None
                     ),
+                    "market_cap": cap_from_meta.get(ticker_str),
                 })
 
             # period별 즉시 저장 (이후 period 실패해도 앞 데이터 보존)
@@ -250,12 +274,22 @@ def compute_rankings_for_market(market: str, snapshot_date: date, top: int = 100
     if all_snapshot_records:
         unique_tickers = list({r["ticker"] for r in all_snapshot_records})
         name_map = _fetch_name_map(market, unique_tickers)
+
+        # NASDAQ: yfinance fast_info로 상위 종목 시총 조회 후 반영
+        cap_map: dict[str, int | None] = {}
+        if market == "nasdaq":
+            cap_map = _fetch_nasdaq_market_caps(unique_tickers)
+
         with SyncSessionLocal() as session:
-            name_records = [
-                {**r, "name": name_map.get(r["ticker"], r["ticker"])[:200]}
+            final_records = [
+                {
+                    **r,
+                    "name": name_map.get(r["ticker"], r["ticker"])[:200],
+                    **({"market_cap": cap_map.get(r["ticker"])} if market == "nasdaq" else {}),
+                }
                 for r in all_snapshot_records
             ]
-            upsert_ranking_snapshots_sync(session, name_records)
+            upsert_ranking_snapshots_sync(session, final_records)
         logger.info(
             "%s 랭킹 스냅샷 %d건 저장 완료 (기준일: %s)",
             market, len(all_snapshot_records), snapshot_date,
@@ -269,6 +303,6 @@ def run_rankings_today() -> None:
     today = date.today()
     for market in ("kospi", "nasdaq"):
         try:
-            compute_rankings_for_market(market, today)
+            compute_rankings_for_market(market, today, top=300)
         except Exception:
             logger.exception("%s 랭킹 계산 중 오류", market)

@@ -72,6 +72,9 @@ class RankingSnapshot(Base):
     # 스냅샷 날짜 기준 수정종가 — 백테스트에서 price_daily 과거분 없이 as_of 주가를 참조하기 위해 저장.
     # backfill 완료 전 또는 수집 실패 종목은 NULL 허용.
     close_price_at_snapshot = Column(Float, nullable=True)
+    # 시총(KRW for KOSPI, USD for NASDAQ). cap_tier 필터링에 사용.
+    # NASDAQ는 랭킹 계산 후 yfinance에서 별도 조회하므로 NULL 가능.
+    market_cap = Column(BigInteger, nullable=True)
 
     __table_args__ = (
         UniqueConstraint(
