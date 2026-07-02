@@ -2,6 +2,18 @@ from typing import Literal
 
 from pydantic import BaseModel
 
+
+# ── 세그먼트 ──────────────────────────────────────────────────────────────
+
+class SegmentItem(BaseModel):
+    seg_key: str
+    label: str
+    description: str
+
+
+class SegmentsResponse(BaseModel):
+    segments: list[SegmentItem]
+
 PeriodLiteral = Literal["3m", "6m", "1y", "3y", "5y", "10y", "20y"]
 DataStatusLiteral = Literal["ok", "insufficient", "no_start", "no_end"]
 

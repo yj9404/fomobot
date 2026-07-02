@@ -1,6 +1,6 @@
 from typing import Any
 
-from sqlalchemy import Row, func, or_, select, text
+from sqlalchemy import Row, func, or_, select, text, tuple_
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
@@ -77,12 +77,14 @@ async def get_complex_rankings_async(
     sido: str | None = None,
     gu: str | None = None,
     dong: str | None = None,
+    seg: list[tuple[str, str]] | None = None,
 ) -> list[ReComplexRankingSnapshot]:
     """
     단지 랭킹 조회.
 
-    필터 우선순위: gu > sido > 수도권 전체.
-    dong은 독립적으로 추가 필터링.
+    seg(세그먼트)가 지정되면 sido/gu/dong은 무시하고 seg 내 법정동 집합만 적용.
+    seg 미지정 시 필터 우선순위: gu > sido > 수도권 전체, dong은 독립 추가 필터.
+    seg는 [(sigungu_code, eupmyeondong), ...] 튜플 목록.
     """
     q = (
         select(ReComplexRankingSnapshot)
@@ -97,12 +99,20 @@ async def get_complex_rankings_async(
             ReComplexRankingSnapshot.rank.asc().nulls_last(),
         )
     )
-    if gu:
-        q = q.where(ReComplexRankingSnapshot.sigungu_code == gu)
-    elif sido:
-        q = q.where(ReComplexRankingSnapshot.sigungu_code.like(f"{sido[:2]}%"))
-    if dong:
-        q = q.where(ReComplexRankingSnapshot.eupmyeondong == dong)
+    if seg:
+        q = q.where(
+            tuple_(
+                ReComplexRankingSnapshot.sigungu_code,
+                ReComplexRankingSnapshot.eupmyeondong,
+            ).in_(seg)
+        )
+    else:
+        if gu:
+            q = q.where(ReComplexRankingSnapshot.sigungu_code == gu)
+        elif sido:
+            q = q.where(ReComplexRankingSnapshot.sigungu_code.like(f"{sido[:2]}%"))
+        if dong:
+            q = q.where(ReComplexRankingSnapshot.eupmyeondong == dong)
     if top > 0:
         # ok top N + excluded 모두 반환 (excluded는 최대 5000개로 제한)
         q = q.limit(top + 5000)

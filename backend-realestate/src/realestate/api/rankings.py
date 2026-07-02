@@ -11,8 +11,11 @@ from realestate.schemas.rankings import (
     ComplexRankingsMeta,
     ComplexRankingsResponse,
     PeriodLiteral,
+    SegmentItem,
+    SegmentsResponse,
     _WINDOW_OVERLAP_NOTE,
 )
+from realestate.segments import SEGMENTS
 
 router = APIRouter(prefix="/api/realestate", tags=["Real Estate Rankings"])
 
@@ -31,12 +34,27 @@ def _is_recent_incomplete(snapshot_ym: str) -> bool:
 
 
 @router.get(
+    "/segments",
+    response_model=SegmentsResponse,
+    summary="학군 세그먼트 목록",
+    description="단지 랭킹 필터로 사용할 수 있는 학군 세그먼트 목록을 반환합니다.",
+)
+async def get_segments_endpoint():
+    items = [
+        SegmentItem(seg_key=key, label=meta["label"], description=meta["description"])
+        for key, meta in SEGMENTS.items()
+    ]
+    return SegmentsResponse(segments=items)
+
+
+@router.get(
     "/rankings",
     response_model=ComplexRankingsResponse,
     summary="아파트 단지 평단가 상승률 랭킹",
     description=(
         "수도권 아파트 단지 단위 ㎡당 단가 중위값 기반 상승률 랭킹. "
-        "sido/gu/dong은 랭킹 단위가 아닌 범위 필터입니다. "
+        "sido/gu/dong/seg는 랭킹 단위가 아닌 범위 필터입니다. "
+        "seg가 지정되면 sido/gu/dong은 무시됩니다. "
         "데이터는 월별 배치에서 계산되며 실시간 계산은 수행하지 않습니다."
     ),
 )
@@ -45,9 +63,20 @@ async def get_rankings_endpoint(
     sido: str | None = Query(None, description="시도 필터 (11=서울, 28=인천, 41=경기)"),
     gu: str | None = Query(None, description="구 필터 — 5자리 시군구 코드 (예: 11680=강남구)"),
     dong: str | None = Query(None, description="동 필터 — 법정동명 (예: 개포동)"),
+    seg: str | None = Query(None, description="학군 세그먼트 키 (예: 목동, 대치). seg 지정 시 sido/gu/dong 무시."),
     top: int = Query(20, ge=1, le=100, description="상위 N개 (기본 20)"),
     session: AsyncSession = Depends(get_async_session),
 ):
+    seg_dongs: list[tuple[str, str]] | None = None
+    if seg is not None:
+        seg_def = SEGMENTS.get(seg)
+        if seg_def is None:
+            raise HTTPException(
+                status_code=400,
+                detail=f"알 수 없는 seg 값: '{seg}'. /api/realestate/segments 에서 유효한 목록을 확인하세요.",
+            )
+        seg_dongs = seg_def["dongs"]
+
     snapshot_ym = await get_latest_complex_snapshot_ym(session, period)
     if snapshot_ym is None:
         raise HTTPException(
@@ -57,7 +86,7 @@ async def get_rankings_endpoint(
 
     rows = await get_complex_rankings_async(
         session, period, snapshot_ym, top,
-        sido=sido, gu=gu, dong=dong,
+        sido=sido, gu=gu, dong=dong, seg=seg_dongs,
     )
     if not rows:
         raise HTTPException(
