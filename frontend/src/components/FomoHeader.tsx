@@ -342,21 +342,28 @@ export function FomoHeader({
             </div>
           </div>
           <div style={{ display: 'flex', gap: 6, padding: '12px 16px 4px', overflowX: 'auto', scrollbarWidth: 'none' }}>
-            {PERIODS.map((p, i) => (
-              <button
-                key={p.value}
-                onClick={() => onPeriod(i)}
-                style={{
-                  padding: '6px 13px', borderRadius: 9, fontSize: 12, fontWeight: 600,
-                  fontFamily: FONT.sans, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
-                  background: periodIdx === i ? 'rgba(62,123,250,0.14)' : 'transparent',
-                  color: periodIdx === i ? C.blueSoft : C.textDim,
-                  border: periodIdx === i ? '1px solid rgba(62,123,250,0.32)' : '1px solid transparent',
-                }}
-              >
-                {p.label[lang]}
-              </button>
-            ))}
+            {PERIODS.map((p, i) => {
+              const disabled = market === 'kospi' && p.days >= 90
+              return (
+                <button
+                  key={p.value}
+                  onClick={() => !disabled && onPeriod(i)}
+                  disabled={disabled}
+                  title={disabled ? (lang === 'ko' ? '데이터 복구 중' : 'Data restoring') : undefined}
+                  style={{
+                    padding: '6px 13px', borderRadius: 9, fontSize: 12, fontWeight: 600,
+                    fontFamily: FONT.sans, whiteSpace: 'nowrap', flexShrink: 0,
+                    cursor: disabled ? 'not-allowed' : 'pointer',
+                    opacity: disabled ? 0.35 : 1,
+                    background: periodIdx === i ? 'rgba(62,123,250,0.14)' : 'transparent',
+                    color: periodIdx === i ? C.blueSoft : C.textDim,
+                    border: periodIdx === i ? '1px solid rgba(62,123,250,0.32)' : '1px solid transparent',
+                  }}
+                >
+                  {p.label[lang]}
+                </button>
+              )
+            })}
           </div>
           <div style={{ display: 'flex', gap: 6, padding: '4px 16px 10px', overflowX: 'auto', scrollbarWidth: 'none' }}>
             {CAP_TIERS.map((c) => (
