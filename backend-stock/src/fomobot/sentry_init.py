@@ -19,6 +19,15 @@ def init_sentry(release: str | None = None) -> None:
     import sentry_sdk
     from sentry_sdk.integrations.logging import LoggingIntegration
 
+    _YFINANCE_NOISE = ("possibly delisted", "no price data found")
+
+    def _before_send(event, hint):
+        # yfinance가 logger.error()로 찍는 상폐/데이터 없음 메시지는 이슈가 아님
+        msg = event.get("message") or event.get("logentry", {}).get("message", "")
+        if any(phrase in msg for phrase in _YFINANCE_NOISE):
+            return None
+        return event
+
     sentry_sdk.init(
         dsn=settings.sentry_dsn,
         traces_sample_rate=settings.sentry_traces_sample_rate,
@@ -27,9 +36,9 @@ def init_sentry(release: str | None = None) -> None:
         send_default_pii=True,
         enable_tracing=True,
         enable_logs=True,
+        before_send=_before_send,
         integrations=[
             # breadcrumb는 INFO 이상, 이슈 생성은 ERROR 이상만
-            # yfinance WARNING("possibly delisted" 등)은 이슈로 올라오지 않음
             LoggingIntegration(level=logging.INFO, event_level=logging.ERROR),
         ],
     )
