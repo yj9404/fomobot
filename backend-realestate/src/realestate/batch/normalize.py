@@ -26,10 +26,10 @@ def normalize_apt_name(raw: str) -> str:
 
 
 def make_complex_key(sigungu_code: str, eupmyeondong: str, apt_name_norm: str) -> str:
-    """단지 고유 키 (SHA-1 hex 40자).
+    """단지 고유 키 (SHA-256 hex 64자).
 
     동일 단지를 항상 같은 키로 식별한다.
-    key = SHA1(sigungu_code|eupmyeondong|apt_name_norm)
+    key = SHA256(sigungu_code|eupmyeondong|apt_name_norm)
     """
     composite = f"{sigungu_code}|{eupmyeondong}|{apt_name_norm}"
-    return hashlib.sha1(composite.encode("utf-8")).hexdigest()
+    return hashlib.sha256(composite.encode("utf-8")).hexdigest()
