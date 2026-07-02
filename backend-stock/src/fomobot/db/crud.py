@@ -38,15 +38,24 @@ async def get_rankings(
     )
 
     if need_cap_filter:
-        # market_cap이 저장된 종목만 필터링 대상
-        stmt = stmt.where(
-            RankingSnapshot.market_cap.isnot(None),
-            RankingSnapshot.market_cap > 0,
-        )
         if min_market_cap is not None:
-            stmt = stmt.where(RankingSnapshot.market_cap >= min_market_cap)
-        if max_market_cap is not None:
-            stmt = stmt.where(RankingSnapshot.market_cap < max_market_cap)
+            # mid/large: market_cap이 확인된 종목만 (NULL = 소형주 추정이므로 제외)
+            stmt = stmt.where(
+                RankingSnapshot.market_cap.isnot(None),
+                RankingSnapshot.market_cap >= min_market_cap,
+            )
+            if max_market_cap is not None:
+                stmt = stmt.where(RankingSnapshot.market_cap < max_market_cap)
+        else:
+            # small (min=None): yfinance 시총 미조회 종목(NULL)도 소형으로 포함
+            # 1d 단기 급등 소형주는 yfinance market_cap이 None인 경우가 많음
+            if max_market_cap is not None:
+                stmt = stmt.where(
+                    or_(
+                        RankingSnapshot.market_cap.is_(None),
+                        RankingSnapshot.market_cap < max_market_cap,
+                    )
+                )
 
     if snapshot_date:
         stmt = stmt.where(RankingSnapshot.snapshot_date == snapshot_date)

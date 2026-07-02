@@ -69,10 +69,22 @@ async def get_rankings_endpoint(
     min_cap, max_cap = _resolve_cap_bounds(market, cap_tier)
     rows = await get_rankings(session, market, period, top, snapshot_date, min_cap, max_cap)
 
+    # cap_tier 필터 적용 후 결과가 없으면 빈 목록 반환 (에러가 아닌 빈 상태)
+    # cap_tier="all"인데 비면 배치 오류이므로 404 유지
+    if not rows and cap_tier != "all":
+        return RankingsResponse(
+            market=market,
+            period=period,
+            as_of=snapshot_date,
+            top=top,
+            cap_tier=cap_tier,
+            rankings=[],
+        )
+
     if not rows:
         raise HTTPException(
             status_code=404,
-            detail=f"{snapshot_date} 기준 {market.upper()} {period} {cap_tier} 랭킹 데이터가 없습니다.",
+            detail=f"{snapshot_date} 기준 {market.upper()} {period} 랭킹 데이터가 없습니다.",
         )
 
     items = [
