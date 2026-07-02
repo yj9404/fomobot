@@ -32,8 +32,16 @@ export default function App() {
   const handleTab = useCallback((t: Tab) => {
     setTab(t)
     const url = new URL(window.location.href)
-    if (t === 'stock') url.searchParams.delete('tab')
-    else url.searchParams.set('tab', t)
+    if (t === 'stock') {
+      url.searchParams.delete('tab')
+      url.searchParams.delete('seg')
+      setReRegion('')
+      setReGu('')
+      setReDong('')
+      setReSeg('')
+    } else {
+      url.searchParams.set('tab', t)
+    }
     history.replaceState(null, '', url.toString())
   }, [])
 
