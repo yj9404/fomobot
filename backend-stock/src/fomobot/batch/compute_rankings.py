@@ -54,7 +54,7 @@ def _fetch_nasdaq_market_caps(tickers: list[str]) -> dict[str, int | None]:
     caps: dict[str, int | None] = {}
     for ticker in tickers:
         try:
-            cap = yf.Ticker(ticker).fast_info.get("market_cap")
+            cap = yf.Ticker(ticker).fast_info.market_cap
             caps[ticker] = int(cap) if cap else None
         except Exception:
             caps[ticker] = None
