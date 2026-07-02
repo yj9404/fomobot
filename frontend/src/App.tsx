@@ -86,14 +86,11 @@ export default function App() {
     [loadBt],
   )
 
-  const KOSPI_MAX_PERIOD_IDX = 2 // 30d까지만 (90d+ 데이터 복구 중)
-
   const handleMarket = useCallback((m: Market) => {
     setOpenRank(null)
     setSelectedRank(null)
     setCapTier('all') // market 변경 시 시총 필터 초기화
     setMarket(m)
-    if (m === 'kospi') setPeriodIdx((prev) => Math.min(prev, KOSPI_MAX_PERIOD_IDX))
   }, [])
 
   const handlePeriod = useCallback((i: number) => {

@@ -373,28 +373,21 @@ export function NavRail({
           <div>
             <div style={sectionLabel(C)}>Period</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-              {PERIODS.map((p, i) => {
-                const disabled = market === 'kospi' && p.days >= 90
-                return (
-                  <button
-                    key={p.value}
-                    onClick={() => !disabled && onPeriod(i)}
-                    disabled={disabled}
-                    title={disabled ? (lang === 'ko' ? '데이터 복구 중' : 'Data restoring') : undefined}
-                    style={{
-                      width: '100%', padding: '8px 12px', borderRadius: 9,
-                      fontSize: 13, fontWeight: 600, fontFamily: FONT.sans, textAlign: 'left',
-                      cursor: disabled ? 'not-allowed' : 'pointer',
-                      opacity: disabled ? 0.35 : 1,
-                      background: periodIdx === i ? 'rgba(62,123,250,0.14)' : 'transparent',
-                      color: periodIdx === i ? C.blueSoft : C.textDim,
-                      border: periodIdx === i ? '1px solid rgba(62,123,250,0.32)' : '1px solid transparent',
-                    }}
-                  >
-                    {p.label[lang]}
-                  </button>
-                )
-              })}
+              {PERIODS.map((p, i) => (
+                <button
+                  key={p.value}
+                  onClick={() => onPeriod(i)}
+                  style={{
+                    width: '100%', padding: '8px 12px', borderRadius: 9,
+                    fontSize: 13, fontWeight: 600, fontFamily: FONT.sans, cursor: 'pointer', textAlign: 'left',
+                    background: periodIdx === i ? 'rgba(62,123,250,0.14)' : 'transparent',
+                    color: periodIdx === i ? C.blueSoft : C.textDim,
+                    border: periodIdx === i ? '1px solid rgba(62,123,250,0.32)' : '1px solid transparent',
+                  }}
+                >
+                  {p.label[lang]}
+                </button>
+              ))}
             </div>
           </div>
 
