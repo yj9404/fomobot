@@ -76,10 +76,9 @@ class Settings(BaseSettings):
     nasdaq_circuit_breaker_wait_sec: int = 1800         # 30분
 
     # price_daily retention
-    # 백테스트는 오늘(최신) 주가만 price_daily에서 조회하므로 과거분은 불필요.
-    # 기본 35일: 공휴일 연속 공백(최대 ~10거래일) + 배치 실패 여유 포함.
-    # 수동 삭제 또는 retention 잡에서 이 값을 기준으로 DELETE한다.
-    price_daily_retention_days: int = 35
+    # 랭킹 계산이 1825d(5년) 기간을 사용하므로 최소 2000일치 데이터 보존 필요.
+    # cleanup 잡이 이 값 이전 데이터를 DELETE한다.
+    price_daily_retention_days: int = 2000
 
 
 settings = Settings()
