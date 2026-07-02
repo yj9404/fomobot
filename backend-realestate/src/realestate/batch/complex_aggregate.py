@@ -58,42 +58,49 @@ def aggregate_sigungu_complex(sigungu_code: str, deal_yms: list[str]) -> int:
 
         df["apt_name_norm"] = df["apt_name"].apply(normalize_apt_name)
         df["complex_key"] = df.apply(
-            lambda r: make_complex_key(r["sigungu_code"], r["eupmyeondong"], r["apt_name_norm"]),
+            lambda r: make_complex_key(
+                r["sigungu_code"], r["eupmyeondong"], r["apt_name_norm"]
+            ),
             axis=1,
         )
 
         # 단지별 가장 최근 표기를 표시명으로 사용
-        meta_df = (
-            df.groupby("complex_key")[["eupmyeondong", "apt_name", "apt_name_norm"]]
-            .last()
-        )
+        meta_df = df.groupby("complex_key")[
+            ["eupmyeondong", "apt_name", "apt_name_norm"]
+        ].last()
 
         # (complex_key, deal_ym) 단위 중위값·건수 집계
         agg = (
             df.groupby(["complex_key", "sigungu_code", "deal_ym"])["price_per_sqm"]
-            .agg(median="median", count="count")
+            .agg(median="median", tx_count="count")
             .reset_index()
         )
 
+        meta_dict = meta_df.to_dict("index")
+
         records: list[dict] = []
-        for _, row in agg.iterrows():
-            key = row["complex_key"]
-            meta = meta_df.loc[key]
-            records.append({
-                "complex_key": key,
-                "sigungu_code": row["sigungu_code"],
-                "eupmyeondong": str(meta["eupmyeondong"])[:100],
-                "apt_name": str(meta["apt_name"])[:200],
-                "apt_name_norm": str(meta["apt_name_norm"])[:200],
-                "deal_ym": row["deal_ym"],
-                "median_price_per_sqm": round(Decimal(str(row["median"])), 2),
-                "transaction_count": int(row["count"]),
-            })
+        for row in agg.itertuples(index=False):
+            key = row.complex_key
+            meta = meta_dict[key]
+            records.append(
+                {
+                    "complex_key": key,
+                    "sigungu_code": row.sigungu_code,
+                    "eupmyeondong": str(meta["eupmyeondong"])[:100],
+                    "apt_name": str(meta["apt_name"])[:200],
+                    "apt_name_norm": str(meta["apt_name_norm"])[:200],
+                    "deal_ym": row.deal_ym,
+                    "median_price_per_sqm": round(Decimal(str(row.median)), 2),
+                    "transaction_count": int(row.tx_count),
+                }
+            )
 
         upsert_complex_stats_sync(session, records)
         logger.info(
             "%s 단지 집계 완료: %d개월, 단지×월 %d건 저장",
-            sigungu_code, len(deal_yms), len(records),
+            sigungu_code,
+            len(deal_yms),
+            len(records),
         )
         return len(records)
 
