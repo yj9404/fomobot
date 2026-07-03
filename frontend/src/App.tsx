@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { FomoHeader } from './components/FomoHeader'
 import { NavRail } from './components/NavRail'
 import { RankingCard } from './components/RankingCard'
@@ -13,14 +13,21 @@ import { useRankings } from './hooks/useRankings'
 import { useBacktest } from './hooks/useBacktest'
 import { useWindowWidth } from './hooks/useWindowWidth'
 import { useStrings } from './i18n/strings'
-import { useC } from './ThemeContext'
+import { useC, useTheme } from './ThemeContext'
 import { PERIODS, RE_PERIODS, RE_DISCLAIMER } from './types'
 import { FONT } from './tokens'
-import type { Lang, Market, Tab, CapTier } from './types'
+import type { Lang, Market, OrderDir, Tab, CapTier } from './types'
 
 function initTab(): Tab {
   const p = new URLSearchParams(window.location.search)
   return p.get('tab') === 'realestate' ? 'realestate' : 'stock'
+}
+
+function initOrder(forTab: Tab): OrderDir {
+  const current = initTab()
+  if (current !== forTab) return 'desc'
+  const v = new URLSearchParams(window.location.search).get('order')
+  return v === 'asc' ? 'asc' : 'desc'
 }
 
 export default function App() {
@@ -37,6 +44,7 @@ export default function App() {
       url.searchParams.delete('seg')
       url.searchParams.delete('min_price')
       url.searchParams.delete('max_price')
+      url.searchParams.delete('order')
       setReRegion('')
       setReGu('')
       setReDong('')
@@ -45,24 +53,26 @@ export default function App() {
       setReMaxPrice(null)
     } else {
       url.searchParams.set('tab', t)
+      url.searchParams.delete('order')
     }
     history.replaceState(null, '', url.toString())
   }, [])
 
-  // ── 주식 상태 (기존 그대로) ────────────────────────────────────────────
+  // ── 주식 상태 ────────────────────────────────────────────────────────
   const [market, setMarket] = useState<Market>('kospi')
   const [periodIdx, setPeriodIdx] = useState(2) // default: 30d
   const [capTier, setCapTier] = useState<CapTier>('all')
+  const [stockOrder, setStockOrder] = useState<OrderDir>(() => initOrder('stock'))
   const [openRank, setOpenRank] = useState<number | null>(null)
   const [selectedRank, setSelectedRank] = useState<number | null>(null)
   const [retryKey, setRetryKey] = useState(0)
 
   // ── 부동산 상태 ────────────────────────────────────────────────────────
-  const [reRegion, setReRegion] = useState('')       // '' = 수도권 전체
+  const [reRegion, setReRegion] = useState('')
   const [rePeriodIdx, setRePeriodIdx] = useState(2)  // 1y
-  const [reGu, setReGu] = useState('')               // 5자리 시군구 코드 ('' = 미설정)
-  const [reDong, setReDong] = useState('')           // 법정동명 ('' = 미설정)
-  const [reSeg, setReSeg] = useState<string>(() => { // 학군 세그먼트 키 ('' = 미선택)
+  const [reGu, setReGu] = useState('')
+  const [reDong, setReDong] = useState('')
+  const [reSeg, setReSeg] = useState<string>(() => {
     const p = new URLSearchParams(window.location.search)
     return p.get('seg') ?? ''
   })
@@ -74,12 +84,14 @@ export default function App() {
     const v = new URLSearchParams(window.location.search).get('max_price')
     return v !== null && !isNaN(Number(v)) ? Number(v) : null
   })
+  const [reOrder, setReOrder] = useState<OrderDir>(() => initOrder('realestate'))
   const [reRetryKey, setReRetryKey] = useState(0)
 
+  const { setAtmosphereMode } = useTheme()
   const C = useC()
   const t = useStrings(lang)
   const period = PERIODS[periodIdx]!
-  const { status, rankings, disclaimer: stockDisclaimer } = useRankings(market, period.value, capTier, retryKey)
+  const { status, rankings, disclaimer: stockDisclaimer } = useRankings(market, period.value, capTier, retryKey, stockOrder)
   const { load: loadBt, get: getBt } = useBacktest(market, period.value, period.days)
 
   const windowWidth = useWindowWidth()
@@ -87,7 +99,13 @@ export default function App() {
 
   const disclaimer = tab === 'realestate' ? RE_DISCLAIMER[lang] : stockDisclaimer
 
-  // ── 핸들러 (주식, 기존 그대로) ────────────────────────────────────────
+  // ── 분위기 모드 동기화 ─────────────────────────────────────────────────
+  useEffect(() => {
+    const order = tab === 'stock' ? stockOrder : reOrder
+    setAtmosphereMode(order === 'asc' ? 'fall' : 'rise')
+  }, [tab, stockOrder, reOrder, setAtmosphereMode])
+
+  // ── 주식 핸들러 ────────────────────────────────────────────────────────
   const handleToggle = useCallback(
     (rank: number, ticker: string) => {
       setOpenRank((prev) => {
@@ -113,7 +131,7 @@ export default function App() {
   const handleMarket = useCallback((m: Market) => {
     setOpenRank(null)
     setSelectedRank(null)
-    setCapTier('all') // market 변경 시 시총 필터 초기화
+    setCapTier('all')
     setMarket(m)
   }, [])
 
@@ -123,11 +141,22 @@ export default function App() {
     setPeriodIdx(i)
   }, [])
 
+  const handleStockOrder = useCallback((o: OrderDir) => {
+    setStockOrder(o)
+    setOpenRank(null)
+    setSelectedRank(null)
+    const url = new URL(window.location.href)
+    if (o === 'asc') url.searchParams.set('order', 'asc')
+    else url.searchParams.delete('order')
+    history.replaceState(null, '', url.toString())
+  }, [])
+
   const selectedItem = selectedRank != null
     ? (rankings.find((r) => r.rank === selectedRank) ?? null)
     : null
   const emptyBt = { status: 'idle' as const, item: null }
 
+  // ── 부동산 핸들러 ──────────────────────────────────────────────────────
   const handleReRegion = useCallback((r: string) => {
     setReRegion(r)
     setReGu('')
@@ -178,6 +207,14 @@ export default function App() {
     history.replaceState(null, '', url.toString())
   }, [])
 
+  const handleReOrder = useCallback((o: OrderDir) => {
+    setReOrder(o)
+    const url = new URL(window.location.href)
+    if (o === 'asc') url.searchParams.set('order', 'asc')
+    else url.searchParams.delete('order')
+    history.replaceState(null, '', url.toString())
+  }, [])
+
   const handleReResetFilters = useCallback(() => {
     setReGu('')
     setReDong('')
@@ -199,8 +236,10 @@ export default function App() {
     onMarket: handleMarket,
     onPeriod: handlePeriod,
     capTier, onCapTier: setCapTier,
+    stockOrder, onStockOrder: handleStockOrder,
     reRegion, rePeriodIdx, reGu, reDong, reSeg,
     reMinPrice, reMaxPrice,
+    reOrder, onReOrder: handleReOrder,
     onReRegion: handleReRegion,
     onRePeriod: setRePeriodIdx,
     onReGu: handleReGu,
@@ -215,12 +254,16 @@ export default function App() {
       <div style={{
         minWidth: '100%', minHeight: '100vh', background: C.bg,
         display: 'flex', justifyContent: 'center', fontFamily: FONT.sans,
+        transition: 'background-color 0.25s ease',
       }}>
         <div style={{ width: '100%', maxWidth: 1280, display: 'flex', minHeight: '100vh' }}>
           <NavRail {...sharedControlProps} />
 
           {/* Center column */}
-          <div style={{ flex: 1, minWidth: 0, background: C.surface, borderRight: `1px solid ${C.borderSub}` }}>
+          <div style={{
+            flex: 1, minWidth: 0, background: C.surface, borderRight: `1px solid ${C.borderSub}`,
+            transition: 'background-color 0.25s ease',
+          }}>
             {tab === 'stock' && (
               <>
                 <StockSearchArea market={market} lang={lang} t={t} />
@@ -234,6 +277,7 @@ export default function App() {
                     market={market}
                     lang={lang}
                     t={t}
+                    order={stockOrder}
                     onSelect={handleSelect}
                   />
                 )}
@@ -249,6 +293,7 @@ export default function App() {
                 seg={reSeg}
                 minPrice={reMinPrice}
                 maxPrice={reMaxPrice}
+                order={reOrder}
                 retryKey={reRetryKey}
                 onRetry={() => setReRetryKey((k) => k + 1)}
                 onResetFilters={handleReResetFilters}
@@ -277,8 +322,9 @@ export default function App() {
     <div style={{
       minWidth: '100%', minHeight: '100vh', background: C.bg,
       display: 'flex', justifyContent: 'center', fontFamily: FONT.sans,
+      transition: 'background-color 0.25s ease',
     }}>
-      <div style={{ width: '100%', maxWidth: 390, background: C.surface, minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ width: '100%', maxWidth: 390, background: C.surface, minHeight: '100vh', display: 'flex', flexDirection: 'column', transition: 'background-color 0.25s ease' }}>
         <FomoHeader {...sharedControlProps} />
 
         {tab === 'stock' && (
@@ -289,6 +335,11 @@ export default function App() {
             {status === 'error' && <ErrorState t={t} onRetry={() => setRetryKey((k) => k + 1)} />}
             {status === 'ok' && (
               <div style={{ padding: '12px 14px 16px', borderTop: `1px solid ${C.borderSub}`, flex: 1 }}>
+                {stockOrder === 'asc' && (
+                  <div style={{ fontSize: 11, color: C.textDim, fontFamily: FONT.sans, marginBottom: 10, textAlign: 'center' }}>
+                    {t.orderFallCopy}
+                  </div>
+                )}
                 {rankings.map((item) => (
                   <RankingCard
                     key={item.ticker}
@@ -321,6 +372,7 @@ export default function App() {
             seg={reSeg}
             minPrice={reMinPrice}
             maxPrice={reMaxPrice}
+            order={reOrder}
             retryKey={reRetryKey}
             onRetry={() => setReRetryKey((k) => k + 1)}
             onResetFilters={handleReResetFilters}

@@ -1,6 +1,6 @@
 import { useC } from '../ThemeContext'
 import { FONT } from '../tokens'
-import type { RankingItem, Market, Lang } from '../types'
+import type { OrderDir, RankingItem, Market, Lang } from '../types'
 import type { Strings } from '../i18n/strings'
 
 interface Props {
@@ -9,6 +9,7 @@ interface Props {
   market: Market
   lang: Lang
   t: Strings
+  order: OrderDir
   onSelect: (rank: number, ticker: string) => void
 }
 
@@ -17,7 +18,7 @@ function fmtPct(n: number | null): string {
   return (n >= 0 ? '+' : '') + n.toFixed(1) + '%'
 }
 
-export function RankingTable({ rankings, selectedRank, lang, t, onSelect }: Props) {
+export function RankingTable({ rankings, selectedRank, lang, t, order, onSelect }: Props) {
   const C = useC()
   const vsLabel = lang === 'ko' ? 'vs 지수' : 'vs Index'
 
@@ -40,6 +41,11 @@ export function RankingTable({ rankings, selectedRank, lang, t, onSelect }: Prop
 
   return (
     <div style={{ fontFamily: FONT.sans, padding: '20px 20px 24px' }}>
+      {order === 'asc' && (
+        <div style={{ fontSize: 11.5, color: C.textDim, marginBottom: 14 }}>
+          {t.orderFallCopy}
+        </div>
+      )}
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead>
           <tr style={{ borderBottom: `1px solid ${C.border}` }}>

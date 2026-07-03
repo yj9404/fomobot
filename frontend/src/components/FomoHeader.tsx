@@ -4,7 +4,7 @@ import { FONT } from '../tokens'
 import { PERIODS, RE_PERIODS, RE_REGIONS, CAP_TIERS } from '../types'
 import { useReRegionSearch } from '../hooks/useReRegionSearch'
 import { useReSegments } from '../hooks/useReSegments'
-import type { Lang, Market, Tab, RegionItem, CapTier } from '../types'
+import type { Lang, Market, OrderDir, Tab, RegionItem, CapTier } from '../types'
 import type { Strings } from '../i18n/strings'
 
 interface Props {
@@ -20,6 +20,8 @@ interface Props {
   onPeriod: (i: number) => void
   capTier: CapTier
   onCapTier: (c: CapTier) => void
+  stockOrder: OrderDir
+  onStockOrder: (o: OrderDir) => void
   // RE controls
   reRegion: string
   rePeriodIdx: number
@@ -28,6 +30,8 @@ interface Props {
   reSeg: string
   reMinPrice: number | null
   reMaxPrice: number | null
+  reOrder: OrderDir
+  onReOrder: (o: OrderDir) => void
   onReRegion: (r: string) => void
   onRePeriod: (i: number) => void
   onReGu: (gu: string, dong: string) => void
@@ -249,7 +253,9 @@ function RegionSearchMobile({
 export function FomoHeader({
   lang, tab, market, periodIdx, disclaimer, t,
   onLang, onTab, onMarket, onPeriod, capTier, onCapTier,
+  stockOrder, onStockOrder,
   reRegion, rePeriodIdx, reGu, reDong, reSeg, reMinPrice, reMaxPrice,
+  reOrder, onReOrder,
   onReRegion, onRePeriod, onReGu, onReSeg, onReMinPrice, onReMaxPrice,
 }: Props) {
   const C = useC()
@@ -408,6 +414,22 @@ export function FomoHeader({
                 {c.label[lang]}
               </button>
             ))}
+            <div style={{ width: 1, height: 20, background: C.borderSub, flexShrink: 0, alignSelf: 'center' }} />
+            {(['desc', 'asc'] as OrderDir[]).map((o) => (
+              <button
+                key={o}
+                onClick={() => onStockOrder(o)}
+                style={{
+                  padding: '6px 11px', borderRadius: 9, border: 'none',
+                  fontSize: 12, fontWeight: 600, fontFamily: FONT.sans, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
+                  background: stockOrder === o ? 'rgba(62,123,250,0.14)' : C.surfaceAlt,
+                  color: stockOrder === o ? C.blueSoft : C.textMuted,
+                  outline: stockOrder === o ? '1px solid rgba(62,123,250,0.32)' : 'none',
+                }}
+              >
+                {o === 'desc' ? t.orderRise : t.orderFall}
+              </button>
+            ))}
           </div>
         </>
       )}
@@ -522,7 +544,7 @@ export function FomoHeader({
           </div>
 
           {/* RE 기간 탭 */}
-          <div style={{ display: 'flex', gap: 6, padding: '0 16px 10px', overflowX: 'auto', scrollbarWidth: 'none' }}>
+          <div style={{ display: 'flex', gap: 6, padding: '0 16px 6px', overflowX: 'auto', scrollbarWidth: 'none' }}>
             {RE_PERIODS.map((p, i) => (
               <button
                 key={p.value}
@@ -536,6 +558,25 @@ export function FomoHeader({
                 }}
               >
                 {p.label[lang]}
+              </button>
+            ))}
+          </div>
+
+          {/* RE 정렬 토글 */}
+          <div style={{ display: 'flex', gap: 6, padding: '0 16px 10px', overflowX: 'auto', scrollbarWidth: 'none' }}>
+            {(['desc', 'asc'] as OrderDir[]).map((o) => (
+              <button
+                key={o}
+                onClick={() => onReOrder(o)}
+                style={{
+                  padding: '6px 11px', borderRadius: 9, border: 'none',
+                  fontSize: 12, fontWeight: 600, fontFamily: FONT.sans, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
+                  background: reOrder === o ? 'rgba(62,123,250,0.14)' : C.surfaceAlt,
+                  color: reOrder === o ? C.blueSoft : C.textMuted,
+                  outline: reOrder === o ? '1px solid rgba(62,123,250,0.32)' : 'none',
+                }}
+              >
+                {o === 'desc' ? t.orderRise : t.orderFall}
               </button>
             ))}
           </div>

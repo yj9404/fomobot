@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { fetchRankings } from '../api/rankings'
-import type { CapTier, Market, Period, RankingItem } from '../types'
+import type { CapTier, Market, OrderDir, Period, RankingItem } from '../types'
 
 type Status = 'loading' | 'ok' | 'empty' | 'error'
 
@@ -11,7 +11,7 @@ interface RankingsState {
   errorMsg: string
 }
 
-export function useRankings(market: Market, period: Period, capTier: CapTier, retryKey: number = 0) {
+export function useRankings(market: Market, period: Period, capTier: CapTier, retryKey: number = 0, order: OrderDir = 'desc') {
   const [state, setState] = useState<RankingsState>({
     status: 'loading',
     rankings: [],
@@ -23,7 +23,7 @@ export function useRankings(market: Market, period: Period, capTier: CapTier, re
     let cancelled = false
     setState({ status: 'loading', rankings: [], disclaimer: '', errorMsg: '' })
 
-    fetchRankings(market, period, capTier)
+    fetchRankings(market, period, capTier, 20, order)
       .then((data) => {
         if (cancelled) return
         if (data.rankings.length === 0) {
@@ -45,7 +45,7 @@ export function useRankings(market: Market, period: Period, capTier: CapTier, re
       })
 
     return () => { cancelled = true }
-  }, [market, period, capTier, retryKey])
+  }, [market, period, capTier, retryKey, order])
 
   return state
 }

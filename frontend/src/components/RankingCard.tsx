@@ -60,7 +60,7 @@ export function RankingCard({ item, open, market, days, bt, t, onToggle }: Props
             <div style={{ fontFamily: FONT.mono, fontSize: 11, color: C.textDim, marginTop: 2 }}>{item.ticker}</div>
           </div>
           <div style={{ textAlign: 'right', flexShrink: 0 }}>
-            <div style={{ fontFamily: FONT.mono, fontSize: 20, fontWeight: 800, color: C.green, lineHeight: 1, letterSpacing: '-0.02em' }}>
+            <div style={{ fontFamily: FONT.mono, fontSize: 20, fontWeight: 800, color: item.return_pct >= 0 ? C.green : C.red, lineHeight: 1, letterSpacing: '-0.02em' }}>
               {fmtPct(item.return_pct)}
             </div>
             <div style={{ fontSize: 9.5, color: C.textDim, marginTop: 4 }}>{t.moveLabel}</div>

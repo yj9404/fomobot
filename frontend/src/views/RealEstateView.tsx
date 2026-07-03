@@ -5,7 +5,7 @@ import { ErrorState } from '../components/ErrorState'
 import { ReResultArea } from '../components/ReResultArea'
 import { ReAptSearchArea } from '../components/ReAptSearchArea'
 import { useRealEstateRankings } from '../hooks/useRealEstateRankings'
-import type { Lang, RealEstatePeriod } from '../types'
+import type { Lang, OrderDir, RealEstatePeriod } from '../types'
 import type { Strings } from '../i18n/strings'
 
 interface Props {
@@ -17,14 +17,15 @@ interface Props {
   seg?: string          // 학군 세그먼트 키 (지정 시 sido/gu/dong 무시)
   minPrice?: number | null   // 84㎡ 환산 금액 하한 (억 단위)
   maxPrice?: number | null   // 84㎡ 환산 금액 상한 (억 단위)
+  order: OrderDir
   retryKey: number
   onRetry: () => void
   onResetFilters: () => void
   t: Strings
 }
 
-export function RealEstateView({ lang, period, sido, gu, dong, seg, minPrice, maxPrice, retryKey, onRetry, onResetFilters, t }: Props) {
-  const { status, rankings, excluded, meta } = useRealEstateRankings(period, sido, retryKey, gu, dong, seg, minPrice, maxPrice)
+export function RealEstateView({ lang, period, sido, gu, dong, seg, minPrice, maxPrice, order, retryKey, onRetry, onResetFilters, t }: Props) {
+  const { status, rankings, excluded, meta } = useRealEstateRankings(period, sido, retryKey, gu, dong, seg, minPrice, maxPrice, order)
   const C = useC()
 
   if (status === 'loading') return (
@@ -141,6 +142,11 @@ export function RealEstateView({ lang, period, sido, gu, dong, seg, minPrice, ma
   return (
     <>
       <ReAptSearchArea period={period} lang={lang} t={t} />
+      {order === 'asc' && (
+        <div style={{ padding: '10px 24px 0', fontSize: 11.5, color: C.textDim, fontFamily: FONT.sans }}>
+          {t.orderFallCopy}
+        </div>
+      )}
       <ReResultArea rankings={rankings} excluded={excluded} meta={meta} lang={lang} period={period} />
     </>
   )

@@ -86,6 +86,30 @@ export const LIGHT = {
 
 export type Colors = typeof DARK | typeof LIGHT
 
+// bg/surface 계열에서 파란 틴트를 걷어내 분위기만 미세하게 가라앉힘.
+// 의미색(green/red/orange*)은 건드리지 않음.
+export const DARK_DECLINE_OVERRIDE: Partial<Colors> = {
+  bg:               '#0D0B0D',
+  surface:          '#0C0A0C',
+  surfaceUp:        '#161318',
+  surfaceAlt:       '#130F14',
+  surfaceBt:        '#100D12',
+  shimmerBase:      '#1A1620',
+  shimmerHighlight: '#211C26',
+  cardGradient:     'linear-gradient(180deg,#161318,#130F14)',
+  cardBorderDefault:'rgba(255,255,255,0.06)',
+}
+
+export const LIGHT_DECLINE_OVERRIDE: Partial<Colors> = {
+  bg:               '#F1EEF1',
+  surfaceUp:        '#E3DEE3',
+  surfaceAlt:       '#F4F1F4',
+  surfaceBt:        '#F9F6F9',
+  shimmerBase:      '#E3DEE3',
+  shimmerHighlight: '#EDE9ED',
+  cardGradient:     'linear-gradient(180deg,#F9F6F9,#F4F1F4)',
+}
+
 export const FONT = {
   sans: "'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif",
   mono: "'JetBrains Mono', monospace",

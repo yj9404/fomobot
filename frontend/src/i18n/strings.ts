@@ -22,13 +22,16 @@ export interface Strings {
   retry: string
   noBacktest: string
   btLoading: string
+  orderRise: string
+  orderFall: string
+  orderFallCopy: string
 }
 
 const STR: Record<Lang, Strings> = {
   ko: {
     tagline: '이미 오른 것들의 명예의 전당',
     disclaimer: '투자 조언이 아닙니다. FomoBot은 지나간 걸 보여줄 뿐이에요',
-    moveLabel: '기간 상승',
+    moveLabel: '기간 등락',
     volatilityLabel: '변동성 σ',
     btTitle: '그때 샀다면?',
     btReturn: '지금 수익률',
@@ -47,11 +50,14 @@ const STR: Record<Lang, Strings> = {
     retry: '다시 시도',
     noBacktest: '백테스트 데이터 없음',
     btLoading: '계산 중…',
+    orderRise: '상승률 상위 ▲',
+    orderFall: '하락률 상위 ▼',
+    orderFallCopy: '안 물려서 다행',
   },
   en: {
     tagline: 'Hall of fame for things that already mooned',
     disclaimer: 'Not financial advice · FomoBot just shows what you missed',
-    moveLabel: 'period gain',
+    moveLabel: 'period chg',
     volatilityLabel: 'vol σ',
     btTitle: 'If you had bought back then?',
     btReturn: 'Return now',
@@ -70,6 +76,9 @@ const STR: Record<Lang, Strings> = {
     retry: 'Retry',
     noBacktest: 'No backtest data',
     btLoading: 'Calculating…',
+    orderRise: 'Top Gainers ▲',
+    orderFall: 'Top Losers ▼',
+    orderFallCopy: 'Glad you skipped these',
   },
 }
 

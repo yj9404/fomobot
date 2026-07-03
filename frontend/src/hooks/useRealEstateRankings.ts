@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { fetchReRankings } from '../api/realestate'
-import type { RealEstatePeriod, ReRankingItem, ReRankingsMeta } from '../types'
+import type { OrderDir, RealEstatePeriod, ReRankingItem, ReRankingsMeta } from '../types'
 
 type Status = 'loading' | 'ok' | 'empty' | 'error'
 
@@ -20,6 +20,7 @@ export function useRealEstateRankings(
   seg?: string,          // 학군 세그먼트 키 (지정 시 sido/gu/dong 무시)
   minPrice?: number | null,  // 84㎡ 환산 금액 하한 (억 단위)
   maxPrice?: number | null,  // 84㎡ 환산 금액 상한 (억 단위)
+  order: OrderDir = 'desc',
 ): ReRankingsState {
   const [state, setState] = useState<ReRankingsState>({
     status: 'loading',
@@ -41,6 +42,7 @@ export function useRealEstateRankings(
     fetchReRankings(
       period, sidoParam, guParam, dongParam, 20, segParam,
       minPrice ?? undefined, maxPrice ?? undefined,
+      order,
     )
       .then((data) => {
         if (cancelled) return
@@ -57,7 +59,7 @@ export function useRealEstateRankings(
       })
 
     return () => { cancelled = true }
-  }, [period, sido, gu, dong, seg, minPrice, maxPrice, retryKey])
+  }, [period, sido, gu, dong, seg, minPrice, maxPrice, retryKey, order])
 
   return state
 }
