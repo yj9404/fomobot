@@ -80,6 +80,7 @@ async def get_complex_rankings_async(
     seg: list[tuple[str, str]] | None = None,
     min_price: float | None = None,
     max_price: float | None = None,
+    order: str = "desc",
 ) -> list[ReComplexRankingSnapshot]:
     """
     단지 랭킹 조회.
@@ -91,6 +92,11 @@ async def get_complex_rankings_async(
     min_price/max_price: 억 단위. 종료 시점 84㎡ 환산 금액(end_price * 84 만원) 기준
     이상(≥)/이하(≤) 필터. 각각 독립 선택적. 지정 시 end_price가 NULL인 단지 제외.
     """
+    rank_sort = (
+        ReComplexRankingSnapshot.change_pct.asc().nulls_last()
+        if order == "asc"
+        else ReComplexRankingSnapshot.rank.asc().nulls_last()
+    )
     q = (
         select(ReComplexRankingSnapshot)
         .where(
@@ -101,7 +107,7 @@ async def get_complex_rankings_async(
             # ok를 앞에, 나머지(insufficient/no_end/no_start)를 뒤에
             # 'ok' > 'i'/'n' 이므로 desc()를 써야 ok가 먼저 온다
             ReComplexRankingSnapshot.data_status.desc(),
-            ReComplexRankingSnapshot.rank.asc().nulls_last(),
+            rank_sort,
         )
     )
     if seg:

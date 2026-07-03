@@ -5,6 +5,7 @@ export type Tab = 'stock' | 'realestate'
 export type RealEstatePeriod = '3m' | '6m' | '1y' | '3y' | '5y' | '10y' | '20y'
 export type DataStatus = 'ok' | 'insufficient' | 'no_start' | 'no_end'
 export type CapTier = 'all' | 'small' | 'mid' | 'large'
+export type OrderDir = 'desc' | 'asc'
 
 export interface RankingItem {
   rank: number
@@ -22,6 +23,7 @@ export interface RankingsResponse {
   period: Period
   as_of: string
   top: number
+  order: OrderDir
   rankings: RankingItem[]
 }
 
@@ -107,6 +109,7 @@ export interface ReRankingsMeta {
   window_note: string | null
   recent_note: string
   disclaimer: string
+  order: OrderDir
 }
 
 export interface ReRankingsResponse {

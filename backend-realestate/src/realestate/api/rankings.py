@@ -10,6 +10,7 @@ from realestate.schemas.rankings import (
     ComplexRankingItem,
     ComplexRankingsMeta,
     ComplexRankingsResponse,
+    OrderLiteral,
     PeriodLiteral,
     SegmentItem,
     SegmentsResponse,
@@ -50,9 +51,10 @@ async def get_segments_endpoint():
 @router.get(
     "/rankings",
     response_model=ComplexRankingsResponse,
-    summary="아파트 단지 평단가 상승률 랭킹",
+    summary="아파트 단지 평단가 상승/하락률 랭킹",
     description=(
         "수도권 아파트 단지 단위 ㎡당 단가 중위값 기반 상승률 랭킹. "
+        "order=desc(기본)는 상승률 상위, order=asc는 하락률 상위입니다. "
         "sido/gu/dong/seg는 랭킹 단위가 아닌 범위 필터입니다. "
         "seg가 지정되면 sido/gu/dong은 무시됩니다. "
         "데이터는 월별 배치에서 계산되며 실시간 계산은 수행하지 않습니다."
@@ -65,6 +67,7 @@ async def get_rankings_endpoint(
     dong: str | None = Query(None, description="동 필터 — 법정동명 (예: 개포동)"),
     seg: str | None = Query(None, description="학군 세그먼트 키 (예: 목동, 대치). seg 지정 시 sido/gu/dong 무시."),
     top: int = Query(20, ge=1, le=100, description="상위 N개 (기본 20)"),
+    order: OrderLiteral = Query("desc", description="정렬 방향 (desc=상승률 상위, asc=하락률 상위)"),
     min_price: float | None = Query(
         None,
         ge=0,
@@ -106,6 +109,7 @@ async def get_rankings_endpoint(
         session, period, snapshot_ym, top,
         sido=sido, gu=gu, dong=dong, seg=seg_dongs,
         min_price=min_price, max_price=max_price,
+        order=order,
     )
     any_filter_active = (
         min_price is not None or max_price is not None
@@ -127,7 +131,7 @@ async def get_rankings_endpoint(
             windows_overlap = True
 
         item = ComplexRankingItem(
-            rank=row.rank,
+            rank=ok_count + 1 if (order == "asc" and row.data_status == "ok") else row.rank,
             complex_key=row.complex_key,
             apt_name=row.apt_name,
             display_name=row.display_name,
@@ -162,5 +166,6 @@ async def get_rankings_endpoint(
         window_note=_WINDOW_OVERLAP_NOTE if windows_overlap else None,
         recent_note=_RECENT_NOTE,
         disclaimer=DISCLAIMER,
+        order=order,
     )
     return ComplexRankingsResponse(meta=meta, rankings=ok_items, excluded=excluded_items)

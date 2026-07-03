@@ -18,6 +18,7 @@ async def get_rankings(
     snapshot_date: date | None = None,
     min_market_cap: int | None = None,
     max_market_cap: int | None = None,
+    order: str = "desc",
 ) -> Sequence[RankingSnapshot]:
     """
     랭킹 스냅샷 조회.
@@ -28,13 +29,14 @@ async def get_rankings(
     """
     need_cap_filter = min_market_cap is not None or max_market_cap is not None
 
+    sort_col = RankingSnapshot.return_pct.asc() if order == "asc" else RankingSnapshot.rank.asc()
     stmt = (
         select(RankingSnapshot)
         .where(
             RankingSnapshot.market == market,
             RankingSnapshot.period == period,
         )
-        .order_by(RankingSnapshot.snapshot_date.desc(), RankingSnapshot.rank)
+        .order_by(RankingSnapshot.snapshot_date.desc(), sort_col)
     )
 
     if need_cap_filter:

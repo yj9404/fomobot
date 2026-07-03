@@ -1,5 +1,6 @@
 import { apiFetch } from './client'
 import type {
+  OrderDir,
   RealEstatePeriod,
   ReRankingsResponse,
   RegionSearchResponse,
@@ -16,8 +17,9 @@ export function fetchReRankings(
   seg?: string,         // 학군 세그먼트 키 (지정 시 sido/gu/dong 무시)
   minPrice?: number,    // 84㎡ 환산 금액 하한 (억 단위, 이상 ≥)
   maxPrice?: number,    // 84㎡ 환산 금액 상한 (억 단위, 이하 ≤)
+  order: OrderDir = 'desc',
 ): Promise<ReRankingsResponse> {
-  const params: Record<string, string | number> = { period, top }
+  const params: Record<string, string | number> = { period, top, order }
   if (seg) {
     params.seg = seg
   } else {
