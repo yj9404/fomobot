@@ -266,16 +266,16 @@ export function NavRail({
   const commitMin = useCallback(() => {
     const v = minStr.trim()
     const num = v === '' ? null : Number(v)
-    if (num !== null && (isNaN(num) || num < 0)) return
+    if (num !== null && (isNaN(num) || num < 0 || num > 9999)) { setMinStr(reMinPrice != null ? String(reMinPrice) : ''); return }
     onReMinPrice(num)
-  }, [minStr, onReMinPrice])
+  }, [minStr, reMinPrice, onReMinPrice])
 
   const commitMax = useCallback(() => {
     const v = maxStr.trim()
     const num = v === '' ? null : Number(v)
-    if (num !== null && (isNaN(num) || num < 0)) return
+    if (num !== null && (isNaN(num) || num < 0 || num > 9999)) { setMaxStr(reMaxPrice != null ? String(reMaxPrice) : ''); return }
     onReMaxPrice(num)
-  }, [maxStr, onReMaxPrice])
+  }, [maxStr, reMaxPrice, onReMaxPrice])
 
   return (
     <div style={{
@@ -508,6 +508,7 @@ export function NavRail({
               <input
                 type="number"
                 min={0}
+                max={9999}
                 placeholder={lang === 'ko' ? '최소' : 'min'}
                 value={minStr}
                 onChange={(e) => setMinStr(e.target.value)}
@@ -524,6 +525,7 @@ export function NavRail({
               <input
                 type="number"
                 min={0}
+                max={9999}
                 placeholder={lang === 'ko' ? '최대' : 'max'}
                 value={maxStr}
                 onChange={(e) => setMaxStr(e.target.value)}
