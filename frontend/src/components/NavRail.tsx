@@ -265,16 +265,22 @@ export function NavRail({
 
   const commitMin = useCallback(() => {
     const v = minStr.trim()
-    const num = v === '' ? null : Number(v)
-    if (num !== null && (isNaN(num) || num < 0 || num > 9999)) { setMinStr(reMinPrice != null ? String(reMinPrice) : ''); return }
-    onReMinPrice(num)
+    if (v === '') { onReMinPrice(null); return }
+    const num = Number(v)
+    if (isNaN(num) || num < 0) { setMinStr(reMinPrice != null ? String(reMinPrice) : ''); return }
+    const clamped = Math.min(num, 9999)
+    setMinStr(String(clamped))
+    onReMinPrice(clamped)
   }, [minStr, reMinPrice, onReMinPrice])
 
   const commitMax = useCallback(() => {
     const v = maxStr.trim()
-    const num = v === '' ? null : Number(v)
-    if (num !== null && (isNaN(num) || num < 0 || num > 9999)) { setMaxStr(reMaxPrice != null ? String(reMaxPrice) : ''); return }
-    onReMaxPrice(num)
+    if (v === '') { onReMaxPrice(null); return }
+    const num = Number(v)
+    if (isNaN(num) || num < 0) { setMaxStr(reMaxPrice != null ? String(reMaxPrice) : ''); return }
+    const clamped = Math.min(num, 9999)
+    setMaxStr(String(clamped))
+    onReMaxPrice(clamped)
   }, [maxStr, reMaxPrice, onReMaxPrice])
 
   return (
