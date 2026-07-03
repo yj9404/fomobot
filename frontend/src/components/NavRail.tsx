@@ -4,6 +4,7 @@ import { FONT } from '../tokens'
 import { PERIODS, RE_PERIODS, RE_REGIONS, CAP_TIERS } from '../types'
 import { useReRegionSearch } from '../hooks/useReRegionSearch'
 import { useReSegments } from '../hooks/useReSegments'
+import { Footer } from './Footer'
 import type { Lang, Market, Tab, RegionItem, CapTier } from '../types'
 import type { Strings } from '../i18n/strings'
 
@@ -598,6 +599,8 @@ export function NavRail({
         <span style={{ fontSize: 12, color: C.orange, flexShrink: 0 }}>⚠</span>
         <span>{disclaimer || t.disclaimer}</span>
       </div>
+
+      <Footer lang={lang} />
     </div>
   )
 }

@@ -9,9 +9,11 @@ import { EmptyState } from './components/EmptyState'
 import { ErrorState } from './components/ErrorState'
 import { RealEstateView } from './views/RealEstateView'
 import { StockSearchArea } from './components/StockSearchArea'
+import { Footer } from './components/Footer'
 import { useRankings } from './hooks/useRankings'
 import { useBacktest } from './hooks/useBacktest'
 import { useWindowWidth } from './hooks/useWindowWidth'
+import { useAdGate } from './hooks/useAdGate'
 import { useStrings } from './i18n/strings'
 import { useC } from './ThemeContext'
 import { PERIODS, RE_PERIODS, RE_DISCLAIMER } from './types'
@@ -75,12 +77,15 @@ export default function App() {
     return v !== null && !isNaN(Number(v)) ? Number(v) : null
   })
   const [reRetryKey, setReRetryKey] = useState(0)
+  const [reHasContent, setReHasContent] = useState(false)
 
   const C = useC()
   const t = useStrings(lang)
   const period = PERIODS[periodIdx]!
   const { status, rankings, disclaimer: stockDisclaimer } = useRankings(market, period.value, capTier, retryKey)
   const { load: loadBt, get: getBt } = useBacktest(market, period.value, period.days)
+
+  useAdGate(tab === 'stock' ? status === 'ok' : reHasContent)
 
   const windowWidth = useWindowWidth()
   const isDesktop = windowWidth >= 1024
@@ -252,6 +257,7 @@ export default function App() {
                 retryKey={reRetryKey}
                 onRetry={() => setReRetryKey((k) => k + 1)}
                 onResetFilters={handleReResetFilters}
+                onContentChange={setReHasContent}
                 t={t}
               />
             )}
@@ -324,9 +330,12 @@ export default function App() {
             retryKey={reRetryKey}
             onRetry={() => setReRetryKey((k) => k + 1)}
             onResetFilters={handleReResetFilters}
+            onContentChange={setReHasContent}
             t={t}
           />
         )}
+
+        <Footer lang={lang} style={{ padding: '14px 16px 20px', borderTop: `1px solid ${C.borderSub}` }} />
       </div>
     </div>
   )

@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { useC } from '../ThemeContext'
 import { FONT } from '../tokens'
 import { SkeletonList } from '../components/SkeletonList'
@@ -20,12 +21,17 @@ interface Props {
   retryKey: number
   onRetry: () => void
   onResetFilters: () => void
+  onContentChange?: (hasContent: boolean) => void
   t: Strings
 }
 
-export function RealEstateView({ lang, period, sido, gu, dong, seg, minPrice, maxPrice, retryKey, onRetry, onResetFilters, t }: Props) {
+export function RealEstateView({ lang, period, sido, gu, dong, seg, minPrice, maxPrice, retryKey, onRetry, onResetFilters, onContentChange, t }: Props) {
   const { status, rankings, excluded, meta } = useRealEstateRankings(period, sido, retryKey, gu, dong, seg, minPrice, maxPrice)
   const C = useC()
+
+  useEffect(() => {
+    onContentChange?.(status === 'ok' && rankings.length > 0)
+  }, [status, rankings.length, onContentChange])
 
   if (status === 'loading') return (
     <>

@@ -20,6 +20,11 @@ style.textContent = `
 `
 document.head.appendChild(style)
 
+// 콘텐츠가 확인되기 전까지 AdSense 광고 요청을 중단한다 (데드엔드 화면 광고 노출 방지).
+// https://support.google.com/adsense/answer/9183363
+window.adsbygoogle = window.adsbygoogle || []
+window.adsbygoogle.pauseAdRequests = 1
+
 const path = window.location.pathname
 const is500 = path === '/500'
 const is404 = !is500 && path !== '/' && path !== '/index.html'
