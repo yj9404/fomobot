@@ -19,10 +19,11 @@ interface Props {
   maxPrice?: number | null   // 84㎡ 환산 금액 상한 (억 단위)
   retryKey: number
   onRetry: () => void
+  onResetFilters: () => void
   t: Strings
 }
 
-export function RealEstateView({ lang, period, sido, gu, dong, seg, minPrice, maxPrice, retryKey, onRetry, t }: Props) {
+export function RealEstateView({ lang, period, sido, gu, dong, seg, minPrice, maxPrice, retryKey, onRetry, onResetFilters, t }: Props) {
   const { status, rankings, excluded, meta } = useRealEstateRankings(period, sido, retryKey, gu, dong, seg, minPrice, maxPrice)
   const C = useC()
 
@@ -55,9 +56,10 @@ export function RealEstateView({ lang, period, sido, gu, dong, seg, minPrice, ma
             width: 62, height: 62, borderRadius: 18,
             background: C.surfaceAlt, border: `1px solid ${C.border}`,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 26,
           }}>
-            {hasFilter ? '🔍' : '🏢'}
+            <svg width="28" height="28" viewBox="0 0 28 28">
+              <line x1="5" y1="14" x2="23" y2="14" stroke={C.textDim} strokeWidth="2.4" strokeLinecap="round" />
+            </svg>
           </div>
           <div style={{ fontSize: 15.5, fontWeight: 700, color: C.textPrimary }}>
             {hasFilter
@@ -67,12 +69,20 @@ export function RealEstateView({ lang, period, sido, gu, dong, seg, minPrice, ma
           <div style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.5, maxWidth: 260 }}>
             {hasFilter
               ? (lang === 'ko'
-                  ? '다른 지역·기간을 선택하거나 금액 범위를 조정해 보세요.'
-                  : 'Try selecting a different region or period, or adjusting the price range.')
+                  ? '이 동네는 조용하네요. (거래가 없다는 뜻이에요)'
+                  : 'Pretty quiet around here. (Meaning: no transactions.)')
               : (lang === 'ko'
                   ? '배치가 아직 실행되지 않았거나, 해당 지역·기간에 데이터가 없어요.'
                   : 'Batch not yet run, or no data for this region and period.')}
           </div>
+          {hasFilter && (
+            <button
+              onClick={onResetFilters}
+              style={{ marginTop: 6, padding: '10px 20px', border: `1px solid ${C.border}`, borderRadius: 11, background: 'transparent', color: C.textSub, fontSize: 13, fontWeight: 600, fontFamily: FONT.sans, cursor: 'pointer' }}
+            >
+              {lang === 'ko' ? '필터 초기화' : 'Reset filters'}
+            </button>
+          )}
         </div>
       </>
     )
@@ -93,9 +103,10 @@ export function RealEstateView({ lang, period, sido, gu, dong, seg, minPrice, ma
             width: 62, height: 62, borderRadius: 18,
             background: C.surfaceAlt, border: `1px solid ${C.border}`,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 26,
           }}>
-            {hasFilter ? '🔍' : '🏢'}
+            <svg width="28" height="28" viewBox="0 0 28 28">
+              <line x1="5" y1="14" x2="23" y2="14" stroke={C.textDim} strokeWidth="2.4" strokeLinecap="round" />
+            </svg>
           </div>
           <div style={{ fontSize: 15.5, fontWeight: 700, color: C.textPrimary }}>
             {hasFilter
@@ -105,12 +116,20 @@ export function RealEstateView({ lang, period, sido, gu, dong, seg, minPrice, ma
           <div style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.5, maxWidth: 260 }}>
             {hasFilter
               ? (lang === 'ko'
-                  ? '다른 지역·기간을 선택하거나 금액 범위를 조정해 보세요.'
-                  : 'Try selecting a different region or period, or adjusting the price range.')
+                  ? '이 동네는 조용하네요. (거래가 없다는 뜻이에요)'
+                  : 'Pretty quiet around here. (Meaning: no transactions.)')
               : (lang === 'ko'
                   ? '배치가 아직 실행되지 않았거나, 해당 지역·기간에 데이터가 없어요.'
                   : 'Batch not yet run, or no data for this region and period.')}
           </div>
+          {hasFilter && (
+            <button
+              onClick={onResetFilters}
+              style={{ marginTop: 6, padding: '10px 20px', border: `1px solid ${C.border}`, borderRadius: 11, background: 'transparent', color: C.textSub, fontSize: 13, fontWeight: 600, fontFamily: FONT.sans, cursor: 'pointer' }}
+            >
+              {lang === 'ko' ? '필터 초기화' : 'Reset filters'}
+            </button>
+          )}
         </div>
         {excluded.length > 0 && (
           <ReResultArea rankings={[]} excluded={excluded} meta={null} lang={lang} period={period} />

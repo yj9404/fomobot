@@ -65,8 +65,8 @@ export const RE_PERIODS: RePeriodDef[] = [
 ]
 
 export const RE_DISCLAIMER: Record<Lang, string> = {
-  ko: '재미·교육 목적 · 과거 상승률이 미래 수익을 보장하지 않습니다',
-  en: 'Educational only · Past gains do not guarantee future returns',
+  ko: '투자 조언이 아닙니다. FomoBot은 지나간 걸 보여줄 뿐이에요',
+  en: 'Not financial advice · FomoBot just shows what already happened',
 }
 
 export const RE_REGIONS: { label: Record<Lang, string>; value: string }[] = [

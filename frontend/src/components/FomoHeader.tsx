@@ -258,6 +258,9 @@ export function FomoHeader({
   const [minStr, setMinStr] = useState(() => reMinPrice != null ? String(reMinPrice) : '')
   const [maxStr, setMaxStr] = useState(() => reMaxPrice != null ? String(reMaxPrice) : '')
 
+  useEffect(() => { if (reMinPrice == null) setMinStr('') }, [reMinPrice])
+  useEffect(() => { if (reMaxPrice == null) setMaxStr('') }, [reMaxPrice])
+
   const commitMin = useCallback(() => {
     const v = minStr.trim()
     if (v === '') { onReMinPrice(null); return }

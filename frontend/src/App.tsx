@@ -178,6 +178,19 @@ export default function App() {
     history.replaceState(null, '', url.toString())
   }, [])
 
+  const handleReResetFilters = useCallback(() => {
+    setReGu('')
+    setReDong('')
+    setReSeg('')
+    setReMinPrice(null)
+    setReMaxPrice(null)
+    const url = new URL(window.location.href)
+    url.searchParams.delete('seg')
+    url.searchParams.delete('min_price')
+    url.searchParams.delete('max_price')
+    history.replaceState(null, '', url.toString())
+  }, [])
+
   // ── 공통 NavRail/FomoHeader props ─────────────────────────────────────
   const sharedControlProps = {
     lang, tab, market, periodIdx, disclaimer, t,
@@ -212,7 +225,7 @@ export default function App() {
               <>
                 <StockSearchArea market={market} lang={lang} t={t} />
                 {status === 'loading' && <SkeletonList t={t} />}
-                {status === 'empty' && <EmptyState t={t} onRetry={() => handlePeriod(2)} />}
+                {status === 'empty' && <EmptyState t={t} onRetry={() => { handlePeriod(2); setCapTier('all') }} />}
                 {status === 'error' && <ErrorState t={t} onRetry={() => setRetryKey((k) => k + 1)} />}
                 {status === 'ok' && (
                   <RankingTable
@@ -238,6 +251,7 @@ export default function App() {
                 maxPrice={reMaxPrice}
                 retryKey={reRetryKey}
                 onRetry={() => setReRetryKey((k) => k + 1)}
+                onResetFilters={handleReResetFilters}
                 t={t}
               />
             )}
@@ -271,7 +285,7 @@ export default function App() {
           <>
             <StockSearchArea market={market} lang={lang} t={t} />
             {status === 'loading' && <SkeletonList t={t} />}
-            {status === 'empty' && <EmptyState t={t} onRetry={() => handlePeriod(2)} />}
+            {status === 'empty' && <EmptyState t={t} onRetry={() => { handlePeriod(2); setCapTier('all') }} />}
             {status === 'error' && <ErrorState t={t} onRetry={() => setRetryKey((k) => k + 1)} />}
             {status === 'ok' && (
               <div style={{ padding: '12px 14px 16px', borderTop: `1px solid ${C.borderSub}`, flex: 1 }}>
@@ -309,6 +323,7 @@ export default function App() {
             maxPrice={reMaxPrice}
             retryKey={reRetryKey}
             onRetry={() => setReRetryKey((k) => k + 1)}
+            onResetFilters={handleReResetFilters}
             t={t}
           />
         )}
