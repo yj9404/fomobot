@@ -107,8 +107,11 @@ async def get_rankings_endpoint(
         sido=sido, gu=gu, dong=dong, seg=seg_dongs,
         min_price=min_price, max_price=max_price,
     )
-    price_filter_active = min_price is not None or max_price is not None
-    if not rows and not price_filter_active:
+    any_filter_active = (
+        min_price is not None or max_price is not None
+        or gu is not None or dong is not None or seg is not None
+    )
+    if not rows and not any_filter_active:
         raise HTTPException(
             status_code=404,
             detail=f"{snapshot_ym} 기준 {period} 랭킹 데이터가 없습니다.",
