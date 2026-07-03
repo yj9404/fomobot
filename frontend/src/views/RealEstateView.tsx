@@ -11,17 +11,19 @@ import type { Strings } from '../i18n/strings'
 interface Props {
   lang: Lang
   period: RealEstatePeriod
-  sido: string      // 시도 필터 ('11'=서울 등, ''=수도권 전체)
-  gu?: string       // 5자리 시군구 코드 (sido보다 좁은 필터)
-  dong?: string     // 법정동명 부분일치
-  seg?: string      // 학군 세그먼트 키 (지정 시 sido/gu/dong 무시)
+  sido: string          // 시도 필터 ('11'=서울 등, ''=수도권 전체)
+  gu?: string           // 5자리 시군구 코드 (sido보다 좁은 필터)
+  dong?: string         // 법정동명 부분일치
+  seg?: string          // 학군 세그먼트 키 (지정 시 sido/gu/dong 무시)
+  minPrice?: number | null   // 84㎡ 환산 금액 하한 (억 단위)
+  maxPrice?: number | null   // 84㎡ 환산 금액 상한 (억 단위)
   retryKey: number
   onRetry: () => void
   t: Strings
 }
 
-export function RealEstateView({ lang, period, sido, gu, dong, seg, retryKey, onRetry, t }: Props) {
-  const { status, rankings, excluded, meta } = useRealEstateRankings(period, sido, retryKey, gu, dong, seg)
+export function RealEstateView({ lang, period, sido, gu, dong, seg, minPrice, maxPrice, retryKey, onRetry, t }: Props) {
+  const { status, rankings, excluded, meta } = useRealEstateRankings(period, sido, retryKey, gu, dong, seg, minPrice, maxPrice)
   const C = useC()
 
   if (status === 'loading') return (
@@ -38,34 +40,84 @@ export function RealEstateView({ lang, period, sido, gu, dong, seg, retryKey, on
     </>
   )
 
-  if (status === 'empty') return (
-    <>
-      <ReAptSearchArea period={period} lang={lang} t={t} />
-      <div style={{
-        borderTop: `1px solid ${C.borderSub}`,
-        padding: '56px 28px 60px',
-        display: 'flex', flexDirection: 'column', alignItems: 'center',
-        textAlign: 'center', gap: 13, fontFamily: FONT.sans,
-      }}>
+  if (status === 'empty') {
+    const hasFilter = minPrice != null || maxPrice != null || !!gu || !!dong || !!seg
+    return (
+      <>
+        <ReAptSearchArea period={period} lang={lang} t={t} />
         <div style={{
-          width: 62, height: 62, borderRadius: 18,
-          background: C.surfaceAlt, border: `1px solid ${C.border}`,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 26,
+          borderTop: `1px solid ${C.borderSub}`,
+          padding: '56px 28px 60px',
+          display: 'flex', flexDirection: 'column', alignItems: 'center',
+          textAlign: 'center', gap: 13, fontFamily: FONT.sans,
         }}>
-          🏢
+          <div style={{
+            width: 62, height: 62, borderRadius: 18,
+            background: C.surfaceAlt, border: `1px solid ${C.border}`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 26,
+          }}>
+            {hasFilter ? '🔍' : '🏢'}
+          </div>
+          <div style={{ fontSize: 15.5, fontWeight: 700, color: C.textPrimary }}>
+            {hasFilter
+              ? (lang === 'ko' ? '조건에 맞는 단지가 없어요' : 'No complexes match the filter')
+              : (lang === 'ko' ? '데이터가 없어요' : 'No data available')}
+          </div>
+          <div style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.5, maxWidth: 260 }}>
+            {hasFilter
+              ? (lang === 'ko'
+                  ? '다른 지역·기간을 선택하거나 금액 범위를 조정해 보세요.'
+                  : 'Try selecting a different region or period, or adjusting the price range.')
+              : (lang === 'ko'
+                  ? '배치가 아직 실행되지 않았거나, 해당 지역·기간에 데이터가 없어요.'
+                  : 'Batch not yet run, or no data for this region and period.')}
+          </div>
         </div>
-        <div style={{ fontSize: 15.5, fontWeight: 700, color: C.textPrimary }}>
-          {lang === 'ko' ? '데이터가 없어요' : 'No data available'}
+      </>
+    )
+  }
+
+  if (rankings.length === 0) {
+    const hasFilter = minPrice != null || maxPrice != null || !!gu || !!dong || !!seg
+    return (
+      <>
+        <ReAptSearchArea period={period} lang={lang} t={t} />
+        <div style={{
+          borderTop: `1px solid ${C.borderSub}`,
+          padding: '56px 28px 40px',
+          display: 'flex', flexDirection: 'column', alignItems: 'center',
+          textAlign: 'center', gap: 13, fontFamily: FONT.sans,
+        }}>
+          <div style={{
+            width: 62, height: 62, borderRadius: 18,
+            background: C.surfaceAlt, border: `1px solid ${C.border}`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 26,
+          }}>
+            {hasFilter ? '🔍' : '🏢'}
+          </div>
+          <div style={{ fontSize: 15.5, fontWeight: 700, color: C.textPrimary }}>
+            {hasFilter
+              ? (lang === 'ko' ? '조건에 맞는 단지가 없어요' : 'No complexes match the filter')
+              : (lang === 'ko' ? '데이터가 없어요' : 'No data available')}
+          </div>
+          <div style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.5, maxWidth: 260 }}>
+            {hasFilter
+              ? (lang === 'ko'
+                  ? '다른 지역·기간을 선택하거나 금액 범위를 조정해 보세요.'
+                  : 'Try selecting a different region or period, or adjusting the price range.')
+              : (lang === 'ko'
+                  ? '배치가 아직 실행되지 않았거나, 해당 지역·기간에 데이터가 없어요.'
+                  : 'Batch not yet run, or no data for this region and period.')}
+          </div>
         </div>
-        <div style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.5, maxWidth: 260 }}>
-          {lang === 'ko'
-            ? '배치가 아직 실행되지 않았거나, 해당 지역·기간에 데이터가 없어요.'
-            : 'Batch not yet run, or no data for this region and period.'}
-        </div>
-      </div>
-    </>
-  )
+        {excluded.length > 0 && (
+          <ReResultArea rankings={[]} excluded={excluded} meta={null} lang={lang} period={period} />
+        )}
+      </>
+    )
+  }
 
   return (
     <>

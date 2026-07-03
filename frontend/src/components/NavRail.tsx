@@ -26,10 +26,14 @@ interface Props {
   reGu: string
   reDong: string
   reSeg: string
+  reMinPrice: number | null
+  reMaxPrice: number | null
   onReRegion: (r: string) => void
   onRePeriod: (i: number) => void
   onReGu: (gu: string, dong: string) => void
   onReSeg: (seg: string) => void
+  onReMinPrice: (v: number | null) => void
+  onReMaxPrice: (v: number | null) => void
 }
 
 function SunIcon() {
@@ -250,12 +254,28 @@ function RegionSearch({
 export function NavRail({
   lang, tab, market, periodIdx, disclaimer, t,
   onLang, onTab, onMarket, onPeriod, capTier, onCapTier,
-  reRegion, rePeriodIdx, reGu, reDong, reSeg,
-  onReRegion, onRePeriod, onReGu, onReSeg,
+  reRegion, rePeriodIdx, reGu, reDong, reSeg, reMinPrice, reMaxPrice,
+  onReRegion, onRePeriod, onReGu, onReSeg, onReMinPrice, onReMaxPrice,
 }: Props) {
   const segments = useReSegments()
   const C = useC()
   const { theme, toggle } = useTheme()
+  const [minStr, setMinStr] = useState(() => reMinPrice != null ? String(reMinPrice) : '')
+  const [maxStr, setMaxStr] = useState(() => reMaxPrice != null ? String(reMaxPrice) : '')
+
+  const commitMin = useCallback(() => {
+    const v = minStr.trim()
+    const num = v === '' ? null : Number(v)
+    if (num !== null && (isNaN(num) || num < 0)) return
+    onReMinPrice(num)
+  }, [minStr, onReMinPrice])
+
+  const commitMax = useCallback(() => {
+    const v = maxStr.trim()
+    const num = v === '' ? null : Number(v)
+    if (num !== null && (isNaN(num) || num < 0)) return
+    onReMaxPrice(num)
+  }, [maxStr, onReMaxPrice])
 
   return (
     <div style={{
@@ -474,6 +494,62 @@ export function NavRail({
               reDong={reDong}
               onReGu={onReGu}
             />
+          </div>
+
+          {/* 금액 범위 필터 */}
+          <div>
+            <div style={sectionLabel(C)}>{lang === 'ko' ? '금액 범위' : 'Price Range'}</div>
+            <div style={{ fontSize: 10, color: C.textDim, lineHeight: 1.4, marginBottom: 7 }}>
+              {lang === 'ko'
+                ? '84㎡ 기준 추정가 · 실거래가 아님'
+                : '84㎡ estimated · not actual listing'}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <input
+                type="number"
+                min={0}
+                placeholder={lang === 'ko' ? '최소' : 'min'}
+                value={minStr}
+                onChange={(e) => setMinStr(e.target.value)}
+                onBlur={commitMin}
+                onKeyDown={(e) => e.key === 'Enter' && commitMin()}
+                style={{
+                  flex: 1, minWidth: 0, padding: '7px 8px', borderRadius: 8,
+                  border: `1.5px solid ${reMinPrice != null ? 'rgba(62,123,250,0.5)' : C.inputBorder}`,
+                  background: C.inputBg, color: C.textPrimary,
+                  fontSize: 12, fontFamily: FONT.sans, outline: 'none',
+                }}
+              />
+              <span style={{ color: C.textDim, fontSize: 11, flexShrink: 0 }}>~</span>
+              <input
+                type="number"
+                min={0}
+                placeholder={lang === 'ko' ? '최대' : 'max'}
+                value={maxStr}
+                onChange={(e) => setMaxStr(e.target.value)}
+                onBlur={commitMax}
+                onKeyDown={(e) => e.key === 'Enter' && commitMax()}
+                style={{
+                  flex: 1, minWidth: 0, padding: '7px 8px', borderRadius: 8,
+                  border: `1.5px solid ${reMaxPrice != null ? 'rgba(62,123,250,0.5)' : C.inputBorder}`,
+                  background: C.inputBg, color: C.textPrimary,
+                  fontSize: 12, fontFamily: FONT.sans, outline: 'none',
+                }}
+              />
+              <span style={{ color: C.textDim, fontSize: 11, flexShrink: 0 }}>억</span>
+            </div>
+            {(reMinPrice != null || reMaxPrice != null) && (
+              <button
+                onClick={() => { setMinStr(''); setMaxStr(''); onReMinPrice(null); onReMaxPrice(null) }}
+                style={{
+                  marginTop: 6, width: '100%', padding: '5px 0', borderRadius: 7, border: 'none',
+                  fontSize: 11, fontFamily: FONT.sans, cursor: 'pointer',
+                  background: C.surfaceAlt, color: C.textDim,
+                }}
+              >
+                {lang === 'ko' ? '금액 필터 초기화' : 'Clear price filter'}
+              </button>
+            )}
           </div>
 
           <div>

@@ -13,11 +13,13 @@ export interface ReRankingsState {
 
 export function useRealEstateRankings(
   period: RealEstatePeriod,
-  sido: string,       // 시도 필터 ('11'=서울, '28'=인천, '41'=경기, ''=수도권 전체)
+  sido: string,          // 시도 필터 ('11'=서울, '28'=인천, '41'=경기, ''=수도권 전체)
   retryKey: number = 0,
-  gu?: string,        // 5자리 시군구 코드 (sido보다 좁은 필터)
-  dong?: string,      // 법정동명 부분일치
-  seg?: string,       // 학군 세그먼트 키 (지정 시 sido/gu/dong 무시)
+  gu?: string,           // 5자리 시군구 코드 (sido보다 좁은 필터)
+  dong?: string,         // 법정동명 부분일치
+  seg?: string,          // 학군 세그먼트 키 (지정 시 sido/gu/dong 무시)
+  minPrice?: number | null,  // 84㎡ 환산 금액 하한 (억 단위)
+  maxPrice?: number | null,  // 84㎡ 환산 금액 상한 (억 단위)
 ): ReRankingsState {
   const [state, setState] = useState<ReRankingsState>({
     status: 'loading',
@@ -36,7 +38,10 @@ export function useRealEstateRankings(
     const dongParam = seg ? undefined : (dong || undefined)
     const segParam  = seg || undefined
 
-    fetchReRankings(period, sidoParam, guParam, dongParam, 20, segParam)
+    fetchReRankings(
+      period, sidoParam, guParam, dongParam, 20, segParam,
+      minPrice ?? undefined, maxPrice ?? undefined,
+    )
       .then((data) => {
         if (cancelled) return
         if (data.rankings.length === 0 && data.excluded.length === 0) {
@@ -52,7 +57,7 @@ export function useRealEstateRankings(
       })
 
     return () => { cancelled = true }
-  }, [period, sido, gu, dong, seg, retryKey])
+  }, [period, sido, gu, dong, seg, minPrice, maxPrice, retryKey])
 
   return state
 }

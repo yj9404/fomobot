@@ -35,10 +35,14 @@ export default function App() {
     if (t === 'stock') {
       url.searchParams.delete('tab')
       url.searchParams.delete('seg')
+      url.searchParams.delete('min_price')
+      url.searchParams.delete('max_price')
       setReRegion('')
       setReGu('')
       setReDong('')
       setReSeg('')
+      setReMinPrice(null)
+      setReMaxPrice(null)
     } else {
       url.searchParams.set('tab', t)
     }
@@ -61,6 +65,14 @@ export default function App() {
   const [reSeg, setReSeg] = useState<string>(() => { // 학군 세그먼트 키 ('' = 미선택)
     const p = new URLSearchParams(window.location.search)
     return p.get('seg') ?? ''
+  })
+  const [reMinPrice, setReMinPrice] = useState<number | null>(() => {
+    const v = new URLSearchParams(window.location.search).get('min_price')
+    return v !== null && !isNaN(Number(v)) ? Number(v) : null
+  })
+  const [reMaxPrice, setReMaxPrice] = useState<number | null>(() => {
+    const v = new URLSearchParams(window.location.search).get('max_price')
+    return v !== null && !isNaN(Number(v)) ? Number(v) : null
   })
   const [reRetryKey, setReRetryKey] = useState(0)
 
@@ -150,6 +162,22 @@ export default function App() {
     history.replaceState(null, '', url.toString())
   }, [])
 
+  const handleReMinPrice = useCallback((v: number | null) => {
+    setReMinPrice(v)
+    const url = new URL(window.location.href)
+    if (v !== null) url.searchParams.set('min_price', String(v))
+    else url.searchParams.delete('min_price')
+    history.replaceState(null, '', url.toString())
+  }, [])
+
+  const handleReMaxPrice = useCallback((v: number | null) => {
+    setReMaxPrice(v)
+    const url = new URL(window.location.href)
+    if (v !== null) url.searchParams.set('max_price', String(v))
+    else url.searchParams.delete('max_price')
+    history.replaceState(null, '', url.toString())
+  }, [])
+
   // ── 공통 NavRail/FomoHeader props ─────────────────────────────────────
   const sharedControlProps = {
     lang, tab, market, periodIdx, disclaimer, t,
@@ -159,10 +187,13 @@ export default function App() {
     onPeriod: handlePeriod,
     capTier, onCapTier: setCapTier,
     reRegion, rePeriodIdx, reGu, reDong, reSeg,
+    reMinPrice, reMaxPrice,
     onReRegion: handleReRegion,
     onRePeriod: setRePeriodIdx,
     onReGu: handleReGu,
     onReSeg: handleReSeg,
+    onReMinPrice: handleReMinPrice,
+    onReMaxPrice: handleReMaxPrice,
   }
 
   // ── Desktop layout ───────────────────────────────────────────────────
@@ -203,6 +234,8 @@ export default function App() {
                 gu={reGu}
                 dong={reDong}
                 seg={reSeg}
+                minPrice={reMinPrice}
+                maxPrice={reMaxPrice}
                 retryKey={reRetryKey}
                 onRetry={() => setReRetryKey((k) => k + 1)}
                 t={t}
@@ -272,6 +305,8 @@ export default function App() {
             gu={reGu}
             dong={reDong}
             seg={reSeg}
+            minPrice={reMinPrice}
+            maxPrice={reMaxPrice}
             retryKey={reRetryKey}
             onRetry={() => setReRetryKey((k) => k + 1)}
             t={t}

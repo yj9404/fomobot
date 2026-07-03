@@ -26,10 +26,14 @@ interface Props {
   reGu: string
   reDong: string
   reSeg: string
+  reMinPrice: number | null
+  reMaxPrice: number | null
   onReRegion: (r: string) => void
   onRePeriod: (i: number) => void
   onReGu: (gu: string, dong: string) => void
   onReSeg: (seg: string) => void
+  onReMinPrice: (v: number | null) => void
+  onReMaxPrice: (v: number | null) => void
 }
 
 function SunIcon() {
@@ -245,12 +249,28 @@ function RegionSearchMobile({
 export function FomoHeader({
   lang, tab, market, periodIdx, disclaimer, t,
   onLang, onTab, onMarket, onPeriod, capTier, onCapTier,
-  reRegion, rePeriodIdx, reGu, reDong, reSeg,
-  onReRegion, onRePeriod, onReGu, onReSeg,
+  reRegion, rePeriodIdx, reGu, reDong, reSeg, reMinPrice, reMaxPrice,
+  onReRegion, onRePeriod, onReGu, onReSeg, onReMinPrice, onReMaxPrice,
 }: Props) {
   const C = useC()
   const { theme, toggle } = useTheme()
   const segments = useReSegments()
+  const [minStr, setMinStr] = useState(() => reMinPrice != null ? String(reMinPrice) : '')
+  const [maxStr, setMaxStr] = useState(() => reMaxPrice != null ? String(reMaxPrice) : '')
+
+  const commitMin = useCallback(() => {
+    const v = minStr.trim()
+    const num = v === '' ? null : Number(v)
+    if (num !== null && (isNaN(num) || num < 0)) return
+    onReMinPrice(num)
+  }, [minStr, onReMinPrice])
+
+  const commitMax = useCallback(() => {
+    const v = maxStr.trim()
+    const num = v === '' ? null : Number(v)
+    if (num !== null && (isNaN(num) || num < 0)) return
+    onReMaxPrice(num)
+  }, [maxStr, onReMaxPrice])
 
   return (
     <div style={{ width: '100%', fontFamily: FONT.sans, background: C.surface, position: 'sticky', top: 0, zIndex: 10 }}>
@@ -435,6 +455,59 @@ export function FomoHeader({
               reDong={reDong}
               onReGu={onReGu}
             />
+          </div>
+
+          {/* 금액 범위 필터 */}
+          <div style={{ padding: '0 16px 8px' }}>
+            <div style={{ fontSize: 10, fontWeight: 600, color: C.textDim, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 5 }}>
+              {lang === 'ko' ? '금액 범위 (84㎡ 추정가)' : 'Price Range (84㎡ est.)'}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <input
+                type="number"
+                min={0}
+                placeholder={lang === 'ko' ? '최소' : 'min'}
+                value={minStr}
+                onChange={(e) => setMinStr(e.target.value)}
+                onBlur={commitMin}
+                onKeyDown={(e) => e.key === 'Enter' && commitMin()}
+                style={{
+                  flex: 1, minWidth: 0, padding: '7px 8px', borderRadius: 8,
+                  border: `1.5px solid ${reMinPrice != null ? 'rgba(62,123,250,0.5)' : C.inputBorder}`,
+                  background: C.inputBg, color: C.textPrimary,
+                  fontSize: 12, fontFamily: FONT.sans, outline: 'none',
+                }}
+              />
+              <span style={{ color: C.textDim, fontSize: 11, flexShrink: 0 }}>~</span>
+              <input
+                type="number"
+                min={0}
+                placeholder={lang === 'ko' ? '최대' : 'max'}
+                value={maxStr}
+                onChange={(e) => setMaxStr(e.target.value)}
+                onBlur={commitMax}
+                onKeyDown={(e) => e.key === 'Enter' && commitMax()}
+                style={{
+                  flex: 1, minWidth: 0, padding: '7px 8px', borderRadius: 8,
+                  border: `1.5px solid ${reMaxPrice != null ? 'rgba(62,123,250,0.5)' : C.inputBorder}`,
+                  background: C.inputBg, color: C.textPrimary,
+                  fontSize: 12, fontFamily: FONT.sans, outline: 'none',
+                }}
+              />
+              <span style={{ color: C.textDim, fontSize: 11, flexShrink: 0 }}>억</span>
+              {(reMinPrice != null || reMaxPrice != null) && (
+                <button
+                  onClick={() => { setMinStr(''); setMaxStr(''); onReMinPrice(null); onReMaxPrice(null) }}
+                  style={{
+                    padding: '7px 9px', borderRadius: 8, border: 'none',
+                    fontSize: 11, fontFamily: FONT.sans, cursor: 'pointer', flexShrink: 0,
+                    background: C.surfaceAlt, color: C.textDim,
+                  }}
+                >
+                  ✕
+                </button>
+              )}
+            </div>
           </div>
 
           {/* RE 기간 탭 */}

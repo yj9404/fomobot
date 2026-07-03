@@ -9,11 +9,13 @@ import type {
 
 export function fetchReRankings(
   period: RealEstatePeriod,
-  sido?: string,   // 시도 필터: 11=서울, 28=인천, 41=경기
-  gu?: string,     // 5자리 시군구 코드
-  dong?: string,   // 법정동명 부분일치
+  sido?: string,        // 시도 필터: 11=서울, 28=인천, 41=경기
+  gu?: string,          // 5자리 시군구 코드
+  dong?: string,        // 법정동명 부분일치
   top = 20,
-  seg?: string,    // 학군 세그먼트 키 (지정 시 sido/gu/dong 무시)
+  seg?: string,         // 학군 세그먼트 키 (지정 시 sido/gu/dong 무시)
+  minPrice?: number,    // 84㎡ 환산 금액 하한 (억 단위, 이상 ≥)
+  maxPrice?: number,    // 84㎡ 환산 금액 상한 (억 단위, 이하 ≤)
 ): Promise<ReRankingsResponse> {
   const params: Record<string, string | number> = { period, top }
   if (seg) {
@@ -23,6 +25,8 @@ export function fetchReRankings(
     if (gu) params.gu = gu
     if (dong) params.dong = dong
   }
+  if (minPrice != null) params.min_price = minPrice
+  if (maxPrice != null) params.max_price = maxPrice
   return apiFetch<ReRankingsResponse>('/api/realestate/rankings', params)
 }
 

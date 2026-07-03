@@ -58,6 +58,9 @@ class ComplexRankingsMeta(BaseModel):
     window_note: str | None         # windows_overlap=True일 때 안내 문구
     recent_note: str
     disclaimer: str
+    # 금액 필터 관련 메타
+    price_unit: str = "억"          # min_price/max_price 파라미터 단위
+    price_basis: str = "84㎡ 환산 (end_price 만원/㎡ × 84)"  # 필터 기준 설명
 
 
 class ComplexRankingsResponse(BaseModel):

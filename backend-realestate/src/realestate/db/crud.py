@@ -78,6 +78,8 @@ async def get_complex_rankings_async(
     gu: str | None = None,
     dong: str | None = None,
     seg: list[tuple[str, str]] | None = None,
+    min_price: float | None = None,
+    max_price: float | None = None,
 ) -> list[ReComplexRankingSnapshot]:
     """
     단지 랭킹 조회.
@@ -85,6 +87,9 @@ async def get_complex_rankings_async(
     seg(세그먼트)가 지정되면 sido/gu/dong은 무시하고 seg 내 법정동 집합만 적용.
     seg 미지정 시 필터 우선순위: gu > sido > 수도권 전체, dong은 독립 추가 필터.
     seg는 [(sigungu_code, eupmyeondong), ...] 튜플 목록.
+
+    min_price/max_price: 억 단위. 종료 시점 84㎡ 환산 금액(end_price * 84 만원) 기준
+    이상(≥)/이하(≤) 필터. 각각 독립 선택적. 지정 시 end_price가 NULL인 단지 제외.
     """
     q = (
         select(ReComplexRankingSnapshot)
@@ -113,6 +118,19 @@ async def get_complex_rankings_async(
             q = q.where(ReComplexRankingSnapshot.sigungu_code.like(f"{sido[:2]}%"))
         if dong:
             q = q.where(ReComplexRankingSnapshot.eupmyeondong == dong)
+    if min_price is not None:
+        # 억 → 만원: × 10000. end_price(만원/㎡) × 84 ≥ min_price × 10000
+        min_man = min_price * 10000
+        q = q.where(
+            ReComplexRankingSnapshot.end_price.isnot(None),
+            ReComplexRankingSnapshot.end_price * 84 >= min_man,
+        )
+    if max_price is not None:
+        max_man = max_price * 10000
+        q = q.where(
+            ReComplexRankingSnapshot.end_price.isnot(None),
+            ReComplexRankingSnapshot.end_price * 84 <= max_man,
+        )
     if top > 0:
         # ok top N + excluded 모두 반환 (excluded는 최대 5000개로 제한)
         q = q.limit(top + 5000)

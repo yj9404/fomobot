@@ -65,6 +65,24 @@ async def get_rankings_endpoint(
     dong: str | None = Query(None, description="동 필터 — 법정동명 (예: 개포동)"),
     seg: str | None = Query(None, description="학군 세그먼트 키 (예: 목동, 대치). seg 지정 시 sido/gu/dong 무시."),
     top: int = Query(20, ge=1, le=100, description="상위 N개 (기본 20)"),
+    min_price: float | None = Query(
+        None,
+        ge=0,
+        description=(
+            "84㎡ 환산 금액 하한 (억 단위, 이상 ≥). "
+            "기준: 종료 시점 평단가(end_price 만원/㎡) × 84. "
+            "지정 시 환산가가 없는 단지는 랭킹에서 제외됩니다."
+        ),
+    ),
+    max_price: float | None = Query(
+        None,
+        ge=0,
+        description=(
+            "84㎡ 환산 금액 상한 (억 단위, 이하 ≤). "
+            "기준: 종료 시점 평단가(end_price 만원/㎡) × 84. "
+            "지정 시 환산가가 없는 단지는 랭킹에서 제외됩니다."
+        ),
+    ),
     session: AsyncSession = Depends(get_async_session),
 ):
     seg_dongs: list[tuple[str, str]] | None = None
@@ -87,8 +105,10 @@ async def get_rankings_endpoint(
     rows = await get_complex_rankings_async(
         session, period, snapshot_ym, top,
         sido=sido, gu=gu, dong=dong, seg=seg_dongs,
+        min_price=min_price, max_price=max_price,
     )
-    if not rows:
+    price_filter_active = min_price is not None or max_price is not None
+    if not rows and not price_filter_active:
         raise HTTPException(
             status_code=404,
             detail=f"{snapshot_ym} 기준 {period} 랭킹 데이터가 없습니다.",
