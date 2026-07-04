@@ -36,14 +36,12 @@ def _run_nasdaq_collect():
 
 def _run_kospi_rankings():
     from fomobot.batch.compute_rankings import compute_rankings_for_market
-    from datetime import date
-    compute_rankings_for_market("kospi", date.today())
+    compute_rankings_for_market("kospi")
 
 
 def _run_nasdaq_rankings():
     from fomobot.batch.compute_rankings import compute_rankings_for_market
-    from datetime import date
-    compute_rankings_for_market("nasdaq", date.today())
+    compute_rankings_for_market("nasdaq")
 
 
 def _on_job_executed(event: JobExecutionEvent):
