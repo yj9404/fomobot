@@ -197,7 +197,16 @@ def compute_rankings_for_market(
 
         for period_key, days in period_items:
             try:
-                start_date = snapshot_date - timedelta(days=days)
+                raw_start_date = snapshot_date - timedelta(days=days)
+                # 캘린더 일수로 뺀 값은 비거래일(주말 등)에 떨어질 수 있다 — 특히
+                # "1d"는 snapshot_date가 월요일이면 raw_start_date가 일요일이 되어
+                # 그 구간에 거래일이 1개(당일)뿐이 되고, compute_returns가 데이터
+                # 부족으로 빈 결과를 반환해 해당 기간이 통째로 0건이 된다
+                # (모든 월요일에 재발하는 구조적 버그였음 — 실제 거래일로 스냅해 해결).
+                start_date = (
+                    get_last_trading_day_sync(session, market, as_of=raw_start_date)
+                    or raw_start_date
+                )
 
                 price_matrix, meta_df = _load_price_matrix(
                     session, market, start_date, snapshot_date

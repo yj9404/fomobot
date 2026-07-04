@@ -48,6 +48,11 @@ def captured_upserts(monkeypatch):
     monkeypatch.setattr(compute_rankings, "get_index_range_sync", lambda *a, **k: [])
     monkeypatch.setattr(compute_rankings, "upsert_ranking_snapshots_sync", _fake_upsert)
     monkeypatch.setattr(compute_rankings, "_fetch_name_map", lambda *a, **k: {})
+    # start_date 거래일 스냅 조회 — 이 테스트들은 _load_price_matrix를 고정값으로
+    # 대체했으므로 실제 스냅 여부와 무관, raw 값을 그대로 돌려줘 세션 접근만 피한다.
+    monkeypatch.setattr(
+        compute_rankings, "get_last_trading_day_sync", lambda _session, _market, as_of=None: as_of
+    )
     return captured
 
 
@@ -105,3 +110,47 @@ class TestPeriodsParameterRegression:
         full_keys = sorted((r["period"], r["ticker"]) for r in full_run)
         split_keys = sorted((r["period"], r["ticker"]) for r in split_run)
         assert full_keys == split_keys
+
+
+class TestPeriodStartDateSnapsToTradingDay:
+    """
+    회귀 방지: 기간별 start_date가 캘린더 일수로 비거래일에 떨어지면
+    (특히 snapshot_date가 월요일일 때 "1d"의 start_date가 일요일이 되는 경우)
+    실제 거래일로 스냅되는지 확인한다.
+
+    2026-07-04 gap-fill 운영 로그에서 kospi 06-29(월)/1d가 이 버그로 0건
+    저장된 것이 실제로 확인됨 — start_date가 일요일(비거래일)로 떨어져
+    거래일이 1개뿐이 되고 compute_returns가 빈 결과를 반환했다.
+    """
+
+    def test_snapshot_date가_월요일이면_1d의_start_date가_직전_거래일로_스냅(
+        self, monkeypatch
+    ):
+        raw_sunday = date(2026, 6, 28)  # 캘린더 계산 그대로면 이 날짜가 됨(비거래일)
+        snapped_friday = date(2026, 6, 26)  # 실제 직전 거래일
+        calls: list[tuple] = []
+
+        def _fake_get_last_trading_day_sync(_session, _market, as_of=None):
+            assert as_of == raw_sunday
+            return snapped_friday
+
+        def _fake_load_price_matrix(_session, _market, start_date, end_date):
+            calls.append((start_date, end_date))
+            idx = pd.to_datetime([start_date, end_date])
+            return pd.DataFrame({"AAA": [100.0, 105.0]}, index=idx), pd.DataFrame()
+
+        monkeypatch.setattr(compute_rankings, "SyncSessionLocal", lambda: _FakeSessionCM())
+        monkeypatch.setattr(
+            compute_rankings, "get_last_trading_day_sync", _fake_get_last_trading_day_sync
+        )
+        monkeypatch.setattr(compute_rankings, "_load_price_matrix", _fake_load_price_matrix)
+        monkeypatch.setattr(compute_rankings, "get_index_range_sync", lambda *a, **k: [])
+        monkeypatch.setattr(compute_rankings, "upsert_ranking_snapshots_sync", lambda *a, **k: None)
+        monkeypatch.setattr(compute_rankings, "_fetch_name_map", lambda *a, **k: {})
+
+        compute_rankings.compute_rankings_for_market(
+            "kospi", snapshot_date=date(2026, 6, 29), periods=["1d"], top=10
+        )
+
+        # _load_price_matrix가 일요일(raw_sunday)이 아니라 스냅된 금요일로 호출됐는지
+        assert calls == [(snapped_friday, date(2026, 6, 29))]
