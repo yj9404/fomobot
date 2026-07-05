@@ -22,6 +22,7 @@ export interface Strings {
   retry: string
   noBacktest: string
   btLoading: string
+  asOfLabel: string
 }
 
 const STR: Record<Lang, Strings> = {
@@ -47,6 +48,7 @@ const STR: Record<Lang, Strings> = {
     retry: '다시 시도',
     noBacktest: '백테스트 데이터 없음',
     btLoading: '계산 중…',
+    asOfLabel: '기준일',
   },
   en: {
     tagline: 'Hall of fame for things that already mooned',
@@ -70,6 +72,7 @@ const STR: Record<Lang, Strings> = {
     retry: 'Retry',
     noBacktest: 'No backtest data',
     btLoading: 'Calculating…',
+    asOfLabel: 'As of',
   },
 }
 

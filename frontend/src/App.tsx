@@ -82,7 +82,7 @@ export default function App() {
   const C = useC()
   const t = useStrings(lang)
   const period = PERIODS[periodIdx]!
-  const { status, rankings, disclaimer: stockDisclaimer } = useRankings(market, period.value, capTier, retryKey)
+  const { status, rankings, disclaimer: stockDisclaimer, asOf } = useRankings(market, period.value, capTier, retryKey)
   const { load: loadBt, get: getBt } = useBacktest(market, period.value, period.days)
 
   useAdGate(tab === 'stock' ? status === 'ok' : reHasContent)
@@ -239,6 +239,8 @@ export default function App() {
                     market={market}
                     lang={lang}
                     t={t}
+                    period={period.value}
+                    asOf={asOf}
                     onSelect={handleSelect}
                   />
                 )}
@@ -295,6 +297,15 @@ export default function App() {
             {status === 'error' && <ErrorState t={t} onRetry={() => setRetryKey((k) => k + 1)} />}
             {status === 'ok' && (
               <div style={{ padding: '12px 14px 16px', borderTop: `1px solid ${C.borderSub}`, flex: 1 }}>
+                {asOf && (
+                  <div style={{
+                    fontSize: 11, color: C.textDim, fontFamily: FONT.mono,
+                    marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6,
+                  }}>
+                    <span>{t.asOfLabel}</span>
+                    <span style={{ color: C.textSub, fontWeight: 600 }}>{asOf}</span>
+                  </div>
+                )}
                 {rankings.map((item) => (
                   <RankingCard
                     key={item.ticker}
@@ -302,6 +313,7 @@ export default function App() {
                     open={openRank === item.rank}
                     market={market}
                     days={period.days}
+                    period={period.value}
                     bt={getBt(item.ticker)}
                     t={t}
                     onToggle={() => handleToggle(item.rank, item.ticker)}

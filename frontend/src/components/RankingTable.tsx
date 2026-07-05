@@ -1,6 +1,6 @@
 import { useC } from '../ThemeContext'
 import { FONT } from '../tokens'
-import type { RankingItem, Market, Lang } from '../types'
+import type { RankingItem, Market, Lang, Period } from '../types'
 import type { Strings } from '../i18n/strings'
 
 interface Props {
@@ -9,6 +9,8 @@ interface Props {
   market: Market
   lang: Lang
   t: Strings
+  period: Period
+  asOf: string
   onSelect: (rank: number, ticker: string) => void
 }
 
@@ -17,9 +19,12 @@ function fmtPct(n: number | null): string {
   return (n >= 0 ? '+' : '') + n.toFixed(1) + '%'
 }
 
-export function RankingTable({ rankings, selectedRank, lang, t, onSelect }: Props) {
+export function RankingTable({ rankings, selectedRank, lang, t, period, asOf, onSelect }: Props) {
   const C = useC()
   const vsLabel = lang === 'ko' ? 'vs 지수' : 'vs Index'
+  // "전일(1d)"은 가격 포인트가 2개뿐이라 MDD·변동성이 통계적으로 의미가 없음
+  // (MDD는 상승 종목이면 항상 0, 변동성은 표본 1개라 정의 자체가 안 됨) — 컬럼 자체를 숨긴다.
+  const showRiskMetrics = period !== '1d'
 
   const th: React.CSSProperties = {
     padding: '10px 8px 13px',
@@ -40,6 +45,15 @@ export function RankingTable({ rankings, selectedRank, lang, t, onSelect }: Prop
 
   return (
     <div style={{ fontFamily: FONT.sans, padding: '20px 20px 24px' }}>
+      {asOf && (
+        <div style={{
+          fontSize: 11, color: C.textDim, fontFamily: FONT.mono,
+          marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6,
+        }}>
+          <span>{t.asOfLabel}</span>
+          <span style={{ color: C.textSub, fontWeight: 600 }}>{asOf}</span>
+        </div>
+      )}
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead>
           <tr style={{ borderBottom: `1px solid ${C.border}` }}>
@@ -48,8 +62,8 @@ export function RankingTable({ rankings, selectedRank, lang, t, onSelect }: Prop
               {lang === 'ko' ? '종목' : 'Stock'}
             </th>
             <th style={th}>{t.moveLabel}</th>
-            <th style={th}>MDD</th>
-            <th style={th}>{t.volatilityLabel}</th>
+            {showRiskMetrics && <th style={th}>MDD</th>}
+            {showRiskMetrics && <th style={th}>{t.volatilityLabel}</th>}
             <th style={{ ...th, textAlign: 'center' }}>{vsLabel}</th>
           </tr>
         </thead>
@@ -101,19 +115,23 @@ export function RankingTable({ rankings, selectedRank, lang, t, onSelect }: Prop
                   </span>
                 </td>
 
-                {/* MDD */}
-                <td style={{ ...td, textAlign: 'right' }}>
-                  <span style={{ fontFamily: FONT.mono, fontSize: 13, fontWeight: 600, color: C.orange }}>
-                    {fmtPct(item.mdd_pct)}
-                  </span>
-                </td>
+                {/* MDD — 전일(1d)은 2포인트뿐이라 의미 없어 컬럼 자체를 숨김 */}
+                {showRiskMetrics && (
+                  <td style={{ ...td, textAlign: 'right' }}>
+                    <span style={{ fontFamily: FONT.mono, fontSize: 13, fontWeight: 600, color: C.orange }}>
+                      {fmtPct(item.mdd_pct)}
+                    </span>
+                  </td>
+                )}
 
-                {/* Volatility */}
-                <td style={{ ...td, textAlign: 'right' }}>
-                  <span style={{ fontFamily: FONT.mono, fontSize: 13, fontWeight: 600, color: C.orange }}>
-                    {fmtPct(item.volatility_annualized_pct)}
-                  </span>
-                </td>
+                {/* Volatility — 전일(1d)은 표본 1개라 정의 자체가 안 됨 */}
+                {showRiskMetrics && (
+                  <td style={{ ...td, textAlign: 'right' }}>
+                    <span style={{ fontFamily: FONT.mono, fontSize: 13, fontWeight: 600, color: C.orange }}>
+                      {fmtPct(item.volatility_annualized_pct)}
+                    </span>
+                  </td>
+                )}
 
                 {/* Excess return badge */}
                 <td style={{ ...td, textAlign: 'center' }}>
