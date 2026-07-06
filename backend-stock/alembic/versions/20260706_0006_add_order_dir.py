@@ -1,14 +1,14 @@
 """add order_dir to ranking_snapshot
 
-Revision ID: 0002
-Revises: 0001
+Revision ID: 0006
+Revises: 0005
 Create Date: 2026-07-06
 """
 import sqlalchemy as sa
 from alembic import op
 
-revision = "0002"
-down_revision = "0001"
+revision = "0006"
+down_revision = "0005"
 branch_labels = None
 depends_on = None
 
