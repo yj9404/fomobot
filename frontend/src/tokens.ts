@@ -158,6 +158,7 @@ export const DECLINE_ACCENT_DARK = {
   activeBorder: 'rgba(255,77,98,0.38)',
   badgeBg:      'rgba(255,77,98,0.12)',
   badgeText:    '#FF8C9E',
+  badgeBorder:  'rgba(255,77,98,0.38)',
   headerLine:   'rgba(255,77,98,0.22)',
   logoShadow:   '0 0 0 1px rgba(255,77,98,0.32), 0 4px 14px rgba(255,77,98,0.40)',
 } as const
@@ -168,6 +169,7 @@ export const DECLINE_ACCENT_LIGHT = {
   activeBorder: 'rgba(185,28,28,0.30)',
   badgeBg:      'rgba(185,28,28,0.08)',
   badgeText:    '#B91C1C',
+  badgeBorder:  'rgba(185,28,28,0.30)',
   headerLine:   'rgba(185,28,28,0.20)',
   logoShadow:   '0 0 0 1px rgba(185,28,28,0.26), 0 4px 14px rgba(185,28,28,0.28)',
 } as const
