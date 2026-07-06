@@ -1,6 +1,48 @@
 export type Theme = 'dark' | 'light'
 
-export const DARK = {
+export type Colors = {
+  bg: string
+  surface: string
+  surfaceUp: string
+  surfaceAlt: string
+  surfaceBt: string
+
+  border: string
+  borderSub: string
+  borderFaint: string
+
+  textPrimary: string
+  textSub: string
+  textMuted: string
+  textDim: string
+
+  green: string
+  red: string
+  orange: string
+  orangeAlt: string
+  blue: string
+  blueAlt: string
+  blueSoft: string
+
+  greenFill: string
+  redFill: string
+  blueFill: string
+  orangeFill: string
+
+  shimmerBase: string
+  shimmerHighlight: string
+  cardGradient: string
+  cardBorderDefault: string
+  langBg: string
+  langActive: string
+  langBorder: string
+  hoverBg: string
+  barTrack: string
+  inputBg: string
+  inputBorder: string
+}
+
+export const DARK: Colors = {
   bg:         '#0B0D12',
   surface:    '#0A0C10',
   surfaceUp:  '#12161F',
@@ -40,9 +82,9 @@ export const DARK = {
   barTrack:         'rgba(255,255,255,0.06)',
   inputBg:          '#1B2130',
   inputBorder:      'rgba(255,255,255,0.20)',
-} as const
+}
 
-export const LIGHT = {
+export const LIGHT: Colors = {
   bg:         '#EEF0F7',
   surface:    '#FFFFFF',
   surfaceUp:  '#E4E7F2',
@@ -82,9 +124,7 @@ export const LIGHT = {
   barTrack:         'rgba(0,0,0,0.07)',
   inputBg:          '#FFFFFF',
   inputBorder:      'rgba(0,0,0,0.18)',
-} as const
-
-export type Colors = typeof DARK | typeof LIGHT
+}
 
 // bg/surface — 파란 틴트 제거 + warm-dark 방향으로 더 뚜렷하게 이동.
 // 의미색(green/red/orange*)은 건드리지 않음.
