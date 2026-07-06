@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useC, useTheme } from '../ThemeContext'
-import { FONT } from '../tokens'
+import { FONT, DECLINE_ACCENT_DARK, DECLINE_ACCENT_LIGHT } from '../tokens'
 import { PERIODS, RE_PERIODS, RE_REGIONS, CAP_TIERS } from '../types'
 import { useReRegionSearch } from '../hooks/useReRegionSearch'
 import { useReSegments } from '../hooks/useReSegments'
@@ -259,7 +259,9 @@ export function FomoHeader({
   onReRegion, onRePeriod, onReGu, onReSeg, onReMinPrice, onReMaxPrice,
 }: Props) {
   const C = useC()
-  const { theme, toggle } = useTheme()
+  const { theme, toggle, atmosphereMode } = useTheme()
+  const da = theme === 'dark' ? DECLINE_ACCENT_DARK : DECLINE_ACCENT_LIGHT
+  const isFall = atmosphereMode === 'fall'
   const segments = useReSegments()
   const [minStr, setMinStr] = useState(() => reMinPrice != null ? String(reMinPrice) : '')
   const [maxStr, setMaxStr] = useState(() => reMaxPrice != null ? String(reMaxPrice) : '')
@@ -288,14 +290,24 @@ export function FomoHeader({
   }, [maxStr, reMaxPrice, onReMaxPrice])
 
   return (
-    <div style={{ width: '100%', fontFamily: FONT.sans, background: C.surface, position: 'sticky', top: 0, zIndex: 10 }}>
+    <div style={{
+      width: '100%', fontFamily: FONT.sans, background: C.surface,
+      position: 'sticky', top: 0, zIndex: 10,
+      borderBottom: isFall ? `1.5px solid ${da.headerLine}` : '1px solid transparent',
+      transition: 'border-color 0.25s ease, background-color 0.25s ease',
+    }}>
       {/* Logo row */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 16px 12px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
           <img
             src="/icons/favicon.svg"
             alt="FomoBot Logo"
-            style={{ width: 24, height: 24, flexShrink: 0, boxShadow: '0 0 0 1px rgba(62,123,250,0.3), 0 4px 14px rgba(62,123,250,0.4)', borderRadius: 8 }}
+            style={{
+              width: 24, height: 24, flexShrink: 0,
+              boxShadow: isFall ? da.logoShadow : '0 0 0 1px rgba(62,123,250,0.3), 0 4px 14px rgba(62,123,250,0.4)',
+              borderRadius: 8,
+              transition: 'box-shadow 0.3s ease',
+            }}
           />
           <div>
             <div style={{ fontSize: 16, fontWeight: 800, color: C.textPrimary, letterSpacing: '-0.02em', lineHeight: 1.05 }}>FomoBot</div>
@@ -415,21 +427,25 @@ export function FomoHeader({
               </button>
             ))}
             <div style={{ width: 1, height: 20, background: C.borderSub, flexShrink: 0, alignSelf: 'center' }} />
-            {(['desc', 'asc'] as OrderDir[]).map((o) => (
-              <button
-                key={o}
-                onClick={() => onStockOrder(o)}
-                style={{
-                  padding: '6px 11px', borderRadius: 9, border: 'none',
-                  fontSize: 12, fontWeight: 600, fontFamily: FONT.sans, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
-                  background: stockOrder === o ? 'rgba(62,123,250,0.14)' : C.surfaceAlt,
-                  color: stockOrder === o ? C.blueSoft : C.textMuted,
-                  outline: stockOrder === o ? '1px solid rgba(62,123,250,0.32)' : 'none',
-                }}
-              >
-                {o === 'desc' ? t.orderRise : t.orderFall}
-              </button>
-            ))}
+            {(['desc', 'asc'] as OrderDir[]).map((o) => {
+              const active = stockOrder === o
+              const useFall = active && o === 'asc' && isFall
+              return (
+                <button
+                  key={o}
+                  onClick={() => onStockOrder(o)}
+                  style={{
+                    padding: '6px 11px', borderRadius: 9, border: 'none',
+                    fontSize: 12, fontWeight: 600, fontFamily: FONT.sans, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
+                    background: active ? (useFall ? da.activeBg : 'rgba(62,123,250,0.14)') : C.surfaceAlt,
+                    color: active ? (useFall ? da.activeText : C.blueSoft) : C.textMuted,
+                    outline: active ? `1px solid ${useFall ? da.activeBorder : 'rgba(62,123,250,0.32)'}` : 'none',
+                  }}
+                >
+                  {o === 'desc' ? t.orderRise : t.orderFall}
+                </button>
+              )
+            })}
           </div>
         </>
       )}
@@ -564,21 +580,25 @@ export function FomoHeader({
 
           {/* RE 정렬 토글 */}
           <div style={{ display: 'flex', gap: 6, padding: '0 16px 10px', overflowX: 'auto', scrollbarWidth: 'none' }}>
-            {(['desc', 'asc'] as OrderDir[]).map((o) => (
-              <button
-                key={o}
-                onClick={() => onReOrder(o)}
-                style={{
-                  padding: '6px 11px', borderRadius: 9, border: 'none',
-                  fontSize: 12, fontWeight: 600, fontFamily: FONT.sans, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
-                  background: reOrder === o ? 'rgba(62,123,250,0.14)' : C.surfaceAlt,
-                  color: reOrder === o ? C.blueSoft : C.textMuted,
-                  outline: reOrder === o ? '1px solid rgba(62,123,250,0.32)' : 'none',
-                }}
-              >
-                {o === 'desc' ? t.orderRise : t.orderFall}
-              </button>
-            ))}
+            {(['desc', 'asc'] as OrderDir[]).map((o) => {
+              const active = reOrder === o
+              const useFall = active && o === 'asc' && isFall
+              return (
+                <button
+                  key={o}
+                  onClick={() => onReOrder(o)}
+                  style={{
+                    padding: '6px 11px', borderRadius: 9, border: 'none',
+                    fontSize: 12, fontWeight: 600, fontFamily: FONT.sans, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
+                    background: active ? (useFall ? da.activeBg : 'rgba(62,123,250,0.14)') : C.surfaceAlt,
+                    color: active ? (useFall ? da.activeText : C.blueSoft) : C.textMuted,
+                    outline: active ? `1px solid ${useFall ? da.activeBorder : 'rgba(62,123,250,0.32)'}` : 'none',
+                  }}
+                >
+                  {o === 'desc' ? t.orderRise : t.orderFall}
+                </button>
+              )
+            })}
           </div>
         </>
       )}

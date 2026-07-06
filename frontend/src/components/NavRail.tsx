@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useC, useTheme } from '../ThemeContext'
-import { FONT } from '../tokens'
+import { FONT, DECLINE_ACCENT_DARK, DECLINE_ACCENT_LIGHT } from '../tokens'
 import { PERIODS, RE_PERIODS, RE_REGIONS, CAP_TIERS } from '../types'
 import { useReRegionSearch } from '../hooks/useReRegionSearch'
 import { useReSegments } from '../hooks/useReSegments'
@@ -265,7 +265,9 @@ export function NavRail({
 }: Props) {
   const segments = useReSegments()
   const C = useC()
-  const { theme, toggle } = useTheme()
+  const { theme, toggle, atmosphereMode } = useTheme()
+  const da = theme === 'dark' ? DECLINE_ACCENT_DARK : DECLINE_ACCENT_LIGHT
+  const isFall = atmosphereMode === 'fall'
   const [minStr, setMinStr] = useState(() => reMinPrice != null ? String(reMinPrice) : '')
   const [maxStr, setMaxStr] = useState(() => reMaxPrice != null ? String(reMaxPrice) : '')
 
@@ -316,8 +318,9 @@ export function NavRail({
           alt="FomoBot Logo"
           style={{
             width: 28, height: 28, flexShrink: 0,
-            boxShadow: '0 0 0 1px rgba(62,123,250,0.3), 0 4px 14px rgba(62,123,250,0.4)',
+            boxShadow: isFall ? da.logoShadow : '0 0 0 1px rgba(62,123,250,0.3), 0 4px 14px rgba(62,123,250,0.4)',
             borderRadius: 9,
+            transition: 'box-shadow 0.3s ease',
           }}
         />
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -455,21 +458,25 @@ export function NavRail({
           <div>
             <div style={sectionLabel(C)}>{lang === 'ko' ? '정렬' : 'Sort'}</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 3 }}>
-              {(['desc', 'asc'] as OrderDir[]).map((o) => (
-                <button
-                  key={o}
-                  onClick={() => onStockOrder(o)}
-                  style={{
-                    padding: '7px 4px', borderRadius: 8, border: 'none',
-                    fontSize: 11, fontWeight: 600, fontFamily: FONT.sans, cursor: 'pointer', textAlign: 'center',
-                    background: stockOrder === o ? 'rgba(62,123,250,0.14)' : C.surfaceAlt,
-                    color: stockOrder === o ? C.blueSoft : C.textMuted,
-                    outline: stockOrder === o ? '1px solid rgba(62,123,250,0.32)' : 'none',
-                  }}
-                >
-                  {o === 'desc' ? t.orderRise : t.orderFall}
-                </button>
-              ))}
+              {(['desc', 'asc'] as OrderDir[]).map((o) => {
+                const active = stockOrder === o
+                const useFall = active && o === 'asc' && isFall
+                return (
+                  <button
+                    key={o}
+                    onClick={() => onStockOrder(o)}
+                    style={{
+                      padding: '7px 4px', borderRadius: 8, border: 'none',
+                      fontSize: 11, fontWeight: 600, fontFamily: FONT.sans, cursor: 'pointer', textAlign: 'center',
+                      background: active ? (useFall ? da.activeBg : 'rgba(62,123,250,0.14)') : C.surfaceAlt,
+                      color: active ? (useFall ? da.activeText : C.blueSoft) : C.textMuted,
+                      outline: active ? `1px solid ${useFall ? da.activeBorder : 'rgba(62,123,250,0.32)'}` : 'none',
+                    }}
+                  >
+                    {o === 'desc' ? t.orderRise : t.orderFall}
+                  </button>
+                )
+              })}
             </div>
           </div>
         </>
@@ -614,21 +621,25 @@ export function NavRail({
           <div>
             <div style={sectionLabel(C)}>{lang === 'ko' ? '정렬' : 'Sort'}</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 3 }}>
-              {(['desc', 'asc'] as OrderDir[]).map((o) => (
-                <button
-                  key={o}
-                  onClick={() => onReOrder(o)}
-                  style={{
-                    padding: '7px 4px', borderRadius: 8, border: 'none',
-                    fontSize: 11, fontWeight: 600, fontFamily: FONT.sans, cursor: 'pointer', textAlign: 'center',
-                    background: reOrder === o ? 'rgba(62,123,250,0.14)' : C.surfaceAlt,
-                    color: reOrder === o ? C.blueSoft : C.textMuted,
-                    outline: reOrder === o ? '1px solid rgba(62,123,250,0.32)' : 'none',
-                  }}
-                >
-                  {o === 'desc' ? t.orderRise : t.orderFall}
-                </button>
-              ))}
+              {(['desc', 'asc'] as OrderDir[]).map((o) => {
+                const active = reOrder === o
+                const useFall = active && o === 'asc' && isFall
+                return (
+                  <button
+                    key={o}
+                    onClick={() => onReOrder(o)}
+                    style={{
+                      padding: '7px 4px', borderRadius: 8, border: 'none',
+                      fontSize: 11, fontWeight: 600, fontFamily: FONT.sans, cursor: 'pointer', textAlign: 'center',
+                      background: active ? (useFall ? da.activeBg : 'rgba(62,123,250,0.14)') : C.surfaceAlt,
+                      color: active ? (useFall ? da.activeText : C.blueSoft) : C.textMuted,
+                      outline: active ? `1px solid ${useFall ? da.activeBorder : 'rgba(62,123,250,0.32)'}` : 'none',
+                    }}
+                  >
+                    {o === 'desc' ? t.orderRise : t.orderFall}
+                  </button>
+                )
+              })}
             </div>
           </div>
         </>

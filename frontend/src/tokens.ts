@@ -86,29 +86,53 @@ export const LIGHT = {
 
 export type Colors = typeof DARK | typeof LIGHT
 
-// bg/surface 계열에서 파란 틴트를 걷어내 분위기만 미세하게 가라앉힘.
+// bg/surface — 파란 틴트 제거 + warm-dark 방향으로 더 뚜렷하게 이동.
 // 의미색(green/red/orange*)은 건드리지 않음.
 export const DARK_DECLINE_OVERRIDE: Partial<Colors> = {
-  bg:               '#0D0B0D',
-  surface:          '#0C0A0C',
-  surfaceUp:        '#161318',
-  surfaceAlt:       '#130F14',
-  surfaceBt:        '#100D12',
-  shimmerBase:      '#1A1620',
-  shimmerHighlight: '#211C26',
-  cardGradient:     'linear-gradient(180deg,#161318,#130F14)',
-  cardBorderDefault:'rgba(255,255,255,0.06)',
+  bg:               '#120A12',
+  surface:          '#0F080F',
+  surfaceUp:        '#1B1020',
+  surfaceAlt:       '#180D1A',
+  surfaceBt:        '#140B16',
+  shimmerBase:      '#1D1224',
+  shimmerHighlight: '#251827',
+  cardGradient:     'linear-gradient(180deg,#1B1020,#180D1A)',
+  cardBorderDefault:'rgba(255,255,255,0.07)',
 }
 
 export const LIGHT_DECLINE_OVERRIDE: Partial<Colors> = {
-  bg:               '#F1EEF1',
-  surfaceUp:        '#E3DEE3',
-  surfaceAlt:       '#F4F1F4',
-  surfaceBt:        '#F9F6F9',
-  shimmerBase:      '#E3DEE3',
-  shimmerHighlight: '#EDE9ED',
-  cardGradient:     'linear-gradient(180deg,#F9F6F9,#F4F1F4)',
+  bg:               '#EDE8ED',
+  surfaceUp:        '#E0D9E2',
+  surfaceAlt:       '#EDE8EE',
+  surfaceBt:        '#F3EEF4',
+  shimmerBase:      '#E0D9E2',
+  shimmerHighlight: '#E9E3EA',
+  cardGradient:     'linear-gradient(180deg,#F3EEF4,#EDE8EE)',
 }
+
+// 앵커 요소(토글 활성, 순위 배지, 헤더선, 로고 glow)에 쓰는 하락 모드 색.
+// bg/surface override와 별개로 관리 — 의미색과 충돌하지 않음.
+export const DECLINE_ACCENT_DARK = {
+  activeBg:     'rgba(255,77,98,0.13)',
+  activeText:   '#FF8C9E',
+  activeBorder: 'rgba(255,77,98,0.38)',
+  badgeBg:      'rgba(255,77,98,0.12)',
+  badgeText:    '#FF8C9E',
+  headerLine:   'rgba(255,77,98,0.22)',
+  logoShadow:   '0 0 0 1px rgba(255,77,98,0.32), 0 4px 14px rgba(255,77,98,0.40)',
+} as const
+
+export const DECLINE_ACCENT_LIGHT = {
+  activeBg:     'rgba(185,28,28,0.09)',
+  activeText:   '#B91C1C',
+  activeBorder: 'rgba(185,28,28,0.30)',
+  badgeBg:      'rgba(185,28,28,0.08)',
+  badgeText:    '#B91C1C',
+  headerLine:   'rgba(185,28,28,0.20)',
+  logoShadow:   '0 0 0 1px rgba(185,28,28,0.26), 0 4px 14px rgba(185,28,28,0.28)',
+} as const
+
+export type DeclineAccent = typeof DECLINE_ACCENT_DARK
 
 export const FONT = {
   sans: "'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif",

@@ -1,5 +1,5 @@
-import { useC } from '../ThemeContext'
-import { FONT } from '../tokens'
+import { useC, useTheme } from '../ThemeContext'
+import { FONT, DECLINE_ACCENT_DARK, DECLINE_ACCENT_LIGHT } from '../tokens'
 import type { OrderDir, RankingItem, Market, Lang } from '../types'
 import type { Strings } from '../i18n/strings'
 
@@ -20,6 +20,9 @@ function fmtPct(n: number | null): string {
 
 export function RankingTable({ rankings, selectedRank, lang, t, order, onSelect }: Props) {
   const C = useC()
+  const { theme, atmosphereMode } = useTheme()
+  const da = theme === 'dark' ? DECLINE_ACCENT_DARK : DECLINE_ACCENT_LIGHT
+  const isFall = atmosphereMode === 'fall'
   const vsLabel = lang === 'ko' ? 'vs 지수' : 'vs Index'
 
   const th: React.CSSProperties = {
@@ -84,8 +87,10 @@ export function RankingTable({ rankings, selectedRank, lang, t, order, onSelect 
                 {/* Rank */}
                 <td style={{ ...td, textAlign: 'center' }}>
                   <span style={{
-                    fontFamily: FONT.mono, fontSize: 12, fontWeight: 700, color: C.blueSoft,
-                    background: 'rgba(62,123,250,0.12)', width: 28, height: 28, borderRadius: 8,
+                    fontFamily: FONT.mono, fontSize: 12, fontWeight: 700,
+                    color: isFall ? da.badgeText : C.blueSoft,
+                    background: isFall ? da.badgeBg : 'rgba(62,123,250,0.12)',
+                    width: 28, height: 28, borderRadius: 8,
                     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                   }}>
                     {String(item.rank).padStart(2, '0')}

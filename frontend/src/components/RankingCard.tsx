@@ -1,5 +1,5 @@
-import { useC } from '../ThemeContext'
-import { FONT } from '../tokens'
+import { useC, useTheme } from '../ThemeContext'
+import { FONT, DECLINE_ACCENT_DARK, DECLINE_ACCENT_LIGHT } from '../tokens'
 import { BacktestPanel } from './BacktestPanel'
 import type { RankingItem, Market } from '../types'
 import type { Strings } from '../i18n/strings'
@@ -26,6 +26,9 @@ function fmtPct(n: number | null): string {
 
 export function RankingCard({ item, open, market, days, bt, t, onToggle }: Props) {
   const C = useC()
+  const { theme, atmosphereMode } = useTheme()
+  const da = theme === 'dark' ? DECLINE_ACCENT_DARK : DECLINE_ACCENT_LIGHT
+  const isFall = atmosphereMode === 'fall'
   const mdd = item.mdd_pct ?? 0
   const vol = item.volatility_annualized_pct ?? 0
   const excess = item.excess_return_vs_index_pct ?? 0
@@ -47,8 +50,10 @@ export function RankingCard({ item, open, market, days, bt, t, onToggle }: Props
         {/* Top row */}
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
           <span style={{
-            fontFamily: FONT.mono, fontSize: 12, fontWeight: 700, color: C.blueSoft,
-            background: 'rgba(62,123,250,0.12)', width: 26, height: 26, borderRadius: 8,
+            fontFamily: FONT.mono, fontSize: 12, fontWeight: 700,
+            color: isFall ? da.badgeText : C.blueSoft,
+            background: isFall ? da.badgeBg : 'rgba(62,123,250,0.12)',
+            width: 26, height: 26, borderRadius: 8,
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
           }}>
             {String(item.rank).padStart(2, '0')}
