@@ -152,15 +152,17 @@ def _load_price_matrix(
     return price_matrix, meta
 
 
-def compute_rankings_for_market(market: str, snapshot_date: date, top: int = 100) -> int:
+def compute_rankings_for_market(market: str, snapshot_date: date) -> int:
     """
     특정 마켓의 전 기간(1d~1825d) 랭킹을 계산해 DB에 저장한다.
 
+    노이즈 필터 통과 종목 전체를 desc/asc 양방향 각각 전체 순위로 저장한다.
+    세그먼트(소/중/대형) 필터는 저장 단계가 아닌 API 조회 시 적용한다.
+
     Parameters
     ----------
-    market : str        "kospi" | "nasdaq"
+    market : str          "kospi" | "nasdaq"
     snapshot_date : date  랭킹 기준일
-    top : int           저장할 상위 종목 수 (기본 100, API에서 최대 top=100 지원)
     """
     config = MARKET_CONFIG.get(market)
     if config is None:
@@ -223,8 +225,17 @@ def compute_rankings_for_market(market: str, snapshot_date: date, top: int = 100
             else:
                 idx_series = pd.Series(dtype=float)
 
-            # 랭킹 계산 (벡터 연산)
-            ranking_df = build_ranking_df(price_matrix, idx_series, top=top)
+            # 랭킹 계산 (벡터 연산) — 상승순(desc) 전체 저장
+            ranking_df = build_ranking_df(price_matrix, idx_series, top=None)
+
+            # 하락순(asc): 같은 지표 데이터를 return_pct 오름차순으로 재정렬해 rank 재부여.
+            # 지표 계산을 두 번 하지 않도록 desc 결과를 재사용한다.
+            asc_df = (
+                ranking_df
+                .sort_values("return_pct", ascending=True)
+                .reset_index(drop=True)
+            )
+            asc_df["rank"] = range(1, len(asc_df) + 1)
 
             # snapshot_date 당일 종가 맵 (ticker → close_adj).
             # price_matrix의 마지막 행(= snapshot_date)에서 추출.
@@ -232,34 +243,42 @@ def compute_rankings_for_market(market: str, snapshot_date: date, top: int = 100
             # price_daily 과거분 없이도 기준 주가를 참조할 수 있다.
             last_row = price_matrix.iloc[-1]  # snapshot_date 행
 
-            period_records: list[dict] = []
-            for _, row in ranking_df.iterrows():
-                ticker_str = str(row["ticker"])
-                close_at_snapshot = last_row.get(ticker_str)
-                period_records.append({
-                    "snapshot_date": snapshot_date,
-                    "market": market,
-                    "period": period_key,
-                    "rank": int(row["rank"]),
-                    "ticker": ticker_str,
-                    "name": None,
-                    "return_pct": float(row["return_pct"]),
-                    "mdd_pct": float(row["mdd_pct"]) if pd.notna(row["mdd_pct"]) else None,
-                    "volatility_annualized_pct": (
-                        float(row["volatility_annualized_pct"])
-                        if pd.notna(row["volatility_annualized_pct"]) else None
-                    ),
-                    "excess_return_pct": (
-                        float(row["excess_return_pct"])
-                        if pd.notna(row["excess_return_pct"]) else None
-                    ),
-                    "close_price_at_snapshot": (
-                        float(close_at_snapshot)
-                        if close_at_snapshot is not None and pd.notna(close_at_snapshot)
-                        else None
-                    ),
-                    "market_cap": cap_from_meta.get(ticker_str),
-                })
+            def _make_records(df: pd.DataFrame, order_dir: str) -> list[dict]:
+                records = []
+                for _, row in df.iterrows():
+                    ticker_str = str(row["ticker"])
+                    close_at_snapshot = last_row.get(ticker_str)
+                    records.append({
+                        "snapshot_date": snapshot_date,
+                        "market": market,
+                        "period": period_key,
+                        "order_dir": order_dir,
+                        "rank": int(row["rank"]),
+                        "ticker": ticker_str,
+                        "name": None,
+                        "return_pct": float(row["return_pct"]),
+                        "mdd_pct": float(row["mdd_pct"]) if pd.notna(row["mdd_pct"]) else None,
+                        "volatility_annualized_pct": (
+                            float(row["volatility_annualized_pct"])
+                            if pd.notna(row["volatility_annualized_pct"]) else None
+                        ),
+                        "excess_return_pct": (
+                            float(row["excess_return_pct"])
+                            if pd.notna(row["excess_return_pct"]) else None
+                        ),
+                        "close_price_at_snapshot": (
+                            float(close_at_snapshot)
+                            if close_at_snapshot is not None and pd.notna(close_at_snapshot)
+                            else None
+                        ),
+                        "market_cap": cap_from_meta.get(ticker_str),
+                    })
+                return records
+
+            period_records: list[dict] = [
+                *_make_records(ranking_df, "desc"),
+                *_make_records(asc_df, "asc"),
+            ]
 
             # period별 즉시 저장 (이후 period 실패해도 앞 데이터 보존)
             if period_records:
@@ -303,6 +322,6 @@ def run_rankings_today() -> None:
     today = date.today()
     for market in ("kospi", "nasdaq"):
         try:
-            compute_rankings_for_market(market, today, top=300)
+            compute_rankings_for_market(market, today)
         except Exception:
             logger.exception("%s 랭킹 계산 중 오류", market)

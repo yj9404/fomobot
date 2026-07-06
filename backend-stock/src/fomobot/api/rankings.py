@@ -3,6 +3,7 @@ from datetime import date
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from fomobot.config import settings
 from fomobot.db.crud import get_latest_snapshot_date, get_rankings
 from fomobot.db.session import get_async_session
 from fomobot.schemas.rankings import (
@@ -16,28 +17,24 @@ from fomobot.schemas.rankings import (
 
 router = APIRouter(prefix="/api/stock", tags=["Rankings"])
 
-# ── 시총 구간 임계값 ─────────────────────────────────────────────────────────
-# KOSPI: 원화(KRW) 기준
-_KOSPI_CAP = {
-    "small": (None,          500_000_000_000),    # < 5,000억 원
-    "mid":   (500_000_000_000, 5_000_000_000_000), # 5,000억 ~ 5조
-    "large": (5_000_000_000_000, None),            # > 5조 원
-}
-# NASDAQ: USD 기준
-_NASDAQ_CAP = {
-    "small": (None,           2_000_000_000),      # < $2B
-    "mid":   (2_000_000_000,  10_000_000_000),     # $2B ~ $10B
-    "large": (10_000_000_000, None),               # > $10B
-}
 
 def _resolve_cap_bounds(
     market: str, cap_tier: CapTierLiteral
 ) -> tuple[int | None, int | None]:
-    """cap_tier 문자열을 마켓별 (min, max) 원화/달러 절대값으로 변환."""
+    """cap_tier → (min_cap, max_cap). 경계값은 config.py 단일 소스에서 읽는다.
+    소형: cap < mid_lo  /  중형: mid_lo ≤ cap < large_lo  /  대형: cap ≥ large_lo
+    """
     if cap_tier == "all":
         return None, None
-    table = _KOSPI_CAP if market == "kospi" else _NASDAQ_CAP
-    return table[cap_tier]
+    if market == "kospi":
+        mid_lo, large_lo = settings.kospi_cap_mid_lo, settings.kospi_cap_large_lo
+    else:
+        mid_lo, large_lo = settings.nasdaq_cap_mid_lo, settings.nasdaq_cap_large_lo
+    return {
+        "small": (None,    mid_lo),
+        "mid":   (mid_lo,  large_lo),
+        "large": (large_lo, None),
+    }[cap_tier]
 
 
 @router.get(
@@ -93,7 +90,7 @@ async def get_rankings_endpoint(
 
     items = [
         RankingItem(
-            rank=i + 1 if order == "asc" else r.rank,
+            rank=r.rank,
             ticker=r.ticker,
             name=r.name,
             return_pct=r.return_pct,
@@ -101,7 +98,7 @@ async def get_rankings_endpoint(
             volatility_annualized_pct=r.volatility_annualized_pct,
             excess_return_vs_index_pct=r.excess_return_pct,
         )
-        for i, r in enumerate(rows)
+        for r in rows
     ]
 
     return RankingsResponse(

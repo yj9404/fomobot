@@ -118,7 +118,7 @@ def compute_excess_return(
 def build_ranking_df(
     price_matrix: pd.DataFrame,
     index_price_series: pd.Series,
-    top: int = 20,
+    top: int | None = None,
 ) -> pd.DataFrame:
     """
     수익률·MDD·변동성·초과수익을 한 번에 계산해 랭킹 DataFrame 반환.
@@ -129,8 +129,8 @@ def build_ranking_df(
         index=날짜, columns=ticker, 값=수정주가
     index_price_series : pd.Series
         지수 수정주가 시리즈 (같은 날짜 범위)
-    top : int
-        상위 N개 반환
+    top : int | None
+        상위 N개 반환. None이면 필터 통과 종목 전체 저장 (하락률 상위 지원용).
 
     Returns
     -------
@@ -153,10 +153,11 @@ def build_ranking_df(
     result = (
         result.dropna(subset=["return_pct"])
         .sort_values("return_pct", ascending=False)
-        .head(top)
         .reset_index()
         .rename(columns={"index": "ticker"})
     )
+    if top is not None:
+        result = result.head(top)
     result.insert(0, "rank", range(1, len(result) + 1))
     return result
 

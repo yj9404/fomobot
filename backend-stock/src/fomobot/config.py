@@ -75,6 +75,15 @@ class Settings(BaseSettings):
     nasdaq_max_consec_failures: int = 5
     nasdaq_circuit_breaker_wait_sec: int = 1800         # 30분
 
+    # Cap tier 경계값 — ranking_snapshot 저장 및 API 필터에서 공통 사용.
+    # 프론트엔드 CAP_TIERS 상수와 동일한 기준이어야 함.
+    # KOSPI: 소형 <5천억, 중형 5천억≤cap<5조, 대형 ≥5조 (원화 KRW)
+    kospi_cap_mid_lo:    int = 500_000_000_000      # 5,000억
+    kospi_cap_large_lo:  int = 5_000_000_000_000    # 5조
+    # NASDAQ: 소형 <$2B, 중형 $2B≤cap<$10B, 대형 ≥$10B (USD)
+    nasdaq_cap_mid_lo:   int = 2_000_000_000         # $2B
+    nasdaq_cap_large_lo: int = 10_000_000_000        # $10B
+
     # price_daily retention
     # 랭킹 계산이 1825d(5년) 기간을 사용하므로 최소 2000일치 데이터 보존 필요.
     # cleanup 잡이 이 값 이전 데이터를 DELETE한다.

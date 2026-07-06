@@ -23,20 +23,21 @@ async def get_rankings(
     """
     랭킹 스냅샷 조회.
 
+    order_dir 컬럼으로 방향을 필터링한다 (desc=상승순, asc=하락순).
+    저장 시 양방향 모두 전체 순위가 부여돼 있으므로 항상 rank ASC로 정렬한다.
     cap_tier 필터는 RankingSnapshot.market_cap 컬럼을 직접 사용한다.
-    (구 PriceDaily 조인 방식 제거 — NASDAQ는 market_cap이 항상 NULL이었음)
     market_cap이 NULL 또는 0인 종목은 cap_tier 필터 적용 시 자동 제외된다.
     """
     need_cap_filter = min_market_cap is not None or max_market_cap is not None
 
-    sort_col = RankingSnapshot.return_pct.asc() if order == "asc" else RankingSnapshot.rank.asc()
     stmt = (
         select(RankingSnapshot)
         .where(
             RankingSnapshot.market == market,
             RankingSnapshot.period == period,
+            RankingSnapshot.order_dir == order,
         )
-        .order_by(RankingSnapshot.snapshot_date.desc(), sort_col)
+        .order_by(RankingSnapshot.snapshot_date.desc(), RankingSnapshot.rank.asc())
     )
 
     if need_cap_filter:
@@ -153,10 +154,10 @@ def upsert_ranking_snapshots_sync(session: Session, records: list[dict]) -> None
             "mdd_pct": stmt.excluded.mdd_pct,
             "volatility_annualized_pct": stmt.excluded.volatility_annualized_pct,
             "excess_return_pct": stmt.excluded.excess_return_pct,
-            # close_price_at_snapshot: 기존 NULL만 덮어씌움 (이미 값이 있으면 유지)
+            # close_price_at_snapshot: 신규 값 우선, 없으면 기존 값 유지
             "close_price_at_snapshot": func.coalesce(
-                RankingSnapshot.close_price_at_snapshot,
                 stmt.excluded.close_price_at_snapshot,
+                RankingSnapshot.close_price_at_snapshot,
             ),
             # market_cap: 새 값이 있으면 업데이트, 없으면 기존 값 유지
             "market_cap": func.coalesce(

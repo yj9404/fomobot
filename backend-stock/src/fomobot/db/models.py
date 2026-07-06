@@ -75,10 +75,13 @@ class RankingSnapshot(Base):
     # 시총(KRW for KOSPI, USD for NASDAQ). cap_tier 필터링에 사용.
     # NASDAQ는 랭킹 계산 후 yfinance에서 별도 조회하므로 NULL 가능.
     market_cap = Column(BigInteger, nullable=True)
+    # 정렬 방향: 'desc'=상승률 상위(rank 1=최고 상승), 'asc'=하락률 상위(rank 1=최고 하락).
+    # 저장 시 양방향 각각 전체 순위를 부여해 저장하므로 조회 시 필터로만 사용.
+    order_dir = Column(String(4), nullable=False, server_default=text("'desc'"))
 
     __table_args__ = (
         UniqueConstraint(
-            "snapshot_date", "market", "period", "rank",
+            "snapshot_date", "market", "period", "order_dir", "rank",
             name="uq_ranking_snapshot",
         ),
         Index("ix_ranking_snapshot_market_period_date", "market", "period", "snapshot_date"),
