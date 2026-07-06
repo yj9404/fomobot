@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from fomobot.db.crud import (
     get_global_price_min_date_async,
+    get_last_trading_day_async,
     get_price_history_bounds_async,
     get_price_series_async,
     get_security_name,
@@ -87,8 +88,12 @@ async def get_quote(
     ticker = ticker.upper()
 
     if period:
-        end_date = date.today()
-        start_date = end_date - timedelta(days=PERIOD_TO_DAYS[period])
+        # date.today()는 휴장일일 수 있어 "거래일"로 쓸 수 없음 — 실측 최근 거래일로 대체.
+        end_date = await get_last_trading_day_async(session, market) or date.today()
+        raw_start = end_date - timedelta(days=PERIOD_TO_DAYS[period])
+        start_date = (
+            await get_last_trading_day_async(session, market, as_of=raw_start) or raw_start
+        )
     else:
         start_date, end_date = start, end  # type: ignore[assignment]
 
@@ -114,6 +119,22 @@ async def get_quote(
                 available_from=avail_from,
                 trading_days=0,
                 warning=warning or "해당 기간에 데이터가 없습니다.",
+            ),
+        )
+
+    if len(price_rows) < 2:
+        # 거래일이 1개뿐이면 수익률·MDD·변동성이 정의되지 않음(start==end 렌더 방지).
+        only_date = price_rows[0][0]
+        return QuoteResponse(
+            ticker=ticker,
+            market=market,
+            name=name,
+            data_coverage=DataCoverage(
+                actual_start=only_date,
+                actual_end=only_date,
+                available_from=avail_from,
+                trading_days=len(price_rows),
+                warning=warning or "해당 기간 거래일 데이터가 1일뿐이라 수익률을 계산할 수 없습니다.",
             ),
         )
 

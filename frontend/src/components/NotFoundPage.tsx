@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useC } from '../ThemeContext'
 import { FONT } from '../tokens'
+import { useAdGate } from '../hooks/useAdGate'
 
 const STR = {
   ko: {
@@ -33,6 +34,7 @@ export function NotFoundPage() {
   const [lang, setLang] = useState<Lang>('ko')
   const C = useC()
   const t = STR[lang]
+  useAdGate(false)
 
   function pill(active: boolean): React.CSSProperties {
     return {

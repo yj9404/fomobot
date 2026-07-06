@@ -9,6 +9,7 @@ interface RankingsState {
   rankings: RankingItem[]
   disclaimer: string
   errorMsg: string
+  asOf: string
 }
 
 export function useRankings(market: Market, period: Period, capTier: CapTier, retryKey: number = 0, order: OrderDir = 'desc') {
@@ -17,19 +18,20 @@ export function useRankings(market: Market, period: Period, capTier: CapTier, re
     rankings: [],
     disclaimer: '',
     errorMsg: '',
+    asOf: '',
   })
 
   useEffect(() => {
     let cancelled = false
-    setState({ status: 'loading', rankings: [], disclaimer: '', errorMsg: '' })
+    setState({ status: 'loading', rankings: [], disclaimer: '', errorMsg: '', asOf: '' })
 
     fetchRankings(market, period, capTier, 20, order)
       .then((data) => {
         if (cancelled) return
         if (data.rankings.length === 0) {
-          setState({ status: 'empty', rankings: [], disclaimer: data.disclaimer, errorMsg: '' })
+          setState({ status: 'empty', rankings: [], disclaimer: data.disclaimer, errorMsg: '', asOf: data.as_of })
         } else {
-          setState({ status: 'ok', rankings: data.rankings, disclaimer: data.disclaimer, errorMsg: '' })
+          setState({ status: 'ok', rankings: data.rankings, disclaimer: data.disclaimer, errorMsg: '', asOf: data.as_of })
         }
       })
       .catch((err: unknown) => {
@@ -41,6 +43,7 @@ export function useRankings(market: Market, period: Period, capTier: CapTier, re
           rankings: [],
           disclaimer: '',
           errorMsg: msg,
+          asOf: '',
         })
       })
 

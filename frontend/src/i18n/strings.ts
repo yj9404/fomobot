@@ -25,6 +25,7 @@ export interface Strings {
   orderRise: string
   orderFall: string
   orderFallCopy: string
+  asOfLabel: string
 }
 
 const STR: Record<Lang, Strings> = {
@@ -53,6 +54,7 @@ const STR: Record<Lang, Strings> = {
     orderRise: '상승률 상위 ▲',
     orderFall: '하락률 상위 ▼',
     orderFallCopy: '안 물려서 다행',
+    asOfLabel: '기준일',
   },
   en: {
     tagline: 'Hall of fame for things that already mooned',
@@ -79,6 +81,7 @@ const STR: Record<Lang, Strings> = {
     orderRise: 'Top Gainers ▲',
     orderFall: 'Top Losers ▼',
     orderFallCopy: 'Glad you skipped these',
+    asOfLabel: 'As of',
   },
 }
 

@@ -1,7 +1,7 @@
 import { useC, useTheme } from '../ThemeContext'
 import { FONT, DECLINE_ACCENT_DARK, DECLINE_ACCENT_LIGHT } from '../tokens'
 import { BacktestPanel } from './BacktestPanel'
-import type { RankingItem, Market } from '../types'
+import type { RankingItem, Market, Period } from '../types'
 import type { Strings } from '../i18n/strings'
 
 interface BtEntry {
@@ -14,6 +14,7 @@ interface Props {
   open: boolean
   market: Market
   days: number
+  period: Period
   bt: BtEntry
   t: Strings
   onToggle: () => void
@@ -24,11 +25,12 @@ function fmtPct(n: number | null): string {
   return (n >= 0 ? '+' : '') + n.toFixed(1) + '%'
 }
 
-export function RankingCard({ item, open, market, days, bt, t, onToggle }: Props) {
+export function RankingCard({ item, open, market, days, period, bt, t, onToggle }: Props) {
   const C = useC()
   const { theme, atmosphereMode } = useTheme()
   const da = theme === 'dark' ? DECLINE_ACCENT_DARK : DECLINE_ACCENT_LIGHT
   const isFall = atmosphereMode === 'fall'
+  const showRiskMetrics = period !== '1d'
   const mdd = item.mdd_pct ?? 0
   const vol = item.volatility_annualized_pct ?? 0
   const excess = item.excess_return_vs_index_pct ?? 0
@@ -72,29 +74,33 @@ export function RankingCard({ item, open, market, days, bt, t, onToggle }: Props
           </div>
         </div>
 
-        {/* Bar row */}
+        {/* Bar row — 전일(1d)은 MDD·변동성이 통계적으로 의미 없어 바 자체를 숨김 */}
         <div style={{ display: 'flex', alignItems: 'flex-end', gap: 12, marginTop: 13 }}>
-          {/* MDD bar */}
-          <div style={{ flex: 1 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, marginBottom: 5 }}>
-              <span style={{ color: C.textMuted }}>MDD</span>
-              <span style={{ fontFamily: FONT.mono, color: C.orange, fontWeight: 600 }}>{fmtPct(mdd)}</span>
-            </div>
-            <div style={{ height: 5, borderRadius: 3, background: C.barTrack, overflow: 'hidden' }}>
-              <div style={{ height: '100%', width: mddBar, background: 'linear-gradient(90deg,#F4A93C,#FF8A4C)', borderRadius: 3 }} />
-            </div>
-          </div>
+          {showRiskMetrics && (
+            <>
+              {/* MDD bar */}
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, marginBottom: 5 }}>
+                  <span style={{ color: C.textMuted }}>MDD</span>
+                  <span style={{ fontFamily: FONT.mono, color: C.orange, fontWeight: 600 }}>{fmtPct(mdd)}</span>
+                </div>
+                <div style={{ height: 5, borderRadius: 3, background: C.barTrack, overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: mddBar, background: 'linear-gradient(90deg,#F4A93C,#FF8A4C)', borderRadius: 3 }} />
+                </div>
+              </div>
 
-          {/* Vol bar */}
-          <div style={{ flex: 1 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, marginBottom: 5 }}>
-              <span style={{ color: C.textMuted }}>{t.volatilityLabel}</span>
-              <span style={{ fontFamily: FONT.mono, color: C.orange, fontWeight: 600 }}>{fmtPct(vol)}</span>
-            </div>
-            <div style={{ height: 5, borderRadius: 3, background: C.barTrack, overflow: 'hidden' }}>
-              <div style={{ height: '100%', width: volBar, background: 'linear-gradient(90deg,#F4A93C,#FF8A4C)', borderRadius: 3 }} />
-            </div>
-          </div>
+              {/* Vol bar */}
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, marginBottom: 5 }}>
+                  <span style={{ color: C.textMuted }}>{t.volatilityLabel}</span>
+                  <span style={{ fontFamily: FONT.mono, color: C.orange, fontWeight: 600 }}>{fmtPct(vol)}</span>
+                </div>
+                <div style={{ height: 5, borderRadius: 3, background: C.barTrack, overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: volBar, background: 'linear-gradient(90deg,#F4A93C,#FF8A4C)', borderRadius: 3 }} />
+                </div>
+              </div>
+            </>
+          )}
 
           {/* Excess return badge */}
           <span style={{

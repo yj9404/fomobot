@@ -9,9 +9,11 @@ import { EmptyState } from './components/EmptyState'
 import { ErrorState } from './components/ErrorState'
 import { RealEstateView } from './views/RealEstateView'
 import { StockSearchArea } from './components/StockSearchArea'
+import { Footer } from './components/Footer'
 import { useRankings } from './hooks/useRankings'
 import { useBacktest } from './hooks/useBacktest'
 import { useWindowWidth } from './hooks/useWindowWidth'
+import { useAdGate } from './hooks/useAdGate'
 import { useStrings } from './i18n/strings'
 import { useC, useTheme } from './ThemeContext'
 import { PERIODS, RE_PERIODS, RE_DISCLAIMER } from './types'
@@ -86,13 +88,16 @@ export default function App() {
   })
   const [reOrder, setReOrder] = useState<OrderDir>(() => initOrder('realestate'))
   const [reRetryKey, setReRetryKey] = useState(0)
+  const [reHasContent, setReHasContent] = useState(false)
 
   const { setAtmosphereMode } = useTheme()
   const C = useC()
   const t = useStrings(lang)
   const period = PERIODS[periodIdx]!
-  const { status, rankings, disclaimer: stockDisclaimer } = useRankings(market, period.value, capTier, retryKey, stockOrder)
+  const { status, rankings, disclaimer: stockDisclaimer, asOf } = useRankings(market, period.value, capTier, retryKey, stockOrder)
   const { load: loadBt, get: getBt } = useBacktest(market, period.value, period.days)
+
+  useAdGate(tab === 'stock' ? status === 'ok' : reHasContent)
 
   const windowWidth = useWindowWidth()
   const isDesktop = windowWidth >= 1024
@@ -277,7 +282,8 @@ export default function App() {
                     market={market}
                     lang={lang}
                     t={t}
-                    order={stockOrder}
+                    period={period.value}
+                    asOf={asOf}
                     onSelect={handleSelect}
                   />
                 )}
@@ -297,6 +303,7 @@ export default function App() {
                 retryKey={reRetryKey}
                 onRetry={() => setReRetryKey((k) => k + 1)}
                 onResetFilters={handleReResetFilters}
+                onContentChange={setReHasContent}
                 t={t}
               />
             )}
@@ -335,9 +342,13 @@ export default function App() {
             {status === 'error' && <ErrorState t={t} onRetry={() => setRetryKey((k) => k + 1)} />}
             {status === 'ok' && (
               <div style={{ padding: '12px 14px 16px', borderTop: `1px solid ${C.borderSub}`, flex: 1 }}>
-                {stockOrder === 'asc' && (
-                  <div style={{ fontSize: 11, color: C.textDim, fontFamily: FONT.sans, marginBottom: 10, textAlign: 'center' }}>
-                    {t.orderFallCopy}
+                {asOf && (
+                  <div style={{
+                    fontSize: 11, color: C.textDim, fontFamily: FONT.mono,
+                    marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6,
+                  }}>
+                    <span>{t.asOfLabel}</span>
+                    <span style={{ color: C.textSub, fontWeight: 600 }}>{asOf}</span>
                   </div>
                 )}
                 {rankings.map((item) => (
@@ -347,6 +358,7 @@ export default function App() {
                     open={openRank === item.rank}
                     market={market}
                     days={period.days}
+                    period={period.value}
                     bt={getBt(item.ticker)}
                     t={t}
                     onToggle={() => handleToggle(item.rank, item.ticker)}
@@ -376,9 +388,12 @@ export default function App() {
             retryKey={reRetryKey}
             onRetry={() => setReRetryKey((k) => k + 1)}
             onResetFilters={handleReResetFilters}
+            onContentChange={setReHasContent}
             t={t}
           />
         )}
+
+        <Footer lang={lang} style={{ padding: '14px 16px 20px', borderTop: `1px solid ${C.borderSub}` }} />
       </div>
     </div>
   )

@@ -1,9 +1,11 @@
 # Railway 배포 설정
 #
 # 서비스 구성:
-#   1. web       — FastAPI 웹 서버 (이 파일의 [deploy] 섹션)
-#   2. cron-kospi  — KOSPI 수집 + 랭킹 계산 (Railway Dashboard > Add Service > Cron)
-#   3. cron-nasdaq — NASDAQ 수집 + 랭킹 계산 (Railway Dashboard > Add Service > Cron)
+#   1. web              — FastAPI 웹 서버 (이 파일의 [deploy] 섹션)
+#   2. cron-kospi         — KOSPI 수집 + 랭킹 계산 (Railway Dashboard > Add Service > Cron)
+#   3. cron-nasdaq        — NASDAQ 수집 + 랭킹 계산 (Railway Dashboard > Add Service > Cron)
+#   4. cron-kospi-gapfill  — KOSPI 랭킹 스냅샷 gap-fill (self-healing, 정기 cron과 분리)
+#   5. cron-nasdaq-gapfill — NASDAQ 랭킹 스냅샷 gap-fill (self-healing, 정기 cron과 분리)
 #
 # Cron 서비스는 railway.toml 에서 직접 정의할 수 없으므로
 # Railway Dashboard 에서 수동으로 추가해야 한다.
@@ -25,6 +27,20 @@
 #     서머타임(EDT) 16:00 EDT = 20:00 UTC 기준 +90분.
 #     EST/EDT 양쪽에서 모두 마감 이후가 되는 단일 시각으로 선택.
 #     별도 계절 분기 불필요.)
+#
+#  [cron-kospi-gapfill]
+#    Schedule : 45 9 * * 1-6
+#    Command  : python -m fomobot.jobs.gap_fill kospi
+#    (cron-kospi 정기 실행(09:00 UTC) 45분 뒤. 정기 계산이 끝난 뒤 최근
+#     10거래일 구간에 고립된 gap이 있는지 스캔해 채운다. 정기 cron과 별도
+#     서비스로 분리한 이유 = gap-fill이 무겁거나 실패해도 당일 정상 랭킹
+#     계산에 영향을 주지 않기 위함. 연속 다중일 공백은 자동으로 못 채우고
+#     WARNING만 남긴다 — src/fomobot/batch/gap_fill.py 모듈 docstring 참조.)
+#
+#  [cron-nasdaq-gapfill]
+#    Schedule : 15 22 * * 1-5
+#    Command  : python -m fomobot.jobs.gap_fill nasdaq
+#    (cron-nasdaq 정기 실행(21:30 UTC) 45분 뒤. 위와 동일한 이유로 분리.)
 #
 # ──────────────────────────────────────────────────────────────────────────────
 

@@ -19,7 +19,6 @@ Railway Cron 설정 (UTC 기준):
 
 import logging
 import sys
-from datetime import date
 
 logging.basicConfig(
     level="INFO",
@@ -54,7 +53,7 @@ def _compute_rankings(market: str) -> int:
     """랭킹 계산 후 저장된 스냅샷 수를 반환한다."""
     from fomobot.batch.compute_rankings import compute_rankings_for_market
     logger.info("=== %s 랭킹 계산 시작 ===", market.upper())
-    count = compute_rankings_for_market(market, date.today())
+    count = compute_rankings_for_market(market)
     return count or 0
 
 
