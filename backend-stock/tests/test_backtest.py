@@ -1,165 +1,167 @@
 """
-백테스트 _compute_current_returns 단위 테스트.
+백테스트 시나리오 엔진(_compute_dca) 단위 테스트.
 
-재작성 전/후 수익률 계산 로직의 정확성을 검증한다.
-DB 없이 순수 함수 로직만 테스트 (mock 사용).
+이전 버전은 이미 폐기된 close_price_at_snapshot 기반 로직을 실제 코드와
+분리된 채로 복제한 순수 함수를 테스트하고 있어, 실제 구현이 바뀌어도
+계속 통과하는 거짓 안전감을 줬다 (교체 이력: current_return_pct 방식 →
+scenarios.buy_and_hold/dca 방식). 이번 버전은 실제 프로덕션 함수
+`fomobot.api.backtest._compute_dca`를 직접 import해서 검증한다.
 
-검증 항목:
-  1. 정상 수익률 계산 (as_of 주가 → 오늘 주가)
-  2. 상장폐지 (오늘 주가 없음) → None (생존 편향 유지)
-  3. close_price_at_snapshot NULL → None (backfill 미완료)
-  4. 폴백 없음 확인 (price_start=None이어도 price_end로 대체 안 됨)
-  5. 평균 수익률 계산 (None 종목 제외)
+`_compute_dca`는 DB에 접근하지 않는 순수 함수(price_rows를 인자로 받음)라
+async/DB mock 없이 단위 테스트가 가능하다.
+
+핵심 검증:
+  1. N=1 항등 — 분할 횟수 1은 원금 전액을 시작일에 한 번 매수하는 것과
+     같으므로, buy-and-hold와 수학적으로 동일해야 한다.
+  2. 정상 DCA — 여러 회차로 나뉘어 실행되고, buy-and-hold와 다른 값이 나온다.
+  3. 결손 구간 — 상장일(시계열 시작)이 명목 구간 시작일보다 늦으면 일부
+     회차를 건너뛰고, "M/N회만 집행됨" 경고를 남긴다. 조용히 회차 수를
+     줄이지 않는다.
+  4. 1d/7d는 DCA가 성립하지 않아 항상 None.
 """
 
+from datetime import date, timedelta
+
 import pytest
-from unittest.mock import AsyncMock, MagicMock
-from datetime import date
+
+from fomobot.api.backtest import _compute_dca, DCA_INSTALLMENTS
+from fomobot.services.calculator import compute_mdd
+import pandas as pd
 
 
-# ── 헬퍼: snapshot row mock ────────────────────────────────────────────────────
-
-def make_snapshot_row(ticker: str, close_price_at_snapshot: float | None = None):
-    """RankingSnapshot row mock 생성."""
-    row = MagicMock()
-    row.ticker = ticker
-    row.rank = 1
-    row.name = ticker
-    row.return_pct = 10.0
-    row.snapshot_date = date(2025, 1, 2)
-    row.close_price_at_snapshot = close_price_at_snapshot
-    return row
+def make_series(prices: list[float], start: date) -> list[tuple[date, float]]:
+    """평일만 순서대로 이어붙인 (date, price) 시계열 생성 (주말 스킵 없이 단순 연속일)."""
+    return [(start + timedelta(days=i), p) for i, p in enumerate(prices)]
 
 
-# ── 핵심 계산 로직 추출 (DB 없이 테스트하기 위해 분리) ─────────────────────────
-
-def compute_returns_from_prices(
-    snapshot_rows,
-    today_prices: dict[str, float | None],
-) -> dict[str, float | None]:
-    """
-    api/backtest.py의 _compute_current_returns 핵심 로직을 추출한 순수 함수.
-    DB 호출 없이 단위 테스트 가능.
-    """
-    returns: dict[str, float | None] = {}
-    for row in snapshot_rows:
-        price_start = row.close_price_at_snapshot
-        price_end = today_prices.get(row.ticker)
-
-        if price_start and price_end and price_start > 0:
-            returns[row.ticker] = (price_end / price_start - 1) * 100
-        else:
-            returns[row.ticker] = None
-
-    return returns
+def buy_and_hold_return(price_rows: list[tuple[date, float]]) -> float:
+    """buy-and-hold 공식(참고용 재계산 — _compute_scenarios와 동일한 수식)."""
+    return (price_rows[-1][1] / price_rows[0][1] - 1) * 100
 
 
-# ── 테스트 케이스 ──────────────────────────────────────────────────────────────
+def buy_and_hold_mdd(price_rows: list[tuple[date, float]]) -> float:
+    prices = pd.Series(
+        [p for _, p in price_rows],
+        index=pd.DatetimeIndex([d for d, _ in price_rows]),
+    )
+    return float(compute_mdd(prices.to_frame("_t")).iloc[0])
 
-class TestComputeReturnsFromPrices:
 
-    def test_normal_return(self):
-        """100 → 110: 수익률 = 10.0%"""
-        rows = [make_snapshot_row("A", close_price_at_snapshot=100.0)]
-        today = {"A": 110.0}
-        result = compute_returns_from_prices(rows, today)
-        assert result["A"] == pytest.approx(10.0)
+class TestDcaN1IdentityWithBuyAndHold:
+    """DCA(N=1) == buy-and-hold. 이게 깨지면 equity curve 구성 자체가 잘못된 것."""
 
-    def test_negative_return(self):
-        """100 → 80: 수익률 = -20.0%"""
-        rows = [make_snapshot_row("B", close_price_at_snapshot=100.0)]
-        today = {"B": 80.0}
-        result = compute_returns_from_prices(rows, today)
-        assert result["B"] == pytest.approx(-20.0)
+    def test_rising_prices(self, monkeypatch):
+        monkeypatch.setitem(DCA_INSTALLMENTS, "30d", 1)
+        prices = [100.0, 110.0, 90.0, 130.0, 150.0]
+        start = date(2026, 6, 1)
+        price_rows = make_series(prices, start)
 
-    def test_delisted_no_today_price(self):
-        """
-        상장폐지: 오늘 주가 없음 → None.
-        생존 편향(survivorship bias) 의도된 동작.
-        폴백 절대 없음.
-        """
-        rows = [make_snapshot_row("DEAD", close_price_at_snapshot=50.0)]
-        today = {}  # 상장폐지 → 딕셔너리에 없음
-        result = compute_returns_from_prices(rows, today)
-        assert result["DEAD"] is None
+        dca = _compute_dca(price_rows, "30d", start, price_rows[-1][0])
 
-    def test_missing_snapshot_price(self):
-        """
-        close_price_at_snapshot=None (backfill 미완료) → None.
-        오늘 주가가 있어도 as_of 주가가 없으면 계산 불가.
-        """
-        rows = [make_snapshot_row("X", close_price_at_snapshot=None)]
-        today = {"X": 200.0}
-        result = compute_returns_from_prices(rows, today)
-        assert result["X"] is None
+        assert dca is not None
+        assert dca.final_return_pct == pytest.approx(buy_and_hold_return(price_rows))
+        assert dca.mdd_pct == pytest.approx(buy_and_hold_mdd(price_rows))
+        assert dca.warning is None
 
-    def test_zero_snapshot_price(self):
-        """close_price_at_snapshot=0 → None (0으로 나누기 방지)."""
-        rows = [make_snapshot_row("Z", close_price_at_snapshot=0.0)]
-        today = {"Z": 100.0}
-        result = compute_returns_from_prices(rows, today)
-        assert result["Z"] is None
+    def test_falling_prices(self, monkeypatch):
+        monkeypatch.setitem(DCA_INSTALLMENTS, "30d", 1)
+        prices = [200.0, 180.0, 150.0, 160.0, 140.0]
+        start = date(2026, 6, 1)
+        price_rows = make_series(prices, start)
 
-    def test_multiple_tickers_mixed(self):
-        """여러 종목 혼합: 정상, 상장폐지, backfill 미완료."""
-        rows = [
-            make_snapshot_row("GOOD", close_price_at_snapshot=100.0),
-            make_snapshot_row("DEAD", close_price_at_snapshot=50.0),
-            make_snapshot_row("NOPRICE", close_price_at_snapshot=None),
+        dca = _compute_dca(price_rows, "30d", start, price_rows[-1][0])
+
+        assert dca is not None
+        assert dca.final_return_pct == pytest.approx(buy_and_hold_return(price_rows))
+        assert dca.mdd_pct == pytest.approx(buy_and_hold_mdd(price_rows))
+
+
+class TestDcaMultipleInstallments:
+    """정상 DCA — buy-and-hold와 값이 갈라져야 한다."""
+
+    def test_diverges_from_buy_and_hold(self, monkeypatch):
+        monkeypatch.setitem(DCA_INSTALLMENTS, "30d", 4)
+        # 30일간 우상향하지만 변동이 있는 가격
+        prices = [100.0 + i * 2 - (5 if i % 3 == 0 else 0) for i in range(31)]
+        start = date(2026, 6, 1)
+        price_rows = make_series(prices, start)
+
+        dca = _compute_dca(price_rows, "30d", start, price_rows[-1][0])
+        bh_return = buy_and_hold_return(price_rows)
+
+        assert dca is not None
+        assert dca.warning is None  # 결손 없음 — 4회 전부 집행
+        assert dca.final_return_pct != pytest.approx(bh_return)
+
+    def test_dca_softens_mdd_when_volatility_is_early(self, monkeypatch):
+        """변동(급락)이 매수 분산 초반부에 걸쳐 있으면 DCA의 MDD가 buy-and-hold보다 완화돼야 한다."""
+        monkeypatch.setitem(DCA_INSTALLMENTS, "30d", 4)
+        start = date(2026, 6, 1)
+        # 초반에 -40% 급락 후 완만히 회복 — buy-and-hold는 급락을 전액 맞지만
+        # DCA는 아직 미집행 원금이 현금으로 남아있어 급락의 충격이 줄어든다.
+        prices = [100.0, 60.0, 65.0, 70.0, 75.0, 80.0, 85.0, 90.0]
+        price_rows = [
+            (start + timedelta(days=round(i * 30 / (len(prices) - 1))), p)
+            for i, p in enumerate(prices)
         ]
-        today = {"GOOD": 120.0}  # DEAD, NOPRICE는 오늘 가격 없음
 
-        result = compute_returns_from_prices(rows, today)
+        dca = _compute_dca(price_rows, "30d", start, price_rows[-1][0])
+        bh_mdd = buy_and_hold_mdd(price_rows)
 
-        assert result["GOOD"] == pytest.approx(20.0)
-        assert result["DEAD"] is None      # 상장폐지
-        assert result["NOPRICE"] is None   # backfill 미완료
+        assert dca is not None
+        assert dca.mdd_pct > bh_mdd  # 덜 빠짐 (mdd는 음수이므로 완화될수록 값이 커짐/0에 가까워짐)
 
-    def test_avg_excludes_none(self):
-        """평균 수익률 계산 시 None 종목 제외."""
-        items_returns = [20.0, None, -10.0, None]  # 유효한 값: 20, -10 → 평균 5
-        valid = [r for r in items_returns if r is not None]
-        avg = sum(valid) / len(valid) if valid else None
-        assert avg == pytest.approx(5.0)
 
-    def test_all_none_returns_none_avg(self):
-        """모든 종목이 상장폐지 → 평균 None."""
-        items_returns = [None, None]
-        valid = [r for r in items_returns if r is not None]
-        avg = sum(valid) / len(valid) if valid else None
-        assert avg is None
+class TestDcaDeficitWindow:
+    """상장일(시계열 시작)이 명목 구간 시작일보다 늦은 경우 — 일부 회차 스킵 + 경고."""
 
-    def test_kospi_samsung_example(self):
-        """
-        회귀 테스트 예시 — 삼성전자(005930).
-        as_of 가격 50000원 → 오늘 55000원: 수익률 = 10.0%
-        실제 DB 값과 비교 시 이 함수의 공식이 정확한지 확인용.
-        """
-        rows = [make_snapshot_row("005930", close_price_at_snapshot=50000.0)]
-        today = {"005930": 55000.0}
-        result = compute_returns_from_prices(rows, today)
-        assert result["005930"] == pytest.approx(10.0)
+    def test_partial_execution_warns_with_counts(self, monkeypatch):
+        monkeypatch.setitem(DCA_INSTALLMENTS, "1825d", 20)
+        nominal_start = date(2021, 7, 7)
+        actual_date = date(2026, 7, 6)
+        # 실제 가격 데이터는 상장(수집 시작) 지연으로 2년 뒤부터 존재
+        listing_date = date(2023, 7, 7)
+        prices = [100.0 + i * 0.1 for i in range(1000)]
+        price_rows = make_series(prices, listing_date)
+        # actual_date를 넘는 여분 데이터는 제거해 실제 조회 결과처럼 만든다
+        price_rows = [(d, p) for d, p in price_rows if d <= actual_date]
 
-    def test_nasdaq_apple_example(self):
-        """
-        회귀 테스트 예시 — 애플(AAPL).
-        as_of 가격 $150.0 → 오늘 $180.0: 수익률 = 20.0%
-        """
-        rows = [make_snapshot_row("AAPL", close_price_at_snapshot=150.0)]
-        today = {"AAPL": 180.0}
-        result = compute_returns_from_prices(rows, today)
-        assert result["AAPL"] == pytest.approx(20.0)
+        dca = _compute_dca(price_rows, "1825d", nominal_start, actual_date)
 
-    def test_no_fallback_when_today_missing(self):
-        """
-        핵심 불변 조건: 오늘 주가가 없을 때 as_of 주가로 대체(수익률=0) 하지 않는다.
-        as_of 주가가 있어도 오늘 주가가 없으면 반드시 None.
-        """
-        rows = [make_snapshot_row("NOTODAY", close_price_at_snapshot=100.0)]
-        today = {}  # 오늘 주가 없음
+        assert dca is not None
+        assert dca.warning is not None
+        assert "/20회" in dca.warning
+        executed = int(dca.warning.split("/")[0])
+        assert 0 < executed < 20
 
-        result = compute_returns_from_prices(rows, today)
+    def test_full_history_has_no_warning(self, monkeypatch):
+        monkeypatch.setitem(DCA_INSTALLMENTS, "1825d", 20)
+        nominal_start = date(2021, 7, 7)
+        actual_date = date(2026, 7, 6)
+        prices = [100.0 + i * 0.1 for i in range(1826)]
+        price_rows = make_series(prices, nominal_start)
+        price_rows = [(d, p) for d, p in price_rows if d <= actual_date]
 
-        # 0.0이 아니라 None이어야 한다 (폴백 금지)
-        assert result["NOTODAY"] is None
-        assert result["NOTODAY"] != 0.0
+        dca = _compute_dca(price_rows, "1825d", nominal_start, actual_date)
+
+        assert dca is not None
+        assert dca.warning is None
+
+
+class TestDcaUnsupportedPeriods:
+    """1d/7d는 분할이 성립하지 않아 항상 None."""
+
+    @pytest.mark.parametrize("period", ["1d", "7d"])
+    def test_no_dca_for_short_periods(self, period):
+        prices = [100.0, 105.0]
+        start = date(2026, 7, 5)
+        price_rows = make_series(prices, start)
+
+        dca = _compute_dca(price_rows, period, start, price_rows[-1][0])
+
+        assert dca is None
+
+    def test_insufficient_data_returns_none(self):
+        price_rows = [(date(2026, 7, 6), 100.0)]  # 1행뿐 — 계산 불가
+        dca = _compute_dca(price_rows, "30d", date(2026, 6, 6), date(2026, 7, 6))
+        assert dca is None

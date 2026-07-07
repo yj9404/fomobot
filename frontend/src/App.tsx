@@ -11,7 +11,7 @@ import { RealEstateView } from './views/RealEstateView'
 import { StockSearchArea } from './components/StockSearchArea'
 import { Footer } from './components/Footer'
 import { useRankings } from './hooks/useRankings'
-import { useBacktest } from './hooks/useBacktest'
+import { useBacktestDetail } from './hooks/useBacktestDetail'
 import { useWindowWidth } from './hooks/useWindowWidth'
 import { useAdGate } from './hooks/useAdGate'
 import { useStrings } from './i18n/strings'
@@ -95,7 +95,7 @@ export default function App() {
   const t = useStrings(lang)
   const period = PERIODS[periodIdx]!
   const { status, rankings, disclaimer: stockDisclaimer, asOf } = useRankings(market, period.value, capTier, retryKey, stockOrder)
-  const { load: loadBt, get: getBt } = useBacktest(market, period.value, period.days)
+  const { load: loadBtDetail, get: getBtDetail } = useBacktestDetail(market, period.value, asOf)
 
   useAdGate(tab === 'stock' ? status === 'ok' : reHasContent)
 
@@ -115,22 +115,22 @@ export default function App() {
     (rank: number, ticker: string) => {
       setOpenRank((prev) => {
         if (prev === rank) return null
-        loadBt(ticker)
+        loadBtDetail(ticker)
         return rank
       })
     },
-    [loadBt],
+    [loadBtDetail],
   )
 
   const handleSelect = useCallback(
     (rank: number, ticker: string) => {
       setSelectedRank((prev) => {
         if (prev === rank) return null
-        loadBt(ticker)
+        loadBtDetail(ticker)
         return rank
       })
     },
-    [loadBt],
+    [loadBtDetail],
   )
 
   const handleMarket = useCallback((m: Market) => {
@@ -159,7 +159,7 @@ export default function App() {
   const selectedItem = selectedRank != null
     ? (rankings.find((r) => r.rank === selectedRank) ?? null)
     : null
-  const emptyBt = { status: 'idle' as const, item: null }
+  const emptyBtDetail = { status: 'idle' as const, detail: null }
 
   // ── 부동산 핸들러 ──────────────────────────────────────────────────────
   const handleReRegion = useCallback((r: string) => {
@@ -312,7 +312,7 @@ export default function App() {
           {tab === 'stock' && (
             <BacktestSidebar
               selected={selectedItem}
-              bt={selectedItem != null ? getBt(selectedItem.ticker) : emptyBt}
+              btDetail={selectedItem != null ? getBtDetail(selectedItem.ticker) : emptyBtDetail}
               market={market}
               days={period.days}
               lang={lang}
@@ -359,7 +359,8 @@ export default function App() {
                     market={market}
                     days={period.days}
                     period={period.value}
-                    bt={getBt(item.ticker)}
+                    btDetail={getBtDetail(item.ticker)}
+                    lang={lang}
                     t={t}
                     onToggle={() => handleToggle(item.rank, item.ticker)}
                   />

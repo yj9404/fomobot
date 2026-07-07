@@ -27,12 +27,25 @@ export interface RankingsResponse {
   rankings: RankingItem[]
 }
 
+export interface ScenarioResult {
+  final_return_pct: number
+  mdd_pct: number | null
+  warning: string | null
+  executed_installments: number | null
+  total_installments: number | null
+}
+
+export interface BacktestScenarios {
+  buy_and_hold: ScenarioResult | null
+  dca: ScenarioResult | null
+}
+
 export interface BacktestItem {
   rank_at_as_of: number
   ticker: string
   name: string | null
   return_pct_at_as_of: number
-  current_return_pct: number | null
+  scenarios: BacktestScenarios
 }
 
 export interface BacktestResponse {
@@ -40,9 +53,36 @@ export interface BacktestResponse {
   period: Period
   as_of: string
   top: number
-  avg_current_return_pct: number | null
+  avg_buy_and_hold_return_pct: number | null
   survival_bias_warning?: string
   items: BacktestItem[]
+}
+
+export interface EquityPoint {
+  date: string
+  value: number
+}
+
+export interface ScenarioDetail extends ScenarioResult {
+  equity_curve: EquityPoint[]
+}
+
+export interface BacktestDetailScenarios {
+  buy_and_hold: ScenarioDetail | null
+  dca: ScenarioDetail | null
+}
+
+export interface BacktestDetailResponse {
+  market: Market
+  ticker: string
+  name: string | null
+  period: Period
+  as_of: string
+  actual_as_of: string
+  principal: number
+  first_traded_date: string | null
+  survival_bias_warning?: string
+  scenarios: BacktestDetailScenarios
 }
 
 export interface PeriodDef {

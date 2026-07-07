@@ -1,12 +1,12 @@
 import { useC, useTheme } from '../ThemeContext'
 import { FONT, DECLINE_ACCENT_DARK, DECLINE_ACCENT_LIGHT } from '../tokens'
 import { BacktestPanel } from './BacktestPanel'
-import type { RankingItem, Market, Period } from '../types'
+import type { RankingItem, Market, Period, Lang } from '../types'
 import type { Strings } from '../i18n/strings'
 
-interface BtEntry {
+interface BtDetailEntry {
   status: 'idle' | 'loading' | 'ok' | 'error'
-  item: import('../types').BacktestItem | null
+  detail: import('../types').BacktestDetailResponse | null
 }
 
 interface Props {
@@ -15,7 +15,8 @@ interface Props {
   market: Market
   days: number
   period: Period
-  bt: BtEntry
+  btDetail: BtDetailEntry
+  lang: Lang
   t: Strings
   onToggle: () => void
 }
@@ -25,7 +26,7 @@ function fmtPct(n: number | null): string {
   return (n >= 0 ? '+' : '') + n.toFixed(1) + '%'
 }
 
-export function RankingCard({ item, open, market, days, period, bt, t, onToggle }: Props) {
+export function RankingCard({ item, open, market, days, period, btDetail, lang, t, onToggle }: Props) {
   const C = useC()
   const { theme, atmosphereMode } = useTheme()
   const da = theme === 'dark' ? DECLINE_ACCENT_DARK : DECLINE_ACCENT_LIGHT
@@ -116,12 +117,11 @@ export function RankingCard({ item, open, market, days, period, bt, t, onToggle 
       {/* Backtest panel */}
       {open && (
         <BacktestPanel
-          status={bt.status}
-          item={bt.item}
-          ticker={item.ticker}
-          mddPct={item.mdd_pct}
+          status={btDetail.status}
+          detail={btDetail.detail}
           market={market}
           days={days}
+          lang={lang}
           t={t}
         />
       )}

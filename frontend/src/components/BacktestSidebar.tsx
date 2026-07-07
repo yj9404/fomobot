@@ -1,24 +1,24 @@
 import { useC } from '../ThemeContext'
 import { FONT } from '../tokens'
 import { BacktestPanel } from './BacktestPanel'
-import type { RankingItem, Market, Lang, BacktestItem } from '../types'
+import type { RankingItem, Market, Lang, BacktestDetailResponse } from '../types'
 import type { Strings } from '../i18n/strings'
 
-interface BtEntry {
+interface BtDetailEntry {
   status: 'idle' | 'loading' | 'ok' | 'error'
-  item: BacktestItem | null
+  detail: BacktestDetailResponse | null
 }
 
 interface Props {
   selected: RankingItem | null
-  bt: BtEntry
+  btDetail: BtDetailEntry
   market: Market
   days: number
   lang: Lang
   t: Strings
 }
 
-export function BacktestSidebar({ selected, bt, market, days, lang, t }: Props) {
+export function BacktestSidebar({ selected, btDetail, market, days, lang, t }: Props) {
   const C = useC()
 
   return (
@@ -82,12 +82,11 @@ export function BacktestSidebar({ selected, bt, market, days, lang, t }: Props) 
           </div>
 
           <BacktestPanel
-            status={bt.status}
-            item={bt.item}
-            ticker={selected.ticker}
-            mddPct={selected.mdd_pct}
+            status={btDetail.status}
+            detail={btDetail.detail}
             market={market}
             days={days}
+            lang={lang}
             t={t}
           />
         </>

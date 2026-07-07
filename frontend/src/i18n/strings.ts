@@ -26,6 +26,9 @@ export interface Strings {
   orderFall: string
   orderFallCopy: string
   asOfLabel: string
+  btDcaBadge: string
+  btCompareLumpSum: string
+  btDeficitWarning: string
 }
 
 const STR: Record<Lang, Strings> = {
@@ -55,6 +58,9 @@ const STR: Record<Lang, Strings> = {
     orderFall: '하락률 상위 ▼',
     orderFallCopy: '안 물려서 다행',
     asOfLabel: '기준일',
+    btDcaBadge: '나눠 담기',
+    btCompareLumpSum: '한 번에 샀다면',
+    btDeficitWarning: '상장이 늦어서 그때는 살 수도 없었어요. 살 수 있었던 날부터 계산했습니다.',
   },
   en: {
     tagline: 'Hall of fame for things that already mooned',
@@ -82,6 +88,9 @@ const STR: Record<Lang, Strings> = {
     orderFall: 'Top Losers ▼',
     orderFallCopy: 'Glad you skipped these',
     asOfLabel: 'As of',
+    btDcaBadge: 'DCA',
+    btCompareLumpSum: 'If bought all at once',
+    btDeficitWarning: "It wasn't even listed yet back then — calculated from the first day you could actually buy it.",
   },
 }
 

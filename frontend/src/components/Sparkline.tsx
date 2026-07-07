@@ -34,18 +34,3 @@ export function Sparkline({ data, width, height, color, fill }: Props) {
     </svg>
   )
 }
-
-/** Deterministic pseudo-random sparkline seeded by a string */
-export function buildSparkSeries(seed: string, endRet: number, n = 22): number[] {
-  let x = 2166136261 >>> 0
-  for (let i = 0; i < seed.length; i++) {
-    x ^= seed.charCodeAt(i)
-    x = Math.imul(x, 16777619) >>> 0
-  }
-  const rnd = () => { x = (Math.imul(x, 1664525) + 1013904223) >>> 0; return x / 4294967296 }
-  let v = 100
-  const a = [v]
-  const step = endRet / 100 / (n - 1)
-  for (let i = 1; i < n; i++) { v = v * (1 + step + (rnd() - 0.5) * 0.045); a.push(v) }
-  return a
-}
