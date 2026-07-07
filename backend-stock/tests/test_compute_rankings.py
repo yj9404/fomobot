@@ -63,7 +63,7 @@ class TestPeriodsParameterRegression:
         self, captured_upserts
     ):
         compute_rankings.compute_rankings_for_market(
-            "kospi", snapshot_date=date(2026, 7, 3), periods=None, top=10
+            "kospi", snapshot_date=date(2026, 7, 3), periods=None
         )
         computed_periods = {r["period"] for r in captured_upserts}
         assert computed_periods == set(PERIOD_TO_DAYS.keys())
@@ -71,7 +71,7 @@ class TestPeriodsParameterRegression:
     def test_periods_생략시_기본값도_None과_동일(self, captured_upserts):
         """periods 인자 자체를 안 넘겨도(기본값) 6개 전부 계산 — 시그니처 기본값 보존."""
         compute_rankings.compute_rankings_for_market(
-            "kospi", snapshot_date=date(2026, 7, 3), top=10
+            "kospi", snapshot_date=date(2026, 7, 3)
         )
         computed_periods = {r["period"] for r in captured_upserts}
         assert computed_periods == set(PERIOD_TO_DAYS.keys())
@@ -79,14 +79,14 @@ class TestPeriodsParameterRegression:
     def test_periods_일부_지정시_그것만_계산(self, captured_upserts):
         """gap-fill처럼 특정 기간만 넘기면 그 기간만 계산 — 나머지는 손대지 않음."""
         compute_rankings.compute_rankings_for_market(
-            "kospi", snapshot_date=date(2026, 7, 3), periods=["1d", "7d"], top=10
+            "kospi", snapshot_date=date(2026, 7, 3), periods=["1d", "7d"]
         )
         computed_periods = {r["period"] for r in captured_upserts}
         assert computed_periods == {"1d", "7d"}
 
     def test_periods_빈_리스트면_아무것도_계산_안함(self, captured_upserts):
         count = compute_rankings.compute_rankings_for_market(
-            "kospi", snapshot_date=date(2026, 7, 3), periods=[], top=10
+            "kospi", snapshot_date=date(2026, 7, 3), periods=[]
         )
         assert count == 0
         assert captured_upserts == []
@@ -96,14 +96,14 @@ class TestPeriodsParameterRegression:
     ):
         """전체 실행 결과가 기간별로 나눠 실행한 결과의 합집합과 동일한지 교차검증."""
         compute_rankings.compute_rankings_for_market(
-            "kospi", snapshot_date=date(2026, 7, 3), periods=None, top=10
+            "kospi", snapshot_date=date(2026, 7, 3), periods=None
         )
         full_run = list(captured_upserts)
         captured_upserts.clear()
 
         for period_key in PERIOD_TO_DAYS:
             compute_rankings.compute_rankings_for_market(
-                "kospi", snapshot_date=date(2026, 7, 3), periods=[period_key], top=10
+                "kospi", snapshot_date=date(2026, 7, 3), periods=[period_key]
             )
         split_run = captured_upserts
 
@@ -149,7 +149,7 @@ class TestPeriodStartDateSnapsToTradingDay:
         monkeypatch.setattr(compute_rankings, "_fetch_name_map", lambda *a, **k: {})
 
         compute_rankings.compute_rankings_for_market(
-            "kospi", snapshot_date=date(2026, 6, 29), periods=["1d"], top=10
+            "kospi", snapshot_date=date(2026, 6, 29), periods=["1d"]
         )
 
         # _load_price_matrix가 일요일(raw_sunday)이 아니라 스냅된 금요일로 호출됐는지
