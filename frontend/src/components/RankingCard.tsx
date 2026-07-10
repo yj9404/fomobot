@@ -1,12 +1,18 @@
 import { useC, useTheme } from '../ThemeContext'
 import { FONT, DECLINE_ACCENT_DARK, DECLINE_ACCENT_LIGHT } from '../tokens'
 import { BacktestPanel } from './BacktestPanel'
-import type { RankingItem, Market, Period, Lang } from '../types'
+import { NewsDot } from './NewsDot'
+import type { RankingItem, Market, Period, Lang, NewsArticle } from '../types'
 import type { Strings } from '../i18n/strings'
 
 interface BtDetailEntry {
   status: 'idle' | 'loading' | 'ok' | 'error'
   detail: import('../types').BacktestDetailResponse | null
+}
+
+interface NewsEntry {
+  status: 'idle' | 'loading' | 'ok' | 'error'
+  articles: NewsArticle[]
 }
 
 interface Props {
@@ -16,6 +22,7 @@ interface Props {
   days: number
   period: Period
   btDetail: BtDetailEntry
+  newsDetail: NewsEntry
   lang: Lang
   t: Strings
   onToggle: () => void
@@ -26,7 +33,7 @@ function fmtPct(n: number | null): string {
   return (n >= 0 ? '+' : '') + n.toFixed(1) + '%'
 }
 
-export function RankingCard({ item, open, market, days, period, btDetail, lang, t, onToggle }: Props) {
+export function RankingCard({ item, open, market, days, period, btDetail, newsDetail, lang, t, onToggle }: Props) {
   const C = useC()
   const { theme, atmosphereMode } = useTheme()
   const da = theme === 'dark' ? DECLINE_ACCENT_DARK : DECLINE_ACCENT_LIGHT
@@ -62,8 +69,11 @@ export function RankingCard({ item, open, market, days, period, btDetail, lang, 
             {String(item.rank).padStart(2, '0')}
           </span>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 15.5, fontWeight: 700, color: C.textPrimary, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {item.name ?? item.ticker}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <NewsDot show={item.has_news === true} t={t} />
+              <span style={{ fontSize: 15.5, fontWeight: 700, color: C.textPrimary, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {item.name ?? item.ticker}
+              </span>
             </div>
             <div style={{ fontFamily: FONT.mono, fontSize: 11, color: C.textDim, marginTop: 2 }}>{item.ticker}</div>
           </div>
@@ -123,6 +133,9 @@ export function RankingCard({ item, open, market, days, period, btDetail, lang, 
           days={days}
           lang={lang}
           t={t}
+          hasNews={item.has_news === true}
+          newsStatus={newsDetail.status}
+          newsArticles={newsDetail.articles}
         />
       )}
     </div>

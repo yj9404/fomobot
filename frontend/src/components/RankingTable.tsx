@@ -1,5 +1,6 @@
 import { useC, useTheme } from '../ThemeContext'
 import { FONT, DECLINE_ACCENT_DARK, DECLINE_ACCENT_LIGHT } from '../tokens'
+import { NewsDot } from './NewsDot'
 import type { RankingItem, Market, Lang, Period } from '../types'
 import type { Strings } from '../i18n/strings'
 
@@ -11,7 +12,7 @@ interface Props {
   t: Strings
   period: Period
   asOf: string
-  onSelect: (rank: number, ticker: string) => void
+  onSelect: (rank: number, ticker: string, hasNews: boolean | null | undefined) => void
 }
 
 function fmtPct(n: number | null): string {
@@ -78,7 +79,7 @@ export function RankingTable({ rankings, selectedRank, lang, t, period, asOf, on
             return (
               <tr
                 key={item.ticker}
-                onClick={() => onSelect(item.rank, item.ticker)}
+                onClick={() => onSelect(item.rank, item.ticker, item.has_news)}
                 style={{
                   cursor: 'pointer',
                   borderRadius: 10,
@@ -107,8 +108,11 @@ export function RankingTable({ rankings, selectedRank, lang, t, period, asOf, on
 
                 {/* Name / ticker */}
                 <td style={{ ...td, paddingLeft: 12 }}>
-                  <div style={{ fontSize: 14.5, fontWeight: 700, color: C.textPrimary, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 200 }}>
-                    {item.name ?? item.ticker}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <NewsDot show={item.has_news === true} t={t} />
+                    <span style={{ fontSize: 14.5, fontWeight: 700, color: C.textPrimary, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 200 }}>
+                      {item.name ?? item.ticker}
+                    </span>
                   </div>
                   <div style={{ fontFamily: FONT.mono, fontSize: 11, color: C.textDim, marginTop: 2 }}>{item.ticker}</div>
                 </td>

@@ -1,7 +1,7 @@
 import { useC } from '../ThemeContext'
 import { FONT } from '../tokens'
 import { BacktestPanel } from './BacktestPanel'
-import type { RankingItem, Market, Lang, BacktestDetailResponse } from '../types'
+import type { RankingItem, Market, Lang, BacktestDetailResponse, NewsArticle } from '../types'
 import type { Strings } from '../i18n/strings'
 
 interface BtDetailEntry {
@@ -9,16 +9,22 @@ interface BtDetailEntry {
   detail: BacktestDetailResponse | null
 }
 
+interface NewsEntry {
+  status: 'idle' | 'loading' | 'ok' | 'error'
+  articles: NewsArticle[]
+}
+
 interface Props {
   selected: RankingItem | null
   btDetail: BtDetailEntry
+  newsDetail: NewsEntry
   market: Market
   days: number
   lang: Lang
   t: Strings
 }
 
-export function BacktestSidebar({ selected, btDetail, market, days, lang, t }: Props) {
+export function BacktestSidebar({ selected, btDetail, newsDetail, market, days, lang, t }: Props) {
   const C = useC()
 
   return (
@@ -88,6 +94,9 @@ export function BacktestSidebar({ selected, btDetail, market, days, lang, t }: P
             days={days}
             lang={lang}
             t={t}
+            hasNews={selected.has_news === true}
+            newsStatus={newsDetail.status}
+            newsArticles={newsDetail.articles}
           />
         </>
       )}

@@ -1,7 +1,8 @@
 import { useC } from '../ThemeContext'
 import { FONT } from '../tokens'
 import { Sparkline } from './Sparkline'
-import type { BacktestDetailResponse, Market, Lang } from '../types'
+import { NewsSection } from './NewsSection'
+import type { BacktestDetailResponse, Market, Lang, NewsArticle } from '../types'
 import type { Strings } from '../i18n/strings'
 
 interface Props {
@@ -11,6 +12,9 @@ interface Props {
   days: number
   lang: Lang
   t: Strings
+  hasNews: boolean
+  newsStatus: 'idle' | 'loading' | 'ok' | 'error'
+  newsArticles: NewsArticle[]
 }
 
 function fmtPct(n: number | null): string {
@@ -32,7 +36,7 @@ function fmtSince(dateStr: string, lang: Lang): string {
   return `Since ${EN_MONTHS[(m ?? 1) - 1]} ${y}`
 }
 
-export function BacktestPanel({ status, detail, market, days, lang, t }: Props) {
+export function BacktestPanel({ status, detail, market, days, lang, t, hasNews, newsStatus, newsArticles }: Props) {
   const C = useC()
 
   const panelStyle: React.CSSProperties = {
@@ -53,6 +57,7 @@ export function BacktestPanel({ status, detail, market, days, lang, t }: Props) 
           <div style={{ width: 16, height: 16, borderRadius: '50%', border: '2px solid rgba(62,123,250,0.25)', borderTopColor: C.blue, animation: 'fb-spin .8s linear infinite' }} />
           <span style={{ fontSize: 12, color: C.textDim }}>{t.btLoading}</span>
         </div>
+        <NewsSection show={hasNews} status={newsStatus} articles={newsArticles} t={t} />
       </div>
     )
   }
@@ -67,6 +72,7 @@ export function BacktestPanel({ status, detail, market, days, lang, t }: Props) 
     return (
       <div style={panelStyle}>
         <span style={{ fontSize: 12, color: C.textDim }}>{t.noBacktest}</span>
+        <NewsSection show={hasNews} status={newsStatus} articles={newsArticles} t={t} />
       </div>
     )
   }
@@ -150,6 +156,8 @@ export function BacktestPanel({ status, detail, market, days, lang, t }: Props) 
 
       {/* Quip */}
       <div style={{ fontSize: 12.5, color: C.textMuted, fontStyle: 'italic' }}>"{quip}"</div>
+
+      <NewsSection show={hasNews} status={newsStatus} articles={newsArticles} t={t} />
     </div>
   )
 }

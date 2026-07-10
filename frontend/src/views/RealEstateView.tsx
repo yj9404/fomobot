@@ -139,7 +139,7 @@ export function RealEstateView({ lang, period, sido, gu, dong, seg, minPrice, ma
           )}
         </div>
         {excluded.length > 0 && (
-          <ReResultArea rankings={[]} excluded={excluded} meta={null} lang={lang} period={period} />
+          <ReResultArea rankings={[]} excluded={excluded} meta={null} lang={lang} period={period} t={t} />
         )}
       </>
     )
@@ -153,7 +153,7 @@ export function RealEstateView({ lang, period, sido, gu, dong, seg, minPrice, ma
           {t.orderFallCopy}
         </div>
       )}
-      <ReResultArea rankings={rankings} excluded={excluded} meta={meta} lang={lang} period={period} />
+      <ReResultArea rankings={rankings} excluded={excluded} meta={meta} lang={lang} period={period} t={t} />
     </>
   )
 }

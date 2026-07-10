@@ -1,7 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useC } from '../ThemeContext'
 import { FONT } from '../tokens'
+import { NewsDot } from './NewsDot'
+import { NewsSection } from './NewsSection'
+import { useNewsCache } from '../hooks/useNewsCache'
+import { fetchReComplexNews } from '../api/realestate'
 import type { ReRankingItem, ReRankingsMeta, Lang, RealEstatePeriod } from '../types'
+import type { Strings } from '../i18n/strings'
 
 interface Props {
   rankings: ReRankingItem[]
@@ -9,6 +14,7 @@ interface Props {
   meta: ReRankingsMeta | null
   lang: Lang
   period: RealEstatePeriod
+  t: Strings
 }
 
 function fmtPct(n: number | null): string {
@@ -48,10 +54,11 @@ const DATA_STATUS_LABEL: Record<string, Record<Lang, string>> = {
   no_end:       { ko: '종료 시점 데이터 없음', en: 'No end data' },
 }
 
-export function ReResultArea({ rankings, excluded, meta, lang, period }: Props) {
+export function ReResultArea({ rankings, excluded, meta, lang, period, t }: Props) {
   const C = useC()
   const [selectedKey, setSelectedKey] = useState<string | null>(null)
   const [detailItem, setDetailItem] = useState<ReRankingItem | null>(null)
+  const { load: loadNews, get: getNews } = useNewsCache(fetchReComplexNews)
 
   // 기간·필터 변경 시 선택 초기화
   useEffect(() => {
@@ -66,6 +73,7 @@ export function ReResultArea({ rankings, excluded, meta, lang, period }: Props) 
     } else {
       setSelectedKey(item.complex_key)
       setDetailItem(item)
+      if (item.has_news === true) loadNews(item.complex_key)
     }
   }
 
@@ -80,6 +88,9 @@ export function ReResultArea({ rankings, excluded, meta, lang, period }: Props) 
         background: C.surfaceBt,
         borderTop: `1px solid ${C.borderFaint}`,
         padding: '12px 14px 14px 20px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 12,
       }}>
         {item.data_status !== 'ok' && (
           <div style={{
@@ -153,6 +164,13 @@ export function ReResultArea({ rankings, excluded, meta, lang, period }: Props) 
             )}
           </div>
         )}
+
+        <NewsSection
+          show={item.has_news === true}
+          status={getNews(item.complex_key).status}
+          articles={getNews(item.complex_key).articles}
+          t={t}
+        />
       </div>
     )
   }
@@ -233,13 +251,16 @@ export function ReResultArea({ rankings, excluded, meta, lang, period }: Props) 
                 </span>
 
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ 
-                    fontSize: 14.5, fontWeight: 700, color: C.textPrimary, 
-                    overflow: 'hidden', textOverflow: 'ellipsis', 
-                    whiteSpace: isSelected ? 'normal' : 'nowrap',
-                    lineHeight: 1.3, wordBreak: 'keep-all'
-                  }}>
-                    {item.apt_name}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <NewsDot show={item.has_news === true} t={t} />
+                    <span style={{
+                      fontSize: 14.5, fontWeight: 700, color: C.textPrimary,
+                      overflow: 'hidden', textOverflow: 'ellipsis',
+                      whiteSpace: isSelected ? 'normal' : 'nowrap',
+                      lineHeight: 1.3, wordBreak: 'keep-all'
+                    }}>
+                      {item.apt_name}
+                    </span>
                   </div>
                   <div style={{ fontSize: 10.5, color: C.textDim, marginTop: 4 }}>
                     {item.display_name.replace(item.apt_name, '').trim()}

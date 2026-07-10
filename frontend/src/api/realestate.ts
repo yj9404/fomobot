@@ -6,6 +6,8 @@ import type {
   RegionSearchResponse,
   ReSearchResponse,
   SegmentsResponse,
+  NewsArticle,
+  NewsResponse,
 } from '../types'
 
 export function fetchReRankings(
@@ -50,4 +52,9 @@ export function fetchReAptSearch(
 
 export function fetchReSegments(): Promise<SegmentsResponse> {
   return apiFetch<SegmentsResponse>('/api/realestate/segments', {})
+}
+
+/** 클릭/펼침 시에만 호출 — 리스트 로드 시 미리 fetch하지 않는다. */
+export function fetchReComplexNews(complexKey: string): Promise<NewsArticle[]> {
+  return apiFetch<NewsResponse>(`/api/realestate/news/${encodeURIComponent(complexKey)}`, {}).then((r) => r.articles)
 }

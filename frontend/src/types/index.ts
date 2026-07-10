@@ -15,6 +15,7 @@ export interface RankingItem {
   mdd_pct: number | null
   volatility_annualized_pct: number | null
   excess_return_vs_index_pct: number | null
+  has_news?: boolean | null
 }
 
 export interface RankingsResponse {
@@ -138,6 +139,7 @@ export interface ReRankingItem {
   start_tx_count: number | null
   end_tx_count: number | null
   insufficient_reason: string | null
+  has_news?: boolean | null
 }
 
 export interface ReRankingsMeta {
@@ -251,6 +253,17 @@ export interface StockQuoteResponse {
   mdd_pct: number | null
   volatility_annualized_pct: number | null
   data_coverage: DataCoverage
+}
+
+// ── 관련 뉴스 (지연 로딩 전용, KOSPI/부동산 단기 구간만) ────────────────────
+export interface NewsArticle {
+  title: string
+  link: string
+  published_at: string
+}
+
+export interface NewsResponse {
+  articles: NewsArticle[]
 }
 
 export const PERIODS: PeriodDef[] = [

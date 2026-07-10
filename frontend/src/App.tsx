@@ -12,12 +12,14 @@ import { StockSearchArea } from './components/StockSearchArea'
 import { Footer } from './components/Footer'
 import { useRankings } from './hooks/useRankings'
 import { useBacktestDetail } from './hooks/useBacktestDetail'
+import { useNewsCache } from './hooks/useNewsCache'
 import { useWindowWidth } from './hooks/useWindowWidth'
 import { useAdGate } from './hooks/useAdGate'
 import { useStrings } from './i18n/strings'
 import { useC, useTheme } from './ThemeContext'
 import { PERIODS, RE_PERIODS, RE_DISCLAIMER } from './types'
 import { FONT } from './tokens'
+import { fetchStockNews } from './api/stock'
 import type { Lang, Market, OrderDir, Tab, CapTier } from './types'
 
 function initTab(): Tab {
@@ -96,6 +98,7 @@ export default function App() {
   const period = PERIODS[periodIdx]!
   const { status, rankings, disclaimer: stockDisclaimer, asOf } = useRankings(market, period.value, capTier, retryKey, stockOrder)
   const { load: loadBtDetail, get: getBtDetail } = useBacktestDetail(market, period.value, asOf)
+  const { load: loadNews, get: getNews } = useNewsCache(fetchStockNews)
 
   useAdGate(tab === 'stock' ? status === 'ok' : reHasContent)
 
@@ -112,25 +115,27 @@ export default function App() {
 
   // ── 주식 핸들러 ────────────────────────────────────────────────────────
   const handleToggle = useCallback(
-    (rank: number, ticker: string) => {
+    (rank: number, ticker: string, hasNews: boolean | null | undefined) => {
       setOpenRank((prev) => {
         if (prev === rank) return null
         loadBtDetail(ticker)
+        if (hasNews === true) loadNews(ticker)
         return rank
       })
     },
-    [loadBtDetail],
+    [loadBtDetail, loadNews],
   )
 
   const handleSelect = useCallback(
-    (rank: number, ticker: string) => {
+    (rank: number, ticker: string, hasNews: boolean | null | undefined) => {
       setSelectedRank((prev) => {
         if (prev === rank) return null
         loadBtDetail(ticker)
+        if (hasNews === true) loadNews(ticker)
         return rank
       })
     },
-    [loadBtDetail],
+    [loadBtDetail, loadNews],
   )
 
   const handleMarket = useCallback((m: Market) => {
@@ -160,6 +165,7 @@ export default function App() {
     ? (rankings.find((r) => r.rank === selectedRank) ?? null)
     : null
   const emptyBtDetail = { status: 'idle' as const, detail: null }
+  const emptyNewsDetail = { status: 'idle' as const, articles: [] }
 
   // ── 부동산 핸들러 ──────────────────────────────────────────────────────
   const handleReRegion = useCallback((r: string) => {
@@ -313,6 +319,7 @@ export default function App() {
             <BacktestSidebar
               selected={selectedItem}
               btDetail={selectedItem != null ? getBtDetail(selectedItem.ticker) : emptyBtDetail}
+              newsDetail={selectedItem != null ? getNews(selectedItem.ticker) : emptyNewsDetail}
               market={market}
               days={period.days}
               lang={lang}
@@ -360,9 +367,10 @@ export default function App() {
                     days={period.days}
                     period={period.value}
                     btDetail={getBtDetail(item.ticker)}
+                    newsDetail={getNews(item.ticker)}
                     lang={lang}
                     t={t}
-                    onToggle={() => handleToggle(item.rank, item.ticker)}
+                    onToggle={() => handleToggle(item.rank, item.ticker, item.has_news)}
                   />
                 ))}
                 <div style={{ textAlign: 'center', fontSize: 11, color: C.textDim, fontFamily: FONT.mono, paddingTop: 2 }}>
