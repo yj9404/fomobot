@@ -98,6 +98,7 @@ class TestComputeWindowStats:
     def _make_df(self, rows: list[dict]) -> pd.DataFrame:
         df = pd.DataFrame(rows)
         df["price_per_sqm"] = df["price_per_sqm"].astype(float)
+        df["deal_amount"] = df["deal_amount"].astype(float)
         return df
 
     def test_median_not_mean(self):
@@ -105,13 +106,13 @@ class TestComputeWindowStats:
         df = self._make_df([
             {"sigungu_code": "11680", "eupmyeondong": "개포동",
              "apt_name": "래미안개포1단지", "apt_name_norm": "래미안개포1단지",
-             "complex_key": "KEY1", "deal_ym": "202501", "price_per_sqm": 40.0},
+             "complex_key": "KEY1", "deal_ym": "202501", "price_per_sqm": 40.0, "deal_amount": 100000.0},
             {"sigungu_code": "11680", "eupmyeondong": "개포동",
              "apt_name": "래미안개포1단지", "apt_name_norm": "래미안개포1단지",
-             "complex_key": "KEY1", "deal_ym": "202502", "price_per_sqm": 42.0},
+             "complex_key": "KEY1", "deal_ym": "202502", "price_per_sqm": 42.0, "deal_amount": 105000.0},
             {"sigungu_code": "11680", "eupmyeondong": "개포동",
              "apt_name": "래미안개포1단지", "apt_name_norm": "래미안개포1단지",
-             "complex_key": "KEY1", "deal_ym": "202503", "price_per_sqm": 200.0},  # 이상거래
+             "complex_key": "KEY1", "deal_ym": "202503", "price_per_sqm": 200.0, "deal_amount": 500000.0},  # 이상거래
         ])
         stats = _compute_window_stats(df)
         row = stats[stats["complex_key"] == "KEY1"].iloc[0]
@@ -131,10 +132,10 @@ class TestComputeWindowStats:
         df = self._make_df([
             {"sigungu_code": "11680", "eupmyeondong": "개포동",
              "apt_name": "래미안개포1단지", "apt_name_norm": "래미안개포1단지",
-             "complex_key": "KEY1", "deal_ym": "202501", "price_per_sqm": 50.0},
+             "complex_key": "KEY1", "deal_ym": "202501", "price_per_sqm": 50.0, "deal_amount": 120000.0},
             {"sigungu_code": "11680", "eupmyeondong": "개포동",
              "apt_name": "개포주공", "apt_name_norm": "개포주공",
-             "complex_key": "KEY2", "deal_ym": "202501", "price_per_sqm": 30.0},
+             "complex_key": "KEY2", "deal_ym": "202501", "price_per_sqm": 30.0, "deal_amount": 80000.0},
         ])
         stats = _compute_window_stats(df)
         assert len(stats) == 2
