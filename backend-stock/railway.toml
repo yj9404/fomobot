@@ -6,6 +6,7 @@
 #   3. cron-nasdaq        — NASDAQ 수집 + 랭킹 계산 (Railway Dashboard > Add Service > Cron)
 #   4. cron-kospi-gapfill  — KOSPI 랭킹 스냅샷 gap-fill (self-healing, 정기 cron과 분리)
 #   5. cron-nasdaq-gapfill — NASDAQ 랭킹 스냅샷 gap-fill (self-healing, 정기 cron과 분리)
+#   6. cron-kospi-news     — KOSPI 종목 관련 뉴스 수집 (cron-kospi 직후, 별도 서비스)
 #
 # Cron 서비스는 railway.toml 에서 직접 정의할 수 없으므로
 # Railway Dashboard 에서 수동으로 추가해야 한다.
@@ -41,6 +42,14 @@
 #    Schedule : 15 22 * * 1-5
 #    Command  : python -m fomobot.jobs.gap_fill nasdaq
 #    (cron-nasdaq 정기 실행(21:30 UTC) 45분 뒤. 위와 동일한 이유로 분리.)
+#
+#  [cron-kospi-news]
+#    Schedule : 20 9 * * 1-6
+#    Command  : python -m fomobot.jobs.collect_news
+#    (09:20 UTC = 18:20 KST. cron-kospi(09:00 UTC) 20분 뒤 — 랭킹 배치가 끝난 뒤
+#     KOSPI 단기 구간(1d/7d/30d) top20 상승·하락 종목의 관련 뉴스를 네이버 뉴스
+#     검색 API로 수집해 stock_news TTL 캐시(기본 2일)에 저장한다. 랭킹 스냅샷이
+#     없으면 검색 없이 스킵한다. NAVER_CLIENT_ID/SECRET 환경변수 설정 필요.)
 #
 # ──────────────────────────────────────────────────────────────────────────────
 

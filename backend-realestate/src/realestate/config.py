@@ -66,5 +66,15 @@ class Settings(BaseSettings):
     # 최소 거래건수 M: 시작·종료 앵커 양쪽 모두 M건 이상이어야 랭킹 포함
     re_min_tx_per_window: int = 3
 
+    # 네이버 뉴스 검색 API (뉴스 링크 표시 기능). developers.naver.com 에서 발급.
+    naver_client_id: str = ""
+    naver_client_secret: str = ""
+    # re_complex_news TTL — 다음 정기 배치 갱신까지만 유효한 표시용 캐시(영구 저장 아님).
+    # 뉴스는 랭킹 배치(월 1회)와 별개로 주 1회 독립 갱신되므로 그 주기 + 버퍼.
+    complex_news_ttl_days: int = 9
+    # 뉴스 관련성 날짜창(일) — 랭킹 구간(3m/6m)과 무관하게 "최근 주목" 표시 목적으로
+    # 배치 실행 시점 기준 최근 며칠 이내 기사만 인정한다.
+    complex_news_lookback_days: int = 30
+
 
 settings = Settings()

@@ -1,6 +1,6 @@
 from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 OrderLiteral = Literal["desc", "asc"]
 
@@ -49,6 +49,13 @@ class ComplexRankingItem(BaseModel):
     end_tx_count: int | None
     data_status: DataStatusLiteral
     insufficient_reason: str | None
+    has_news: bool | None = Field(
+        None,
+        description=(
+            "관련 뉴스 캐시 존재 여부. 단기 구간(3m/6m)에서만 채워지며 "
+            "그 외(1y 이상)는 null — 프론트는 null이면 인디케이터를 표시하지 않습니다."
+        ),
+    )
 
 
 class ComplexRankingsMeta(BaseModel):

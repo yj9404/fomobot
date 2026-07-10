@@ -88,6 +88,30 @@ class RankingSnapshot(Base):
     )
 
 
+class StockNews(Base):
+    """
+    종목별 관련 뉴스 TTL 캐시.
+
+    영구 저장소가 아니다 — 다음 배치 갱신까지만 유효한 표시용 캐시이며,
+    만료분은 배치가 DELETE한다(네이버 오픈API 이용약관의 "검색결과를
+    별도 DB로 무기한 축적" 금지 취지를 존중하기 위함).
+    배치가 종목별로 기존 행을 DELETE 후 새로 INSERT하는 방식으로 갱신한다.
+    """
+    __tablename__ = "stock_news"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    ticker = Column(String(20), nullable=False)
+    title = Column(String(500), nullable=False)
+    link = Column(String(1000), nullable=False)
+    published_at = Column(Date, nullable=False)
+    collected_at = Column(DateTime(timezone=True), nullable=False, server_default=text("NOW()"))
+
+    __table_args__ = (
+        UniqueConstraint("ticker", "link", name="uq_stock_news"),
+        Index("ix_stock_news_ticker", "ticker"),
+    )
+
+
 class SecuritiesMaster(Base):
     """
     종목 마스터 테이블. 티커↔종목명 매핑 및 상장 여부 관리.

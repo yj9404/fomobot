@@ -1,5 +1,5 @@
 from sqlalchemy import (
-    BigInteger, Boolean, Column, Index, Integer, Numeric, SmallInteger,
+    BigInteger, Boolean, Column, Date, Index, Integer, Numeric, SmallInteger,
     String, Text, UniqueConstraint, func,
 )
 from sqlalchemy.dialects.postgresql import TIMESTAMP
@@ -124,6 +124,32 @@ class ReComplexRankingSnapshot(Base):
         Index("ix_re_complex_rank_period_ym_rank", "period", "snapshot_ym", "rank"),
         Index("ix_re_complex_rank_sigungu", "sigungu_code", "period", "snapshot_ym"),
         Index("ix_re_complex_rank_dong", "sigungu_code", "eupmyeondong", "period", "snapshot_ym"),
+    )
+
+
+class ReComplexNews(Base):
+    """
+    단지별 관련 뉴스 TTL 캐시.
+
+    영구 저장소가 아니다 — 다음 배치 갱신까지만 유효한 표시용 캐시이며,
+    만료분은 배치가 DELETE한다(네이버 오픈API 이용약관의 "검색결과를
+    별도 DB로 무기한 축적" 금지 취지를 존중하기 위함).
+    랭킹 배치(월 1회)와 별도로 주 1회 독립 갱신된다.
+    """
+    __tablename__ = "re_complex_news"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    complex_key = Column(String(64), nullable=False)
+    title = Column(String(500), nullable=False)
+    link = Column(String(1000), nullable=False)
+    published_at = Column(Date, nullable=False)
+    collected_at = Column(
+        TIMESTAMP(timezone=True), server_default=func.now(), nullable=False
+    )
+
+    __table_args__ = (
+        UniqueConstraint("complex_key", "link", name="uq_re_complex_news"),
+        Index("ix_re_complex_news_key", "complex_key"),
     )
 
 

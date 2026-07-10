@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Sequence
 
 from sqlalchemy import Row, func, or_, select, text, tuple_
 from sqlalchemy.dialects.postgresql import insert
@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from realestate.db.models import (
     ReCollectionLog,
+    ReComplexNews,
     ReComplexRankingSnapshot,
     ReComplexStat,
     ReTransaction,
@@ -453,3 +454,130 @@ async def get_complex_monthly_async(
         .order_by(ReComplexStat.deal_ym.asc())
     )
     return result.all()
+
+
+# ── ReComplexNews (뉴스 링크 TTL 캐시) ────────────────────────────────────
+
+def get_latest_complex_snapshot_ym_sync(session: Session, period: str) -> str | None:
+    """get_latest_complex_snapshot_ym(async, API용)의 sync 버전 — 배치용.
+
+    MAX(snapshot_ym)이므로 월초 신규 스냅샷 생성 전에 배치가 돌아도
+    가장 최근에 실제로 존재하는 스냅샷을 정상적으로 반환한다.
+    """
+    stmt = (
+        select(ReComplexRankingSnapshot.snapshot_ym)
+        .where(ReComplexRankingSnapshot.period == period)
+        .order_by(ReComplexRankingSnapshot.snapshot_ym.desc())
+        .limit(1)
+    )
+    return session.execute(stmt).scalar_one_or_none()
+
+
+def get_complex_news_targets_sync(
+    session: Session, period: str, snapshot_ym: str, top: int = 20,
+) -> list[dict]:
+    """
+    해당 period+snapshot_ym의 상승 top N(rank<=N) + 하락 top N(change_pct 오름차순)
+    단지를 합쳐 complex_key 기준 dedup 후 반환한다.
+
+    반환: [{"complex_key", "apt_name", "sigungu_name", "eupmyeondong"}, ...]
+    """
+    base_filters = [
+        ReComplexRankingSnapshot.period == period,
+        ReComplexRankingSnapshot.snapshot_ym == snapshot_ym,
+        ReComplexRankingSnapshot.data_status == "ok",
+    ]
+    cols = (
+        ReComplexRankingSnapshot.complex_key,
+        ReComplexRankingSnapshot.apt_name,
+        ReComplexRankingSnapshot.sigungu_name,
+        ReComplexRankingSnapshot.eupmyeondong,
+    )
+    gainers = session.execute(
+        select(*cols)
+        .where(*base_filters, ReComplexRankingSnapshot.rank <= top)
+        .order_by(ReComplexRankingSnapshot.rank.asc())
+    ).all()
+    losers = session.execute(
+        select(*cols)
+        .where(*base_filters)
+        .order_by(ReComplexRankingSnapshot.change_pct.asc().nulls_last())
+        .limit(top)
+    ).all()
+
+    dedup: dict[str, dict] = {}
+    for row in [*gainers, *losers]:
+        dedup.setdefault(row.complex_key, {
+            "complex_key": row.complex_key,
+            "apt_name": row.apt_name,
+            "sigungu_name": row.sigungu_name,
+            "eupmyeondong": row.eupmyeondong,
+        })
+    return list(dedup.values())
+
+
+def replace_complex_news_sync(session: Session, complex_key: str, articles: list[dict]) -> None:
+    """해당 단지의 기존 뉴스 캐시를 지우고 새 결과로 교체한다(빈 리스트면 삭제만)."""
+    session.execute(
+        ReComplexNews.__table__.delete().where(ReComplexNews.complex_key == complex_key)
+    )
+    if articles:
+        session.execute(
+            ReComplexNews.__table__.insert(),
+            [
+                {
+                    "complex_key": complex_key,
+                    "title": a["title"][:500],
+                    "link": a["link"][:1000],
+                    "published_at": a["published_at"],
+                }
+                for a in articles
+            ],
+        )
+    session.commit()
+
+
+def delete_expired_complex_news_sync(session: Session, ttl_days: int) -> int:
+    """TTL 지난 뉴스 캐시를 삭제한다(약관 취지: 무기한 축적 금지)."""
+    result = session.execute(
+        text("DELETE FROM re_complex_news WHERE collected_at < NOW() - (:ttl_days * INTERVAL '1 day')"),
+        {"ttl_days": ttl_days},
+    )
+    session.commit()
+    return result.rowcount
+
+
+async def get_complex_news_async(
+    session: AsyncSession, complex_key: str, ttl_days: int,
+) -> Sequence[ReComplexNews]:
+    """TTL 이내에 수집된 뉴스만 반환한다(만료분은 정리 배치 전이라도 조회에서 제외)."""
+    stmt = (
+        select(ReComplexNews)
+        .where(
+            ReComplexNews.complex_key == complex_key,
+            ReComplexNews.collected_at >= text("NOW() - (:ttl_days * INTERVAL '1 day')"),
+        )
+        .order_by(ReComplexNews.published_at.desc())
+        .params(ttl_days=ttl_days)
+    )
+    result = await session.execute(stmt)
+    return result.scalars().all()
+
+
+async def get_has_news_complex_keys_async(
+    session: AsyncSession, complex_keys: list[str], ttl_days: int,
+) -> set[str]:
+    """주어진 단지 중 TTL 이내 유효한 뉴스 캐시가 있는 complex_key 집합을 반환한다."""
+    if not complex_keys:
+        return set()
+    stmt = (
+        select(ReComplexNews.complex_key)
+        .distinct()
+        .where(
+            ReComplexNews.complex_key.in_(complex_keys),
+            ReComplexNews.collected_at >= text("NOW() - (:ttl_days * INTERVAL '1 day')"),
+        )
+        .params(ttl_days=ttl_days)
+    )
+    result = await session.execute(stmt)
+    return set(result.scalars().all())

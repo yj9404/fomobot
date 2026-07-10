@@ -1,11 +1,11 @@
-from datetime import date
+from datetime import date, timedelta
 from typing import Sequence
 
 from sqlalchemy import func, or_, case, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 
-from fomobot.db.models import PriceDaily, IndexDaily, RankingSnapshot, SecuritiesMaster
+from fomobot.db.models import PriceDaily, IndexDaily, RankingSnapshot, SecuritiesMaster, StockNews
 
 
 # ── RankingSnapshot ──────────────────────────────────────────────────────────
@@ -439,3 +439,133 @@ async def get_latest_prices_async(
 
     result = await session.execute(query, params)
     return {row.ticker: row.close_adj for row in result.fetchall()}
+
+
+def get_latest_ranking_snapshot_date_sync(
+    session: Session, market: str, period: str,
+) -> date | None:
+    """get_latest_snapshot_date(async, API용)의 sync 버전 — 배치가 랭킹 존재 여부를 확인할 때 사용."""
+    stmt = (
+        select(RankingSnapshot.snapshot_date)
+        .where(RankingSnapshot.market == market, RankingSnapshot.period == period)
+        .order_by(RankingSnapshot.snapshot_date.desc())
+        .limit(1)
+    )
+    return session.execute(stmt).scalar_one_or_none()
+
+
+# ── StockNews (뉴스 링크 TTL 캐시) ────────────────────────────────────────────
+
+# 뉴스 관련성 판정 대상 기간 — 장기 구간(90d 이상)은 특정 기사로 환원 불가하므로 제외.
+NEWS_PERIOD_TO_DAYS: dict[str, int] = {"1d": 1, "7d": 7, "30d": 30}
+
+
+def get_kospi_news_targets_sync(
+    session: Session,
+    snapshot_date: date,
+) -> list[dict]:
+    """
+    KOSPI 단기 구간(1d/7d/30d) top20 상승·하락에 등장한 종목을 중복 제거해 반환한다.
+
+    같은 종목이 여러 기간에 동시에 등장하면(캐싱은 종목 단위로 하루 1회이므로)
+    그중 가장 넓은 기간을 관련성 날짜 구간으로 사용한다.
+
+    반환: [{"ticker", "name", "window_start", "window_end"}, ...]
+    """
+    stmt = select(
+        RankingSnapshot.ticker, RankingSnapshot.name, RankingSnapshot.period,
+    ).where(
+        RankingSnapshot.market == "kospi",
+        RankingSnapshot.period.in_(list(NEWS_PERIOD_TO_DAYS)),
+        RankingSnapshot.snapshot_date == snapshot_date,
+        RankingSnapshot.rank <= 20,
+    )
+    rows = session.execute(stmt).fetchall()
+
+    periods_by_ticker: dict[str, set[str]] = {}
+    name_by_ticker: dict[str, str] = {}
+    for row in rows:
+        periods_by_ticker.setdefault(row.ticker, set()).add(row.period)
+        if row.name:
+            name_by_ticker[row.ticker] = row.name
+
+    targets = []
+    for ticker, periods in periods_by_ticker.items():
+        window_days = max(NEWS_PERIOD_TO_DAYS[p] for p in periods)
+        targets.append({
+            "ticker": ticker,
+            "name": name_by_ticker.get(ticker, ticker),
+            "window_start": snapshot_date - timedelta(days=window_days),
+            "window_end": snapshot_date,
+        })
+    return targets
+
+
+def replace_stock_news_sync(session: Session, ticker: str, articles: list[dict]) -> None:
+    """해당 ticker의 기존 뉴스 캐시를 지우고 새 결과로 교체한다(빈 리스트면 삭제만)."""
+    session.execute(
+        StockNews.__table__.delete().where(StockNews.ticker == ticker)
+    )
+    if articles:
+        session.execute(
+            StockNews.__table__.insert(),
+            [
+                {
+                    "ticker": ticker,
+                    "title": a["title"][:500],
+                    "link": a["link"][:1000],
+                    "published_at": a["published_at"],
+                }
+                for a in articles
+            ],
+        )
+    session.commit()
+
+
+def delete_expired_stock_news_sync(session: Session, ttl_days: int) -> int:
+    """TTL 지난 뉴스 캐시를 삭제한다(약관 취지: 무기한 축적 금지)."""
+    from sqlalchemy import text
+    result = session.execute(
+        text("DELETE FROM stock_news WHERE collected_at < NOW() - (:ttl_days * INTERVAL '1 day')"),
+        {"ttl_days": ttl_days},
+    )
+    session.commit()
+    return result.rowcount
+
+
+async def get_stock_news_async(
+    session: AsyncSession, ticker: str, ttl_days: int,
+) -> Sequence[StockNews]:
+    """TTL 이내에 수집된 뉴스만 반환한다(만료분은 정리 배치 전이라도 조회에서 제외)."""
+    from sqlalchemy import text as sa_text
+    stmt = (
+        select(StockNews)
+        .where(
+            StockNews.ticker == ticker,
+            StockNews.collected_at >= sa_text("NOW() - (:ttl_days * INTERVAL '1 day')"),
+        )
+        .order_by(StockNews.published_at.desc())
+        .params(ttl_days=ttl_days)
+    )
+    result = await session.execute(stmt)
+    return result.scalars().all()
+
+
+async def get_has_news_tickers_async(
+    session: AsyncSession, tickers: list[str], ttl_days: int,
+) -> set[str]:
+    """주어진 티커 중 TTL 이내 유효한 뉴스 캐시가 있는 티커 집합을 반환한다."""
+    if not tickers:
+        return set()
+    from sqlalchemy import text as sa_text
+    stmt = (
+        select(StockNews.ticker)
+        .distinct()
+        .where(
+            StockNews.ticker.in_(tickers),
+            StockNews.collected_at >= sa_text("NOW() - (:ttl_days * INTERVAL '1 day')"),
+        )
+        .params(ttl_days=ttl_days)
+    )
+    result = await session.execute(stmt)
+    return set(result.scalars().all())

@@ -3,7 +3,12 @@ from datetime import date
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from realestate.db.crud import get_complex_rankings_async, get_latest_complex_snapshot_ym
+from realestate.config import settings
+from realestate.db.crud import (
+    get_complex_rankings_async,
+    get_has_news_complex_keys_async,
+    get_latest_complex_snapshot_ym,
+)
 from realestate.db.session import get_async_session
 from realestate.schemas.rankings import (
     DISCLAIMER,
@@ -121,6 +126,14 @@ async def get_rankings_endpoint(
             detail=f"{snapshot_ym} 기준 {period} 랭킹 데이터가 없습니다.",
         )
 
+    # has_news는 단기 구간(3m/6m)에서만 채운다 — 그 외(1y 이상)는 뉴스 배치 대상이
+    # 아니므로 null 유지(프론트가 인디케이터 자체를 표시하지 않음).
+    has_news_keys: set[str] = set()
+    if period in ("3m", "6m"):
+        has_news_keys = await get_has_news_complex_keys_async(
+            session, [r.complex_key for r in rows], settings.complex_news_ttl_days,
+        )
+
     ok_items: list[ComplexRankingItem] = []
     excluded_items: list[ComplexRankingItem] = []
     ok_count = 0
@@ -149,6 +162,7 @@ async def get_rankings_endpoint(
             end_tx_count=row.end_tx_count,
             data_status=row.data_status,
             insufficient_reason=row.insufficient_reason,
+            has_news=(row.complex_key in has_news_keys) if period in ("3m", "6m") else None,
         )
         if row.data_status == "ok":
             if ok_count < top:

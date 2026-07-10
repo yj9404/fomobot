@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from fomobot.config import settings
-from fomobot.db.crud import get_latest_snapshot_date, get_rankings
+from fomobot.db.crud import get_has_news_tickers_async, get_latest_snapshot_date, get_rankings
 from fomobot.db.session import get_async_session
 from fomobot.schemas.rankings import (
     CapTierLiteral,
@@ -88,6 +88,14 @@ async def get_rankings_endpoint(
             detail=f"{snapshot_date} 기준 {market.upper()} {period} 랭킹 데이터가 없습니다.",
         )
 
+    # has_news는 KOSPI 단기 구간(1d/7d/30d)에서만 채운다 — 그 외(NASDAQ, 90d 이상)는
+    # 뉴스 배치 대상이 아니므로 null 유지(프론트가 인디케이터 자체를 표시하지 않음).
+    has_news_tickers: set[str] = set()
+    if market == "kospi" and period in ("1d", "7d", "30d"):
+        has_news_tickers = await get_has_news_tickers_async(
+            session, [r.ticker for r in rows], settings.stock_news_ttl_days,
+        )
+
     items = [
         RankingItem(
             rank=r.rank,
@@ -97,6 +105,7 @@ async def get_rankings_endpoint(
             mdd_pct=r.mdd_pct,
             volatility_annualized_pct=r.volatility_annualized_pct,
             excess_return_vs_index_pct=r.excess_return_pct,
+            has_news=(r.ticker in has_news_tickers) if market == "kospi" and period in ("1d", "7d", "30d") else None,
         )
         for r in rows
     ]

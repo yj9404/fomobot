@@ -19,6 +19,13 @@ class RankingItem(BaseModel):
     mdd_pct: float | None = Field(None, description="최대낙폭 MDD (%, ≤ 0)")
     volatility_annualized_pct: float | None = Field(None, description="연율화 변동성 (%)")
     excess_return_vs_index_pct: float | None = Field(None, description="지수 대비 초과수익률 (%)")
+    has_news: bool | None = Field(
+        None,
+        description=(
+            "관련 뉴스 캐시 존재 여부. KOSPI 단기 구간(1d/7d/30d)에서만 채워지며 "
+            "그 외(NASDAQ, 90d 이상)는 null — 프론트는 null이면 인디케이터를 표시하지 않습니다."
+        ),
+    )
 
 
 class RankingsResponse(BaseModel):

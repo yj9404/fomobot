@@ -89,5 +89,12 @@ class Settings(BaseSettings):
     # cleanup 잡이 이 값 이전 데이터를 DELETE한다.
     price_daily_retention_days: int = 2000
 
+    # 네이버 뉴스 검색 API (뉴스 링크 표시 기능). developers.naver.com 에서 발급.
+    naver_client_id: str = ""
+    naver_client_secret: str = ""
+    # stock_news TTL — 다음 정기 배치 갱신까지만 유효한 표시용 캐시(영구 저장 아님).
+    # 평일 매일 배치 갱신 + 주말 버퍼를 감안한 값.
+    stock_news_ttl_days: int = 2
+
 
 settings = Settings()

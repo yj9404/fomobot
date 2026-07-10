@@ -21,6 +21,8 @@ dependencies = [
     "PublicDataReader>=0.5.0",
     # Retry
     "tenacity>=8.3.0",
+    # HTTP (네이버 뉴스 검색 API)
+    "httpx>=0.27.0",
     # Scheduler (dev only)
     "apscheduler>=3.10.0",
     # Monitoring
