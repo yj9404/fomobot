@@ -80,6 +80,38 @@ class TestFilterRelevantArticles:
         )
         assert len(result) == 1
 
+    def test_duplicate_region_name_other_sido_excluded(self):
+        """서울 중구 대상 검색에 대전/인천 '중구' 기사가 also_require_sido 없이는 오탐될 위험."""
+        articles = [
+            make_article("대전 중구 재건축 훈풍", date(2026, 7, 5)),
+            make_article("인천 중구 개발 훈풍", date(2026, 7, 6)),
+        ]
+        result = filter_relevant_articles(
+            articles, "중구", date(2026, 6, 10), date(2026, 7, 10),
+            also_require_any=["재건축", "재개발"],
+            also_require_sido=["서울", "서울시", "서울특별시"],
+        )
+        assert result == []
+
+    def test_duplicate_region_name_matching_sido_passes(self):
+        articles = [make_article("서울 중구 재건축 속도전", date(2026, 7, 5))]
+        result = filter_relevant_articles(
+            articles, "중구", date(2026, 6, 10), date(2026, 7, 10),
+            also_require_any=["재건축", "재개발"],
+            also_require_sido=["서울", "서울시", "서울특별시"],
+        )
+        assert len(result) == 1
+
+    def test_unique_region_name_does_not_require_sido(self):
+        """강남구처럼 유니크한 지역명은 also_require_sido 없이 기존과 동일하게 통과(회수율 유지)."""
+        articles = [make_article("강남구 재건축 속도전", date(2026, 7, 5))]
+        result = filter_relevant_articles(
+            articles, "강남구", date(2026, 6, 10), date(2026, 7, 10),
+            also_require_any=["재건축", "재개발"],
+            also_require_sido=None,
+        )
+        assert len(result) == 1
+
 
 class TestRegionKey:
     def test_dong_key_format(self):

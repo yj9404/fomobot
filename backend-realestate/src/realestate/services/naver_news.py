@@ -107,6 +107,7 @@ def filter_relevant_articles(
     window_end: date,
     limit: int = 3,
     also_require_any: list[str] | None = None,
+    also_require_sido: list[str] | None = None,
 ) -> list[dict]:
     """
     규칙 기반 관련성 필터 (LLM 미사용).
@@ -115,7 +116,10 @@ def filter_relevant_articles(
       1. 제목에 target_name이 직접 포함
       2. also_require_any가 주어지면 그중 하나도 제목에 포함
          (구 단위 폴백 검색에서 일반 시황성 기사 축소용 — GU_FALLBACK_KEYWORDS 참조)
-      3. 발행일이 [window_start, window_end] 구간 내
+      3. also_require_sido가 주어지면 그중 하나도 제목에 포함
+         (also_require_any와 독립적인 별도 AND 조건 — "중구"처럼 여러 시/도에
+         동시 존재하는 동명 지역명 오탐 방지용. batch.regions.DUPLICATE_GU_NAMES 참조)
+      4. 발행일이 [window_start, window_end] 구간 내
 
     통과분을 발행일 최신순으로 정렬해 최대 limit개 반환한다.
     조건을 만족하는 기사가 없으면 빈 리스트(억지 매칭 금지).
@@ -126,6 +130,8 @@ def filter_relevant_articles(
         if target_name not in title:
             continue
         if also_require_any and not any(name in title for name in also_require_any if name):
+            continue
+        if also_require_sido and not any(name in title for name in also_require_sido if name):
             continue
         published_at = article["published_at"]
         if not (window_start <= published_at <= window_end):

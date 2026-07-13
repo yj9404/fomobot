@@ -12,6 +12,7 @@ from realestate.db.models import (
     ReRegionNews,
     ReTransaction,
 )
+from realestate.batch.regions import _find_cross_sido_duplicates
 from realestate.services.naver_news import DONG_INSUFFICIENT_THRESHOLD, region_key
 
 
@@ -458,6 +459,18 @@ async def get_complex_monthly_async(
 
 
 # ── ReRegionNews (동/구 지역 뉴스 링크 TTL 캐시) ──────────────────────────
+
+def get_duplicate_dong_names_sync(session: Session) -> set[str]:
+    """
+    실거래 데이터에 등장하는 법정동명 중 2개 이상 시/도에 걸쳐 존재하는
+    이름 집합을 반환한다(뉴스 관련성 필터에서 시/도 동시 확인이 필요한지
+    판단하는 데 사용 — regions._find_cross_sido_duplicates 참조).
+    """
+    rows = session.execute(
+        text("SELECT DISTINCT sigungu_code, eupmyeondong FROM re_transaction")
+    ).all()
+    return _find_cross_sido_duplicates((row.sigungu_code, row.eupmyeondong) for row in rows)
+
 
 def get_latest_complex_snapshot_ym_sync(session: Session, period: str) -> str | None:
     """get_latest_complex_snapshot_ym(async, API용)의 sync 버전 — 배치용.
