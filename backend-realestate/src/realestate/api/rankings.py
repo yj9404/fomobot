@@ -6,9 +6,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from realestate.config import settings
 from realestate.db.crud import (
     get_complex_rankings_async,
-    get_has_news_complex_keys_async,
+    get_has_news_region_keys_async,
     get_latest_complex_snapshot_ym,
 )
+from realestate.services.naver_news import region_key
 from realestate.db.session import get_async_session
 from realestate.schemas.rankings import (
     DISCLAIMER,
@@ -128,10 +129,17 @@ async def get_rankings_endpoint(
 
     # has_news는 단기 구간(3m/6m)에서만 채운다 — 그 외(1y 이상)는 뉴스 배치 대상이
     # 아니므로 null 유지(프론트가 인디케이터 자체를 표시하지 않음).
-    has_news_keys: set[str] = set()
+    # 뉴스는 단지가 아니라 동(1순위)/구(폴백) 단위 캐시이므로, 각 단지가 이미
+    # 갖고 있는 sigungu_code/eupmyeondong으로 두 후보 키를 만들어 합집합 조회한다.
+    has_news_region_keys: set[str] = set()
     if period in ("3m", "6m"):
-        has_news_keys = await get_has_news_complex_keys_async(
-            session, [r.complex_key for r in rows], settings.complex_news_ttl_days,
+        candidate_keys = {
+            key
+            for r in rows
+            for key in (region_key(r.sigungu_code, r.eupmyeondong), region_key(r.sigungu_code))
+        }
+        has_news_region_keys = await get_has_news_region_keys_async(
+            session, list(candidate_keys), settings.region_news_ttl_days,
         )
 
     ok_items: list[ComplexRankingItem] = []
@@ -162,7 +170,10 @@ async def get_rankings_endpoint(
             end_tx_count=row.end_tx_count,
             data_status=row.data_status,
             insufficient_reason=row.insufficient_reason,
-            has_news=(row.complex_key in has_news_keys) if period in ("3m", "6m") else None,
+            has_news=(
+                region_key(row.sigungu_code, row.eupmyeondong) in has_news_region_keys
+                or region_key(row.sigungu_code) in has_news_region_keys
+            ) if period in ("3m", "6m") else None,
         )
         if row.data_status == "ok":
             if ok_count < top:

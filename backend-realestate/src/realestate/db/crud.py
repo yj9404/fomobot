@@ -7,11 +7,12 @@ from sqlalchemy.orm import Session
 
 from realestate.db.models import (
     ReCollectionLog,
-    ReComplexNews,
     ReComplexRankingSnapshot,
     ReComplexStat,
+    ReRegionNews,
     ReTransaction,
 )
+from realestate.services.naver_news import DONG_INSUFFICIENT_THRESHOLD, region_key
 
 
 # ── 비동기 (API용) ─────────────────────────────────────────────────────
@@ -456,7 +457,7 @@ async def get_complex_monthly_async(
     return result.all()
 
 
-# ── ReComplexNews (뉴스 링크 TTL 캐시) ────────────────────────────────────
+# ── ReRegionNews (동/구 지역 뉴스 링크 TTL 캐시) ──────────────────────────
 
 def get_latest_complex_snapshot_ym_sync(session: Session, period: str) -> str | None:
     """get_latest_complex_snapshot_ym(async, API용)의 sync 버전 — 배치용.
@@ -473,14 +474,14 @@ def get_latest_complex_snapshot_ym_sync(session: Session, period: str) -> str | 
     return session.execute(stmt).scalar_one_or_none()
 
 
-def get_complex_news_targets_sync(
+def get_region_news_targets_sync(
     session: Session, period: str, snapshot_ym: str, top: int = 20,
 ) -> list[dict]:
     """
     해당 period+snapshot_ym의 상승 top N(rank<=N) + 하락 top N(change_pct 오름차순)
-    단지를 합쳐 complex_key 기준 dedup 후 반환한다.
+    단지들이 속한 동을 (sigungu_code, eupmyeondong) 기준 dedup 후 반환한다.
 
-    반환: [{"complex_key", "apt_name", "sigungu_name", "eupmyeondong"}, ...]
+    반환: [{"sigungu_code", "sigungu_name", "eupmyeondong"}, ...]
     """
     base_filters = [
         ReComplexRankingSnapshot.period == period,
@@ -488,8 +489,7 @@ def get_complex_news_targets_sync(
         ReComplexRankingSnapshot.data_status == "ok",
     ]
     cols = (
-        ReComplexRankingSnapshot.complex_key,
-        ReComplexRankingSnapshot.apt_name,
+        ReComplexRankingSnapshot.sigungu_code,
         ReComplexRankingSnapshot.sigungu_name,
         ReComplexRankingSnapshot.eupmyeondong,
     )
@@ -505,28 +505,31 @@ def get_complex_news_targets_sync(
         .limit(top)
     ).all()
 
-    dedup: dict[str, dict] = {}
+    dedup: dict[tuple[str, str], dict] = {}
     for row in [*gainers, *losers]:
-        dedup.setdefault(row.complex_key, {
-            "complex_key": row.complex_key,
-            "apt_name": row.apt_name,
+        dedup.setdefault((row.sigungu_code, row.eupmyeondong), {
+            "sigungu_code": row.sigungu_code,
             "sigungu_name": row.sigungu_name,
             "eupmyeondong": row.eupmyeondong,
         })
     return list(dedup.values())
 
 
-def replace_complex_news_sync(session: Session, complex_key: str, articles: list[dict]) -> None:
-    """해당 단지의 기존 뉴스 캐시를 지우고 새 결과로 교체한다(빈 리스트면 삭제만)."""
+def replace_region_news_sync(
+    session: Session, region_key_: str, region_label: str, granularity: str, articles: list[dict],
+) -> None:
+    """해당 지역의 기존 뉴스 캐시를 지우고 새 결과로 교체한다(빈 리스트면 삭제만)."""
     session.execute(
-        ReComplexNews.__table__.delete().where(ReComplexNews.complex_key == complex_key)
+        ReRegionNews.__table__.delete().where(ReRegionNews.region_key == region_key_)
     )
     if articles:
         session.execute(
-            ReComplexNews.__table__.insert(),
+            ReRegionNews.__table__.insert(),
             [
                 {
-                    "complex_key": complex_key,
+                    "region_key": region_key_,
+                    "region_label": region_label,
+                    "granularity": granularity,
                     "title": a["title"][:500],
                     "link": a["link"][:1000],
                     "published_at": a["published_at"],
@@ -537,45 +540,76 @@ def replace_complex_news_sync(session: Session, complex_key: str, articles: list
     session.commit()
 
 
-def delete_expired_complex_news_sync(session: Session, ttl_days: int) -> int:
+def delete_expired_region_news_sync(session: Session, ttl_days: int) -> int:
     """TTL 지난 뉴스 캐시를 삭제한다(약관 취지: 무기한 축적 금지)."""
     result = session.execute(
-        text("DELETE FROM re_complex_news WHERE collected_at < NOW() - (:ttl_days * INTERVAL '1 day')"),
+        text("DELETE FROM re_region_news WHERE collected_at < NOW() - (:ttl_days * INTERVAL '1 day')"),
         {"ttl_days": ttl_days},
     )
     session.commit()
     return result.rowcount
 
 
-async def get_complex_news_async(
-    session: AsyncSession, complex_key: str, ttl_days: int,
-) -> Sequence[ReComplexNews]:
-    """TTL 이내에 수집된 뉴스만 반환한다(만료분은 정리 배치 전이라도 조회에서 제외)."""
+async def _get_region_news_rows_async(
+    session: AsyncSession, region_key_: str, ttl_days: int,
+) -> Sequence[ReRegionNews]:
     stmt = (
-        select(ReComplexNews)
+        select(ReRegionNews)
         .where(
-            ReComplexNews.complex_key == complex_key,
-            ReComplexNews.collected_at >= text("NOW() - (:ttl_days * INTERVAL '1 day')"),
+            ReRegionNews.region_key == region_key_,
+            ReRegionNews.collected_at >= text("NOW() - (:ttl_days * INTERVAL '1 day')"),
         )
-        .order_by(ReComplexNews.published_at.desc())
+        .order_by(ReRegionNews.published_at.desc())
         .params(ttl_days=ttl_days)
     )
     result = await session.execute(stmt)
     return result.scalars().all()
 
 
-async def get_has_news_complex_keys_async(
-    session: AsyncSession, complex_keys: list[str], ttl_days: int,
+async def get_region_news_for_complex_async(
+    session: AsyncSession,
+    sigungu_code: str,
+    eupmyeondong: str,
+    ttl_days: int,
+) -> tuple[Sequence[ReRegionNews], str | None, str | None]:
+    """
+    단지가 속한 동/구 뉴스를 우선순위대로 조회한다.
+
+    우선순위: 동 뉴스 3건 이상 → 동 뉴스. 아니면 구 뉴스가 있으면 구 뉴스(더 넓은
+    동네 소식으로 대체). 구도 없으면 동의 부분 결과(1~2건)라도 있으면 그것을 사용.
+    아무 것도 없으면 (빈 시퀀스, None, None).
+
+    region_label은 재구성하지 않고 캐시 행에 이미 저장된 값을 그대로 사용한다
+    (단일 진실 공급원 — 배치가 저장한 라벨과 조회 응답이 항상 일치하도록).
+    """
+    dong_key = region_key(sigungu_code, eupmyeondong)
+    dong_rows = await _get_region_news_rows_async(session, dong_key, ttl_days)
+    if len(dong_rows) >= DONG_INSUFFICIENT_THRESHOLD:
+        return dong_rows, dong_rows[0].region_label, "dong"
+
+    gu_key = region_key(sigungu_code)
+    gu_rows = await _get_region_news_rows_async(session, gu_key, ttl_days)
+    if gu_rows:
+        return gu_rows, gu_rows[0].region_label, "gu"
+
+    if dong_rows:
+        return dong_rows, dong_rows[0].region_label, "dong"
+
+    return [], None, None
+
+
+async def get_has_news_region_keys_async(
+    session: AsyncSession, region_keys: list[str], ttl_days: int,
 ) -> set[str]:
-    """주어진 단지 중 TTL 이내 유효한 뉴스 캐시가 있는 complex_key 집합을 반환한다."""
-    if not complex_keys:
+    """주어진 region_key 중 TTL 이내 유효한 뉴스 캐시가 있는 키 집합을 반환한다."""
+    if not region_keys:
         return set()
     stmt = (
-        select(ReComplexNews.complex_key)
+        select(ReRegionNews.region_key)
         .distinct()
         .where(
-            ReComplexNews.complex_key.in_(complex_keys),
-            ReComplexNews.collected_at >= text("NOW() - (:ttl_days * INTERVAL '1 day')"),
+            ReRegionNews.region_key.in_(region_keys),
+            ReRegionNews.collected_at >= text("NOW() - (:ttl_days * INTERVAL '1 day')"),
         )
         .params(ttl_days=ttl_days)
     )

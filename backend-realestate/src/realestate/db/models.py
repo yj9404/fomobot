@@ -127,19 +127,30 @@ class ReComplexRankingSnapshot(Base):
     )
 
 
-class ReComplexNews(Base):
+class ReRegionNews(Base):
     """
-    단지별 관련 뉴스 TTL 캐시.
+    지역(동/구) 단위 관련 뉴스 TTL 캐시.
+
+    단지 단위(apt_name) 검색은 개별 단지 기사가 원래 희소해 회수율이 극히
+    낮았다 — 뉴스의 자연스러운 단위인 동(1순위)/구(동 결과 부족 시 폴백)로
+    전환했다. 단지→지역 매핑은 조회 시점에 ReComplexRankingSnapshot/
+    ReComplexStat의 sigungu_code/eupmyeondong을 사용해 계산한다(이 테이블은
+    지역 키만 알면 되고 단지 정보를 갖지 않는다).
+
+    region_key: 동 단위 "{sigungu_code}:{eupmyeondong}", 구 폴백 단위
+    "{sigungu_code}" 단독 (services.naver_news.region_key 참조).
 
     영구 저장소가 아니다 — 다음 배치 갱신까지만 유효한 표시용 캐시이며,
     만료분은 배치가 DELETE한다(네이버 오픈API 이용약관의 "검색결과를
     별도 DB로 무기한 축적" 금지 취지를 존중하기 위함).
     랭킹 배치(월 1회)와 별도로 주 1회 독립 갱신된다.
     """
-    __tablename__ = "re_complex_news"
+    __tablename__ = "re_region_news"
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
-    complex_key = Column(String(64), nullable=False)
+    region_key = Column(String(64), nullable=False)
+    region_label = Column(String(100), nullable=False)     # 표시용, 예: "강남구 개포동"
+    granularity = Column(String(10), nullable=False)        # 'dong' | 'gu'
     title = Column(String(500), nullable=False)
     link = Column(String(1000), nullable=False)
     published_at = Column(Date, nullable=False)
@@ -148,8 +159,8 @@ class ReComplexNews(Base):
     )
 
     __table_args__ = (
-        UniqueConstraint("complex_key", "link", name="uq_re_complex_news"),
-        Index("ix_re_complex_news_key", "complex_key"),
+        UniqueConstraint("region_key", "link", name="uq_re_region_news"),
+        Index("ix_re_region_news_key", "region_key"),
     )
 
 

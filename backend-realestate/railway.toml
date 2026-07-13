@@ -3,7 +3,7 @@
 # 서비스 구성:
 #   1. web                — FastAPI 웹 서버 (이 파일의 [deploy] 섹션)
 #   2. cron-re-incremental — 매월 증분 수집 + 단지 랭킹 재계산 (Railway Dashboard > Add Service > Cron)
-#   3. cron-complex-news   — 단지 관련 뉴스 수집 (랭킹 배치와 독립된 주 1회 주기)
+#   3. cron-complex-news   — 동/구 지역 관련 뉴스 수집 (랭킹 배치와 독립된 주 1회 주기)
 #
 # Cron 서비스는 railway.toml 에서 직접 정의할 수 없으므로
 # Railway Dashboard 에서 수동으로 추가해야 한다.
@@ -20,8 +20,11 @@
 #    Command  : python -m realestate.jobs.collect_complex_news
 #    (매주 월요일 03:00 KST = 전주 일요일 18:00 UTC. 랭킹 계산(월 1회)과 완전히
 #     독립된 주기 — 가장 최근에 존재하는 단지 랭킹 스냅샷(3m/6m) 상의 top/bottom
-#     20 단지에 대해 네이버 뉴스 검색 API로 뉴스만 재검색해 re_complex_news TTL
-#     캐시(기본 9일)를 갱신한다. 랭킹 스냅샷이 전혀 없으면 검색 없이 스킵한다.
+#     20 단지가 속한 동(1순위)/구(동 결과 부족 시 폴백)에 대해 네이버 뉴스 검색
+#     API로 뉴스만 재검색해 re_region_news TTL 캐시(기본 9일)를 갱신한다.
+#     단지 단위가 아닌 동/구 단위 캐시라 같은 동 단지들은 동일 뉴스를 공유한다.
+#     랭킹 스냅샷이 전혀 없으면 검색 없이 스킵한다. 모듈 경로(jobs.collect_complex_news)는
+#     이전 이름을 유지 — Dashboard의 Cron Command 재설정 불필요.
 #     NAVER_CLIENT_ID/SECRET 환경변수 설정 필요.)
 #
 # ──────────────────────────────────────────────────────────────────────────────

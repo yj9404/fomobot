@@ -20,7 +20,15 @@ logger = logging.getLogger(__name__)
 NAVER_NEWS_URL = "https://openapi.naver.com/v1/search/news.json"
 
 _TAG_RE = re.compile(r"</?b>")
-_GENERIC_NAME_STRIP_RE = re.compile(r"[0-9]|차$|단지$")
+
+# 동 단위 검색+필터 결과가 이 값 미만이면 그 동이 속한 구 단위로 폴백 검색한다.
+DONG_INSUFFICIENT_THRESHOLD = 3
+
+# 구 단위 폴백 검색에서 "OO구 집값" 같은 일반 시황성 기사를 걸러내기 위해
+# 제목에 하나 이상 포함되기를 요구하는 부동산 재료 키워드.
+GU_FALLBACK_KEYWORDS = [
+    "재건축", "재개발", "정비사업", "분양", "착공", "입주", "역세권", "GTX",
+]
 
 
 def _strip_tags(text: str) -> str:
@@ -36,16 +44,13 @@ def _parse_pub_date(pub_date: str) -> date | None:
         return None
 
 
-def is_generic_short_name(apt_name: str) -> bool:
+def region_key(sigungu_code: str, eupmyeondong: str | None = None) -> str:
     """
-    차수·숫자 접미사를 뗀 순수 이름 길이가 4자 이하면 "자이"/"래미안" 같은
-    흔한 브랜드 단독명으로 간주한다(별도 브랜드 사전 없이 길이 휴리스틱만 사용).
-
-    이런 이름은 단독으로는 전국 동명 단지 기사와 섞일 위험이 있어
-    관련성 필터에서 지역명(sigungu_name/eupmyeondong) 동시 언급을 추가 요구한다.
+    지역 뉴스 캐시 키를 만든다. 동 단위는 "{sigungu_code}:{eupmyeondong}",
+    구 단위(폴백)는 "{sigungu_code}" 단독 — 배치(쓰기)와 조회(읽기) 양쪽에서
+    동일한 포맷을 쓰도록 한 곳에서 관리한다.
     """
-    stripped = _GENERIC_NAME_STRIP_RE.sub("", apt_name).strip()
-    return len(stripped) <= 4
+    return f"{sigungu_code}:{eupmyeondong}" if eupmyeondong else sigungu_code
 
 
 def search_news(query: str, display: int = 10) -> list[dict]:
@@ -109,7 +114,7 @@ def filter_relevant_articles(
     통과 조건 (모두 충족해야 함):
       1. 제목에 target_name이 직접 포함
       2. also_require_any가 주어지면 그중 하나도 제목에 포함
-         (브랜드 단독명 동명 단지 오탐 축소용 — is_generic_short_name 참조)
+         (구 단위 폴백 검색에서 일반 시황성 기사 축소용 — GU_FALLBACK_KEYWORDS 참조)
       3. 발행일이 [window_start, window_end] 구간 내
 
     통과분을 발행일 최신순으로 정렬해 최대 limit개 반환한다.
