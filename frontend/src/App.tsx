@@ -10,6 +10,7 @@ import { ErrorState } from './components/ErrorState'
 import { RealEstateView } from './views/RealEstateView'
 import { StockSearchArea } from './components/StockSearchArea'
 import { Footer } from './components/Footer'
+import { AdFitUnit } from './components/AdFitUnit'
 import { useRankings } from './hooks/useRankings'
 import { useBacktestDetail } from './hooks/useBacktestDetail'
 import { useNewsCache } from './hooks/useNewsCache'
@@ -100,7 +101,8 @@ export default function App() {
   const { load: loadBtDetail, get: getBtDetail } = useBacktestDetail(market, period.value, asOf)
   const { load: loadNews, get: getNews } = useNewsCache(fetchStockNews)
 
-  useAdGate(tab === 'stock' ? status === 'ok' : reHasContent)
+  const hasContent = tab === 'stock' ? status === 'ok' : reHasContent
+  useAdGate(hasContent)
 
   const windowWidth = useWindowWidth()
   const isDesktop = windowWidth >= 1024
@@ -313,6 +315,14 @@ export default function App() {
                 t={t}
               />
             )}
+            {hasContent && (
+              <AdFitUnit
+                adUnit={import.meta.env.VITE_ADFIT_UNIT_DESKTOP_BOTTOM}
+                width={300}
+                height={250}
+                style={{ margin: '16px auto' }}
+              />
+            )}
           </div>
 
           {tab === 'stock' && (
@@ -399,6 +409,15 @@ export default function App() {
             onResetFilters={handleReResetFilters}
             onContentChange={setReHasContent}
             t={t}
+          />
+        )}
+
+        {hasContent && (
+          <AdFitUnit
+            adUnit={import.meta.env.VITE_ADFIT_UNIT_MOBILE_BOTTOM}
+            width={320}
+            height={50}
+            style={{ margin: '10px auto' }}
           />
         )}
 
