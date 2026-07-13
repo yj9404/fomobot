@@ -32,6 +32,12 @@ export interface Strings {
   newsTitle: string
   newsLoading: string
   newsDotTitle: string
+  breadthUp: string
+  breadthDown: string
+  breadthFlat: string
+  breadthPanic: string
+  breadthFomo: string
+  breadthNeutral: string
 }
 
 const STR: Record<Lang, Strings> = {
@@ -67,6 +73,12 @@ const STR: Record<Lang, Strings> = {
     newsTitle: '관련 뉴스',
     newsLoading: '뉴스 불러오는 중…',
     newsDotTitle: '관련 뉴스 있음',
+    breadthUp: '상승',
+    breadthDown: '하락',
+    breadthFlat: '보합',
+    breadthPanic: '다들 도망가는 중입니다',
+    breadthFomo: '다들 올라타는 중입니다. 당신 빼고.',
+    breadthNeutral: '시장도 갈피를 못 잡는 중',
   },
   en: {
     tagline: 'Hall of fame for things that already mooned',
@@ -100,6 +112,12 @@ const STR: Record<Lang, Strings> = {
     newsTitle: 'Related news',
     newsLoading: 'Loading news…',
     newsDotTitle: 'Related news available',
+    breadthUp: 'Up',
+    breadthDown: 'Down',
+    breadthFlat: 'Flat',
+    breadthPanic: "Everyone's running for the exits",
+    breadthFomo: "Everyone's piling in. Except you.",
+    breadthNeutral: "Even the market can't make up its mind",
   },
 }
 

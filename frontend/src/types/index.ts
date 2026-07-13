@@ -255,6 +255,18 @@ export interface StockQuoteResponse {
   data_coverage: DataCoverage
 }
 
+// ── 시장 breadth (상승/하락/보합 종목 수) ───────────────────────────────────
+export interface BreadthResponse {
+  market: Market
+  date: string
+  advancers: number
+  decliners: number
+  unchanged: number
+  excluded: number
+  halted: number
+  total: number
+}
+
 // ── 관련 뉴스 (지연 로딩 전용, KOSPI/부동산 단기 구간만) ────────────────────
 export interface NewsArticle {
   title: string

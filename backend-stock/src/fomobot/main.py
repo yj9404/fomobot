@@ -10,6 +10,7 @@ from fomobot.api.rankings import router as rankings_router
 from fomobot.api.backtest import router as backtest_router
 from fomobot.api.search import router as search_router
 from fomobot.api.news import router as news_router
+from fomobot.api.breadth import router as breadth_router
 from fomobot.config import settings
 from fomobot.sentry_init import init_sentry
 
@@ -59,6 +60,7 @@ app.include_router(rankings_router)
 app.include_router(backtest_router)
 app.include_router(search_router)
 app.include_router(news_router)
+app.include_router(breadth_router)
 
 
 @app.api_route("/health", methods=["GET", "HEAD"], tags=["Health"])

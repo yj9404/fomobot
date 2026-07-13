@@ -9,6 +9,7 @@ import { EmptyState } from './components/EmptyState'
 import { ErrorState } from './components/ErrorState'
 import { RealEstateView } from './views/RealEstateView'
 import { StockSearchArea } from './components/StockSearchArea'
+import { BreadthWidget } from './components/BreadthWidget'
 import { Footer } from './components/Footer'
 import { AdFitUnit } from './components/AdFitUnit'
 import { useRankings } from './hooks/useRankings'
@@ -280,6 +281,7 @@ export default function App() {
             {tab === 'stock' && (
               <>
                 <StockSearchArea market={market} lang={lang} t={t} />
+                <BreadthWidget market={market} t={t} />
                 {status === 'loading' && <SkeletonList t={t} />}
                 {status === 'empty' && <EmptyState t={t} onRetry={() => { handlePeriod(2); setCapTier('all') }} />}
                 {status === 'error' && <ErrorState t={t} onRetry={() => setRetryKey((k) => k + 1)} />}
@@ -354,6 +356,7 @@ export default function App() {
         {tab === 'stock' && (
           <>
             <StockSearchArea market={market} lang={lang} t={t} />
+            <BreadthWidget market={market} t={t} />
             {status === 'loading' && <SkeletonList t={t} />}
             {status === 'empty' && <EmptyState t={t} onRetry={() => { handlePeriod(2); setCapTier('all') }} />}
             {status === 'error' && <ErrorState t={t} onRetry={() => setRetryKey((k) => k + 1)} />}
