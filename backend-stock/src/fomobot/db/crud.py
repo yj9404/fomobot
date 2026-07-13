@@ -3,9 +3,12 @@ from typing import Sequence
 
 from sqlalchemy import func, or_, case, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, aliased
 
-from fomobot.db.models import PriceDaily, IndexDaily, RankingSnapshot, SecuritiesMaster, StockNews
+from fomobot.db.models import (
+    PriceDaily, IndexDaily, RankingSnapshot, SecuritiesMaster, StockNews,
+    MarketBreadthDaily,
+)
 
 
 # ── RankingSnapshot ──────────────────────────────────────────────────────────
@@ -452,6 +455,106 @@ def get_latest_ranking_snapshot_date_sync(
         .limit(1)
     )
     return session.execute(stmt).scalar_one_or_none()
+
+
+# ── MarketBreadthDaily (배치용 sync, API용 async) ────────────────────────────
+
+def get_breadth_price_pairs_sync(
+    session: Session,
+    market: str,
+    date_curr: date,
+    date_prev: date | None,
+) -> list[dict]:
+    """
+    breadth 계산용 (당일 종가, 전일 종가) 페어를 명시적 JOIN으로 조회한다.
+
+    LAG 윈도우 함수를 쓰지 않는 이유: 종목별로 결측 거래일이 있으면 LAG는
+    "가장 최근에 존재하는 이전 행"과 비교해버려 실제로는 하루 전이 아닌
+    이틀 전 이상 종가와 비교하는 오류가 생긴다. 대신 date_curr 테이블과
+    date_prev 테이블을 ticker 기준 LEFT JOIN해 정확히 두 날짜만 비교한다.
+    date_prev에 해당 ticker 행이 없으면 close_prev=None으로 반환되며,
+    호출자가 이를 "전일 데이터 없음(excluded)"으로 분류해야 한다.
+
+    date_prev가 None이면(직전 거래일 자체가 없음) 전부 close_prev=None으로 반환한다.
+    """
+    curr = aliased(PriceDaily)
+
+    if date_prev is None:
+        # 직전 거래일 자체가 없음 (시계열 최초 구간) — 전부 close_prev=None으로 반환
+        stmt = select(
+            curr.ticker, curr.close_adj.label("close_curr"), curr.volume.label("volume_curr"),
+        ).where(curr.market == market, curr.date == date_curr)
+        rows = session.execute(stmt).fetchall()
+        return [
+            {"ticker": r.ticker, "close_curr": r.close_curr, "volume_curr": r.volume_curr, "close_prev": None}
+            for r in rows
+        ]
+
+    prev = aliased(PriceDaily)
+    stmt = (
+        select(
+            curr.ticker,
+            curr.close_adj.label("close_curr"),
+            curr.volume.label("volume_curr"),
+            prev.close_adj.label("close_prev"),
+        )
+        .select_from(curr)
+        .outerjoin(
+            prev,
+            (prev.ticker == curr.ticker)
+            & (prev.market == curr.market)
+            & (prev.date == date_prev),
+        )
+        .where(curr.market == market, curr.date == date_curr)
+    )
+    rows = session.execute(stmt).fetchall()
+    return [r._asdict() for r in rows]
+
+
+def get_security_names_sync(
+    session: Session, market: str, tickers: list[str],
+) -> dict[str, str]:
+    """티커 → 종목명 매핑 (breadth 계산 시 NASDAQ SPAC 부속증권 제외 판정용)."""
+    if not tickers:
+        return {}
+    stmt = select(SecuritiesMaster.ticker, SecuritiesMaster.name).where(
+        SecuritiesMaster.market == market,
+        SecuritiesMaster.ticker.in_(tickers),
+    )
+    rows = session.execute(stmt).fetchall()
+    return {r.ticker: r.name for r in rows}
+
+
+def upsert_market_breadth_daily_sync(session: Session, record: dict) -> None:
+    from sqlalchemy.dialects.postgresql import insert as pg_insert
+    stmt = pg_insert(MarketBreadthDaily).values(**record)
+    stmt = stmt.on_conflict_do_update(
+        constraint="uq_market_breadth_daily",
+        set_={
+            "advancers": stmt.excluded.advancers,
+            "decliners": stmt.excluded.decliners,
+            "unchanged": stmt.excluded.unchanged,
+            "excluded": stmt.excluded.excluded,
+            "halted": stmt.excluded.halted,
+            "total": stmt.excluded.total,
+        },
+    )
+    session.execute(stmt)
+    session.commit()
+
+
+async def get_latest_market_breadth_async(
+    session: AsyncSession, market: str,
+) -> MarketBreadthDaily | None:
+    """API용 — market_breadth_daily 최신 1행 조회 (실시간 계산 없이 테이블 조회만)."""
+    stmt = (
+        select(MarketBreadthDaily)
+        .where(MarketBreadthDaily.market == market)
+        .order_by(MarketBreadthDaily.date.desc())
+        .limit(1)
+    )
+    result = await session.execute(stmt)
+    return result.scalar_one_or_none()
 
 
 # ── StockNews (뉴스 링크 TTL 캐시) ────────────────────────────────────────────

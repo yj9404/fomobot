@@ -36,6 +36,33 @@ class PriceDaily(Base):
     )
 
 
+class MarketBreadthDaily(Base):
+    """
+    시장 breadth(상승/하락/보합 종목 수) 일별 집계.
+
+    배치가 계산 후 upsert하며, API는 이 테이블만 조회한다(실시간 계산 금지).
+    excluded: date에는 있으나 전일 종가가 없어 등락 판정에서 제외된 종목 수(신규상장 등).
+    halted: 거래량 0 종목 수 — 참고용이며 advancers/decliners/unchanged와 배타적이지 않음.
+    total: advancers + decliners + unchanged + excluded (NASDAQ은 SPAC 부속증권류 제외 후 기준).
+    """
+    __tablename__ = "market_breadth_daily"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    market = Column(String(10), nullable=False)
+    date = Column(Date, nullable=False)
+    advancers = Column(Integer, nullable=False)
+    decliners = Column(Integer, nullable=False)
+    unchanged = Column(Integer, nullable=False)
+    excluded = Column(Integer, nullable=False)
+    halted = Column(Integer, nullable=False)
+    total = Column(Integer, nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("market", "date", name="uq_market_breadth_daily"),
+        Index("ix_market_breadth_daily_market_date", "market", "date"),
+    )
+
+
 class IndexDaily(Base):
     """지수 일별 데이터 (KOSPI지수·QQQ). 초과수익 계산에 사용."""
     __tablename__ = "index_daily"
