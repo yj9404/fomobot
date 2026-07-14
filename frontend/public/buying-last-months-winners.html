@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>지난달 급등주를 사면 어떻게 되나 — FomoBot</title>
+  <meta name="description" content="한 달 상승률 상위 10종목을 사서 한 달 보유하면 어떻게 되는가. 무작위 10종목 1,000회 시뮬레이션과 지수를 대조했습니다. 나스닥은 명확한 답을 줬고, 코스피는 주지 않았습니다." />
+  <link rel="icon" type="image/svg+xml" href="/icons/favicon.svg" />
+  <link rel="stylesheet" href="/static-page.css" />
+  <link rel="canonical" href="https://fomobot-dun.vercel.app/buying-last-months-winners.html" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:title" content="지난달 급등주를 사면 어떻게 되나 — FomoBot" />
+  <meta property="og:description" content="상위10 vs 무작위10 vs 지수. 나스닥 상위10 바스켓은 월평균 -10.92%, 같은 유니버스에서 아무거나 열 개 고른 바스켓은 +1.44%였습니다." />
+  <meta property="og:url" content="https://fomobot-dun.vercel.app/buying-last-months-winners.html" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "지난달 급등주를 사면 어떻게 되나",
+    "datePublished": "2026-07-14",
+    "dateModified": "2026-07-14",
+    "author": { "@type": "Organization", "name": "FomoBot" },
+    "publisher": { "@type": "Organization", "name": "FomoBot" },
+    "mainEntityOfPage": "https://fomobot-dun.vercel.app/buying-last-months-winners.html"
+  }
+  </script>
+
+  <style>
+    .article-meta { font-size: 0.85em; opacity: 0.65; margin-top: -0.5em; }
+    .data-table { width: 100%; border-collapse: collapse; margin: 1.5em 0; font-size: 0.95em; }
+    .data-table caption { text-align: left; font-size: 0.85em; opacity: 0.65; padding-bottom: 0.6em; }
+    .data-table th, .data-table td {
+      padding: 0.55em 0.4em;
+      border-bottom: 1px solid rgba(128,128,128,0.25);
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+    .data-table th:first-child, .data-table td:first-child { text-align: left; white-space: nowrap; }
+    .data-table thead th { font-size: 0.85em; opacity: 0.65; font-weight: 600; }
+    .data-table tfoot td { font-weight: 600; border-top: 1px solid rgba(128,128,128,0.5); border-bottom: none; }
+    .data-table tr.spot td { font-weight: 600; }
+    .pull { margin: 1.8em 0; padding: 1em 1.2em; border-left: 3px solid currentColor; }
+    .pull p { margin: 0; }
+    .footnotes {
+      margin-top: 3em; padding-top: 1.2em;
+      border-top: 1px solid rgba(128,128,128,0.3);
+      font-size: 0.85em; opacity: 0.75; line-height: 1.7;
+    }
+    @media (max-width: 480px) {
+      .data-table { font-size: 0.78em; }
+      .data-table th, .data-table td { padding: 0.4em 0.2em; }
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="/" class="brand">FomoBot</a>
+    <div class="links">
+      <a href="/about.html">소개</a>
+      <a href="/methodology.html">방법론</a>
+      <a href="/survivorship-bias.html">생존 편향</a>
+      <a href="/glossary.html">용어 해설</a>
+      <a href="/privacy.html">개인정보처리방침</a>
+    </div>
+  </nav>
+
+  <main>
+    <h1>지난달 급등주를 사면 어떻게 되나</h1>
+    <p class="article-meta">2026년 7월 14일 · 데이터 분석</p>
+
+    <p>FomoBot은 매일 지난 한 달 동안 가장 많이 오른 종목 열 개를 보여줍니다. 그 목록을 보는 사람의 머릿속에는 대체로 같은 문장이 지나갑니다. <em>지금이라도 사면 늦은 건가.</em></p>
+
+    <p>답을 구하려면 세 가지를 나란히 놓아야 합니다.</p>
+
+    <ol>
+      <li><strong>상위10</strong> — 어느 날 T의 30일 상승률 상위 10종목을 같은 금액씩 사서 한 달 뒤에 판다.</li>
+      <li><strong>무작위10</strong> — 같은 날, 같은 유니버스에서 아무 종목이나 열 개 뽑아 똑같이 한다. 1,000번 반복해 평균을 낸다.</li>
+      <li><strong>지수</strong> — 아무것도 하지 않고 시장 전체를 산다.</li>
+    </ol>
+
+    <p>최근 12개월에서 서로 겹치지 않는 구간 10개를 잡았습니다. 구간이 겹치면 같은 상승분을 두 번 세게 되므로 앵커 사이를 30~35일씩 벌렸습니다.</p>
+
+    <p>무작위10이 핵심입니다. 이게 없으면 "급등주라서 나빴다"와 "그냥 소형주라서 나빴다"를 구분할 수 없습니다.</p>
+
+    <h2>NASDAQ</h2>
+
+    <table class="data-table">
+      <caption>동일비중 포트폴리오 수익률 · 무작위10은 1,000회 시뮬레이션 평균</caption>
+      <thead>
+        <tr><th>보유 구간</th><th>상위10</th><th>무작위10</th><th>QQQ</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>07-14 → 08-18</td><td>-7.81%</td><td>+0.65%</td><td>+3.76%</td></tr>
+        <tr class="spot"><td>08-18 → 09-22</td><td>-27.63%</td><td>+5.44%</td><td>+4.47%</td></tr>
+        <tr><td>09-22 → 10-27</td><td>-15.86%</td><td>+1.41%</td><td>+4.30%</td></tr>
+        <tr><td>10-27 → 12-01</td><td>-24.93%</td><td>-5.35%</td><td>-1.74%</td></tr>
+        <tr><td>12-01 → 01-05</td><td>-16.92%</td><td>+2.78%</td><td>+0.26%</td></tr>
+        <tr><td>01-05 → 02-09</td><td>+6.52%</td><td>+0.67%</td><td>-0.59%</td></tr>
+        <tr><td>02-09 → 03-16</td><td>+5.49%</td><td>-6.15%</td><td>-2.27%</td></tr>
+        <tr><td>03-16 → 04-15</td><td>+6.80%</td><td>+6.96%</td><td>+6.30%</td></tr>
+        <tr><td>04-15 → 05-15</td><td>-17.57%</td><td>+2.27%</td><td>+11.22%</td></tr>
+        <tr><td>05-15 → 06-14</td><td>-17.32%</td><td>+5.76%</td><td>+4.95%</td></tr>
+      </tbody>
+      <tfoot>
+        <tr><td>월평균</td><td>-10.92%</td><td>+1.44%</td><td>+3.07%</td></tr>
+      </tfoot>
+    </table>
+
+    <p>열 개 구간 중 <strong>여덟 번</strong>, 상위10은 무작위10보다 나빴습니다. 월평균 격차는 <strong>-12.4%p</strong>입니다.</p>
+
+    <p>무작위10이 이 표의 심장입니다. 같은 필터를 통과한 1,238개 종목에서 눈 감고 열 개를 집으면 월평균 +1.44%가 나왔습니다. <strong>대체로 시장 중립입니다.</strong> 크게 잃지도, 크게 따지도 않습니다.</p>
+
+    <p>그런데 그중 "지난달 가장 많이 오른" 열 개만 골라내면 <strong>-10.92%</strong>가 됩니다.</p>
+
+    <div class="pull">
+      <p>소형주라서 나쁜 게 아닙니다. 무작위10도 같은 유니버스의 같은 소형주들입니다. <strong>"지난달 가장 많이 올랐다"는 조건을 붙이는 순간 결과가 뒤집힙니다.</strong> 급등이 원인입니다.</p>
+    </div>
+
+    <p>굵게 표시한 줄을 보십시오. QQQ가 +4.47% 오르고 무작위 바스켓도 +5.44%를 낸 한 달에, 급등 상위 10종목은 <strong>-27.63%</strong>였습니다. 같은 시장, 같은 달, 같은 필터입니다.</p>
+
+    <p>하락은 얕지 않았습니다. 이 기간 상위10에 들어왔던 종목 중에는 다음 한 달에 -71%(PRAX)를 기록한 것을 비롯해 -50%에서 -90%대로 무너진 종목이 여럿 있습니다. 한두 종목의 대박으로 만회되는 규모가 아니었습니다.</p>
+
+    <h2>KOSPI — 여기서는 아무 말도 할 수 없습니다</h2>
+
+    <p>같은 실험을 KOSPI에서 돌렸습니다. 결과는 <strong>무승부</strong>입니다.</p>
+
+    <table class="data-table">
+      <caption>동일비중 포트폴리오 수익률 · 무작위10은 1,000회 시뮬레이션 평균</caption>
+      <thead>
+        <tr><th>보유 구간</th><th>상위10</th><th>무작위10</th><th>KOSPI 지수</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>07-14 → 08-18</td><td>-15.17%</td><td>-5.28%</td><td>-0.77%</td></tr>
+        <tr><td>08-18 → 09-22</td><td>+15.91%</td><td>+4.66%</td><td>+9.17%</td></tr>
+        <tr><td>09-22 → 10-27</td><td>+6.62%</td><td>+4.19%</td><td>+16.55%</td></tr>
+        <tr><td>10-27 → 12-01</td><td>-9.44%</td><td>-1.32%</td><td>-3.03%</td></tr>
+        <tr><td>12-01 → 01-05</td><td>+4.57%</td><td>+2.53%</td><td>+13.70%</td></tr>
+        <tr><td>01-05 → 02-09</td><td>+13.67%</td><td>+14.79%</td><td>+18.86%</td></tr>
+        <tr><td>02-09 → 03-16</td><td>-0.60%</td><td>+0.36%</td><td>+4.75%</td></tr>
+        <tr class="spot"><td>03-16 → 04-15</td><td>+24.67%</td><td>+7.41%</td><td>+9.76%</td></tr>
+        <tr><td>04-15 → 05-15</td><td>-21.01%</td><td>+3.95%</td><td>+23.01%</td></tr>
+        <tr><td>05-15 → 06-14</td><td>-1.00%</td><td>-6.13%</td><td>+14.05%</td></tr>
+      </tbody>
+      <tfoot>
+        <tr><td>월평균</td><td>+1.82%</td><td>+2.52%</td><td>+10.61%</td></tr>
+      </tfoot>
+    </table>
+
+    <p>상위10이 무작위10을 이긴 구간이 다섯 번, 진 구간이 다섯 번입니다. 월평균은 +1.82% 대 +2.52%. <strong>구분되지 않습니다.</strong></p>
+
+    <p>우리는 여기서 "급등주 추격이 불리하다"고 말하고 싶었습니다. 데이터가 그렇게 말해주지 않았습니다. 그래서 그렇게 쓰지 않겠습니다.</p>
+
+    <h2>대신 KOSPI가 알려준 것</h2>
+
+    <p>KOSPI 상위10의 평균 수익률은 +1.82%입니다. 그런데 같은 바스켓의 <strong>중앙값</strong>은 -2.78%입니다.</p>
+
+    <p>평균은 플러스인데 중앙값은 마이너스입니다. 이 괴리가 뜻하는 바는 하나뿐입니다. <strong>열 종목 중 대부분은 손실이었고, 소수의 대박이 전체를 끌어올렸습니다.</strong></p>
+
+    <p>굵게 표시한 03-16 → 04-15 구간이 그렇습니다. 바스켓 수익률 +24.67%로 이 실험 전체에서 가장 좋은 성적입니다. 그 안을 열어보면 대우건설 한 종목이 <strong>+137.9%</strong>였습니다.</p>
+
+    <div class="pull">
+      <p>"급등주를 사서 이겼다"가 아닙니다. <strong>"한 종목 덕분에 안 졌다"</strong>입니다. 그리고 열 개를 살 때, 그 한 개가 어느 것일지는 알 수 없습니다.</p>
+    </div>
+
+    <p>이 구조에는 재현성이 없습니다. 다음 달의 대우건설이 없으면 바스켓은 중앙값 쪽으로 주저앉습니다. 실제로 그다음 구간(04-15 → 05-15)의 성적이 <strong>-21.01%, 승률 0%</strong>입니다. 열 종목이 전부 내렸습니다.</p>
+
+    <h2>그런데 이 표에는 더 이상한 게 있습니다</h2>
+
+    <p>KOSPI 지수는 이 기간에 월평균 <strong>+10.61%</strong>였습니다. 2025년 7월 14일 3,202에서 2026년 6월 14일 8,545. 11개월 만에 <strong>2.7배</strong>입니다.</p>
+
+    <p>같은 기간, 같은 시장에서 <strong>아무 종목이나 열 개 집어든 사람의 월평균 수익률은 +2.52%</strong>였습니다.</p>
+
+    <p>지수가 2.7배가 되는 동안, 무작위로 고른 포트폴리오는 그 근처에도 가지 못했습니다. 이건 급등주 이야기가 아닙니다. 이 상승을 <strong>소수의 대형주가 거의 전부 끌고 갔다</strong>는 이야기입니다. 다른 글에서 다루겠습니다.</p>
+
+    <h2>정리</h2>
+
+    <p><strong>NASDAQ에서는 답이 명확합니다.</strong> 지난달 급등 상위 10종목을 사는 전략은 같은 유니버스의 무작위 열 종목보다 월평균 12.4%p 나빴고, 열 번 중 여덟 번 졌습니다. 소형주라서가 아니라, 급등했기 때문입니다.</p>
+
+    <p><strong>KOSPI에서는 답이 없습니다.</strong> 무작위와 구분되지 않습니다. 다만 그 "구분되지 않음"은 소수 종목의 대박에 기대어 만들어진 것이라, 다음에도 그럴 거라고 기대할 근거가 없습니다.</p>
+
+    <p>FomoBot은 랭킹 서비스입니다. 그리고 이 글은 그 랭킹을 보고 매수하는 일에 대한 이야기입니다. 랭킹은 <strong>이미 일어난 일의 목록</strong>입니다. 지난달에 100% 오른 종목이 목록 맨 위에 있는 이유는 지난달에 올랐기 때문이지, 다음 달에 오를 예정이기 때문이 아닙니다.</p>
+
+    <p>"그때 샀어야 했는데"에서 중요한 단어는 <strong>"그때"</strong>입니다. 지금이 아닙니다.</p>
+
+    <div class="footnotes">
+      <p><strong>방법</strong> — 최근 12개월에서 서로 겹치지 않는 앵커 11개(간격 30~35일)를 잡아 연속 쌍 10개를 구성했습니다. 각 쌍에서 T 시점의 30일 상승률 상위 10종목을 동일 비중으로 매수해 T+1개월에 청산했다고 가정합니다. 표의 수익률은 <strong>동일비중 포트폴리오 수익률(평균)</strong>이며, 본문에서 언급한 중앙값은 개별 종목 수익률의 중앙값입니다. 무작위10은 같은 T 시점의 필터 통과 유니버스에서 10종목을 무작위 추출해 동일하게 계산한 것을 1,000회 반복한 평균입니다.</p>
+      <p><strong>거래비용</strong> — 수수료·세금·슬리피지는 반영하지 않았습니다. 상위10 바스켓의 구성 종목은 유동성이 낮은 편이라 실제 체결 시 슬리피지가 무작위 바스켓보다 클 가능성이 높습니다. <strong>즉 실제 격차는 표에 적힌 것보다 벌어질 가능성이 큽니다.</strong></p>
+      <p><strong>유니버스</strong> — FomoBot의 저유동성 필터를 통과한 종목 기준. 최근 12개월 평균 KOSPI 452개(360~521), NASDAQ 1,238개(1,115~1,346).</p>
+      <p><strong>벤치마크</strong> — KOSPI는 배당을 반영하지 않은 가격지수, NASDAQ 벤치마크인 QQQ는 배당이 반영된 수치입니다. 이 비대칭에 대해서는 <a href="/methodology.html">방법론</a>을 참고하십시오.</p>
+      <p><strong>표본 한계</strong> — 10개 구간, 12개월입니다. NASDAQ의 방향성(8/10 패배, 월평균 -12.4%p 열위)은 일관되지만, 정확한 크기는 표본이 작아 흔들립니다. KOSPI는 애초에 방향성 자체가 나오지 않았습니다. 이 실험을 여러 해로 확장하면 수치가 달라질 수 있고, 결론이 뒤집힐 만큼 달라진다면 그때 다시 쓰겠습니다.</p>
+      <p><strong>생존 편향</strong> — 상장폐지 종목은 데이터에 포함되지 않습니다. 급등 후 상장폐지된 종목이 있다면 상위10의 실제 성적은 여기 적힌 것보다 나쁩니다. <a href="/survivorship-bias.html">생존 편향 안내</a>를 참고하십시오.</p>
+      <p><strong>투자 판단에 대하여</strong> — FomoBot은 이미 지나간 가격을 정리해 보여주는 도구입니다. 특정 종목의 매수·매도를 권유하지 않으며, 이 글의 어떤 내용도 투자 자문이 아닙니다. 과거의 결과가 미래를 보장하지 않는다는 말은 반대 방향으로도 성립합니다. 투자 손익의 책임은 투자자 본인에게 있습니다.</p>
+    </div>
+  </main>
+</body>
+</html>
