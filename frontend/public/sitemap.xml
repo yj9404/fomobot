@@ -11,6 +11,16 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://fomobot-dun.vercel.app/articles.html</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://fomobot-dun.vercel.app/five-year-winner.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://fomobot-dun.vercel.app/methodology.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>

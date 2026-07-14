@@ -73,3 +73,50 @@ p {
   nav .links a { color: #9AA5B8; }
   p { color: #C3C9D6; }
 }
+
+/* ── 글(article) 공용 요소 ─────────────────────────────────────────────
+   color-scheme/currentColor/rgba 기반이라 별도 다크모드 오버라이드가 필요 없다. */
+.article-meta { font-size: 0.85em; opacity: 0.65; margin-top: -0.5em; }
+
+.data-table { width: 100%; border-collapse: collapse; margin: 1.5em 0; font-size: 0.95em; }
+.data-table caption { text-align: left; font-size: 0.85em; opacity: 0.65; padding-bottom: 0.6em; }
+.data-table th, .data-table td {
+  padding: 0.6em 0.5em;
+  border-bottom: 1px solid currentColor;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.data-table th, .data-table td { border-color: rgba(128,128,128,0.25); }
+.data-table th:first-child, .data-table td:first-child { text-align: left; }
+.data-table thead th { font-size: 0.85em; opacity: 0.65; font-weight: 600; }
+
+.pull {
+  margin: 1.8em 0;
+  padding: 1em 1.2em;
+  border-left: 3px solid currentColor;
+  opacity: 0.95;
+}
+.pull p { margin: 0; }
+
+.footnotes {
+  margin-top: 3em;
+  padding-top: 1.2em;
+  border-top: 1px solid rgba(128,128,128,0.3);
+  font-size: 0.85em;
+  opacity: 0.75;
+  line-height: 1.7;
+}
+
+@media (max-width: 480px) {
+  .data-table { font-size: 0.85em; }
+  .data-table th, .data-table td { padding: 0.5em 0.3em; }
+}
+
+/* ── /articles.html 목록 전용 요소 ───────────────────────────────────── */
+.article-list { list-style: none; padding: 0; margin: 0 0 8px; }
+.article-list li { padding: 14px 0; border-bottom: 1px solid rgba(128,128,128,0.15); }
+.article-list li:last-child { border-bottom: none; }
+.article-list a { font-size: 16px; font-weight: 700; color: inherit; text-decoration: none; }
+.article-list a:hover { color: #3E7BFA; }
+.article-date { display: block; font-size: 12px; opacity: 0.6; margin-top: 2px; }
+.article-summary { font-size: 14px; margin: 6px 0 0; }

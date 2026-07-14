@@ -24,3 +24,7 @@ Thumbs.db
 .claude
 
 BACKLOG.md
+content-backlog.md
+
+# 글 초안 스크래치 (repo root) — 정식본은 frontend/public/*.html
+/five-year-winner.html

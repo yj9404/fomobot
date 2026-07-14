@@ -12,6 +12,7 @@ import { StockSearchArea } from './components/StockSearchArea'
 import { BreadthWidget } from './components/BreadthWidget'
 import { Footer } from './components/Footer'
 import { AdFitUnit } from './components/AdFitUnit'
+import { ArticleTeaser } from './components/ArticleTeaser'
 import { useRankings } from './hooks/useRankings'
 import { useBacktestDetail } from './hooks/useBacktestDetail'
 import { useNewsCache } from './hooks/useNewsCache'
@@ -317,6 +318,7 @@ export default function App() {
                 t={t}
               />
             )}
+            {hasContent && <ArticleTeaser lang={lang} />}
             {hasContent && (
               <AdFitUnit
                 adUnit={import.meta.env.VITE_ADFIT_UNIT_DESKTOP_BOTTOM}
@@ -415,6 +417,7 @@ export default function App() {
           />
         )}
 
+        {hasContent && <ArticleTeaser lang={lang} style={{ margin: '14px 14px 4px' }} />}
         {hasContent && (
           <AdFitUnit
             adUnit={import.meta.env.VITE_ADFIT_UNIT_MOBILE_BOTTOM}
