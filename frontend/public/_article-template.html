@@ -1,0 +1,88 @@
+<!--
+  글 작성 템플릿 — 사용법은 레포 루트 ARTICLE_CHECKLIST.md 참고.
+
+  1) 이 파일을 frontend/public/<영문-slug>.html 로 복사한다.
+  2) {{TITLE}} {{DATE}} {{SLUG}} {{SUMMARY}} 를 전부 실제 값으로 치환한다.
+     - {{DATE}}는 ISO 형식(YYYY-MM-DD)으로 통일해서 넣는다 (JSON-LD와 본문에 그대로 재사용됨).
+  3) 아래 "본문 작성 위치" 사이에 h2/p/table.data-table/div.pull 등으로 글을 쓴다.
+  4) footnotes 블록의 5개 항목 중 {{...}} 로 남은 부분만 채운다.
+     해당 없는 항목(배당 처리 등)은 문단째 삭제해도 된다 — 5개 전부 강제 아님.
+  5) 복사한 실제 글 파일에서는 아래 <meta name="robots"> 줄을 반드시 삭제한다.
+     (이 템플릿 자체가 색인되지 않게 하는 용도이며, 실제 글에 남으면 그 글이 검색에 안 잡힌다.)
+-->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{TITLE}} — FomoBot</title>
+  <meta name="description" content="{{SUMMARY}}" />
+  <link rel="icon" type="image/svg+xml" href="/icons/favicon.svg" />
+  <link rel="stylesheet" href="/static-page.css" />
+  <link rel="canonical" href="https://fomobot-dun.vercel.app/{{SLUG}}.html" />
+
+  <!-- 템플릿 전용: 실제 글 파일로 복사한 뒤에는 이 줄을 삭제할 것 -->
+  <meta name="robots" content="noindex" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:title" content="{{TITLE}} — FomoBot" />
+  <meta property="og:description" content="{{SUMMARY}}" />
+  <meta property="og:url" content="https://fomobot-dun.vercel.app/{{SLUG}}.html" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "{{TITLE}}",
+    "datePublished": "{{DATE}}",
+    "dateModified": "{{DATE}}",
+    "author": { "@type": "Organization", "name": "FomoBot" },
+    "publisher": { "@type": "Organization", "name": "FomoBot" },
+    "mainEntityOfPage": "https://fomobot-dun.vercel.app/{{SLUG}}.html"
+  }
+  </script>
+</head>
+<body>
+  <nav>
+    <a href="/" class="brand">FomoBot</a>
+    <div class="links">
+      <a href="/about.html">소개</a>
+      <a href="/articles.html">읽을거리</a>
+      <a href="/methodology.html">방법론</a>
+      <a href="/survivorship-bias.html">생존 편향</a>
+      <a href="/glossary.html">용어 해설</a>
+      <a href="/privacy.html">개인정보처리방침</a>
+    </div>
+  </nav>
+
+  <main>
+    <h1>{{TITLE}}</h1>
+    <p class="article-meta">{{DATE}}</p>
+
+    <!-- ▼▼▼ 본문 작성 위치 ▼▼▼
+         구조 예시(표/인용/소제목 조합)는 five-year-winner.html 참고.
+         쓸 수 있는 공용 클래스:
+           <table class="data-table"> … <caption> … <thead> … <tbody>
+           <div class="pull"><p>…</p></div>   (강조 인용)
+           <h2>소제목</h2>
+    -->
+
+
+
+    <!-- ▲▲▲ 본문 작성 끝 ▲▲▲ -->
+
+    <!-- "전체 랭킹 보기" 류 CTA를 넣는다면 글 내용에 맞는 필터 쿼리로 맞출 것.
+         예) 주식·코스피·5년 랭킹 글: /?tab=stock&market=kospi&period=1825d
+         해당 사항 없으면 이 문단째 삭제. -->
+    <p><a href="/">전체 랭킹 보기 →</a></p>
+
+    <div class="footnotes">
+      <p><strong>데이터 기준</strong> — {{DATE}} 기준 스냅샷. 수익률·지표는 해당 기준일 데이터이며 거래비용과 세금은 반영하지 않았습니다. 랭킹은 <a href="/methodology.html">저유동성 필터</a>를 통과한 종목만 대상으로 합니다.</p>
+      <p><strong>배당 처리</strong> — {{DIVIDEND_NOTE}}</p>
+      <p><strong>생존 편향</strong> — 상장폐지된 종목은 데이터에 포함되지 않으므로 이 수치들은 실제 시장보다 낙관적입니다. <a href="/survivorship-bias.html">생존 편향 안내</a>를 참고하십시오.</p>
+      <p><strong>갱신 정책</strong> — {{UPDATE_POLICY_NOTE}}</p>
+      <p><strong>투자 판단에 대하여</strong> — FomoBot은 이미 지나간 가격을 정리해 보여주는 도구입니다. 특정 종목의 매수·매도를 권유하지 않으며, 이 글의 어떤 내용도 투자 자문이 아닙니다. 투자 손익의 책임은 투자자 본인에게 있습니다.</p>
+    </div>
+  </main>
+</body>
+</html>
