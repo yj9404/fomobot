@@ -21,6 +21,16 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://fomobot-dun.vercel.app/buying-last-months-winners.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://fomobot-dun.vercel.app/lag-window-function.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://fomobot-dun.vercel.app/methodology.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
