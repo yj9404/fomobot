@@ -37,6 +37,17 @@ function initOrder(forTab: Tab): OrderDir {
   return v === 'asc' ? 'asc' : 'desc'
 }
 
+function initMarket(): Market {
+  const v = new URLSearchParams(window.location.search).get('market')
+  return v === 'nasdaq' ? 'nasdaq' : 'kospi'
+}
+
+function initPeriodIdx(): number {
+  const v = new URLSearchParams(window.location.search).get('period')
+  const idx = PERIODS.findIndex((p) => p.value === v)
+  return idx >= 0 ? idx : 2 // default: 30d
+}
+
 export default function App() {
   const [lang, setLang] = useState<Lang>('ko')
 
@@ -66,8 +77,8 @@ export default function App() {
   }, [])
 
   // ── 주식 상태 ────────────────────────────────────────────────────────
-  const [market, setMarket] = useState<Market>('kospi')
-  const [periodIdx, setPeriodIdx] = useState(2) // default: 30d
+  const [market, setMarket] = useState<Market>(initMarket)
+  const [periodIdx, setPeriodIdx] = useState<number>(initPeriodIdx)
   const [capTier, setCapTier] = useState<CapTier>('all')
   const [stockOrder, setStockOrder] = useState<OrderDir>(() => initOrder('stock'))
   const [openRank, setOpenRank] = useState<number | null>(null)
