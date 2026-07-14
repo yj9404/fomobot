@@ -369,8 +369,8 @@ export function NavRail({
         <div style={sectionLabel(C)}>{lang === 'ko' ? '카테고리' : 'Category'}</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4, background: C.surfaceAlt, border: `1px solid ${C.borderSub}`, borderRadius: 12, padding: 4 }}>
           {([
-            { value: 'stock',       ko: '주식',   en: 'Stock'   },
-            { value: 'realestate',  ko: '부동산', en: 'RE'      },
+            { value: 'stock', ko: '주식', en: 'Stock' },
+            { value: 'realestate', ko: '부동산', en: 'Real Estate' },
           ] as { value: Tab; ko: string; en: string }[]).map((item) => (
             <button
               key={item.value}
