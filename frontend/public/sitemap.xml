@@ -67,7 +67,19 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://fomobot-dun.vercel.app/catching-the-knife.html</loc>
+    <lastmod>2026-07-15</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://fomobot-dun.vercel.app/what-day-is-yesterday.html</loc>
+    <lastmod>2026-07-15</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://fomobot-dun.vercel.app/bias-we-kept.html</loc>
     <lastmod>2026-07-15</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
