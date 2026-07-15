@@ -14,7 +14,7 @@
   </url>
   <url>
     <loc>https://fomobot-dun.vercel.app/articles.html</loc>
-    <lastmod>2026-07-14</lastmod>
+    <lastmod>2026-07-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -56,6 +56,18 @@
   </url>
   <url>
     <loc>https://fomobot-dun.vercel.app/price-per-sqm.html</loc>
+    <lastmod>2026-07-15</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://fomobot-dun.vercel.app/small-cap-machine.html</loc>
+    <lastmod>2026-07-15</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://fomobot-dun.vercel.app/what-day-is-yesterday.html</loc>
     <lastmod>2026-07-15</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
