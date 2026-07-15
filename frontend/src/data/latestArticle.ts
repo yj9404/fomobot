@@ -7,13 +7,13 @@ export interface LatestArticle {
 // 새 글을 발행하면 이 객체 하나만 교체한다 (컴포넌트/구조 변경 불필요).
 // 메인 화면 랭킹 리스트 하단의 "읽을거리" 카드(ArticleTeaser)에 그대로 노출된다.
 export const LATEST_ARTICLE: LatestArticle = {
-  href: '/five-year-winner.html',
+  href: '/adjusted-price-trap.html',
   ko: {
-    title: '5년 수익률 1위를 들고 있으려면',
-    summary: '수익률 뒤에 숨은 -30%대 하락 네 번, 그 이야기',
+    title: '같은 이름의 다른 물건 — 수정주가라는 함정',
+    summary: 'pykrx는 배당을 빼고 yfinance는 넣습니다. 우리 방법론 문서가 틀렸던 이유',
   },
   en: {
-    title: 'What It Takes to Hold the 5-Year Winner',
-    summary: 'Behind the return: four drawdowns past -30%',
+    title: 'Same Name, Different Thing — The Adjusted-Price Trap',
+    summary: 'pykrx excludes dividends, yfinance includes them — why our own docs were wrong',
   },
 }
