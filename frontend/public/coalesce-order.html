@@ -22,8 +22,8 @@
     "@context": "https://schema.org",
     "@type": "Article",
     "headline": "인자 순서 하나가 수익률을 +367%로 만들었다",
-    "datePublished": "2026-07-15",
-    "dateModified": "2026-07-15",
+    "datePublished": "2026-07-16",
+    "dateModified": "2026-07-16",
     "author": { "@type": "Organization", "name": "FomoBot" },
     "publisher": { "@type": "Organization", "name": "FomoBot" },
     "mainEntityOfPage": "https://fomobot-dun.vercel.app/coalesce-order.html"
@@ -117,7 +117,8 @@ saved_close = COALESCE(신규_값, 기존_값)</code></pre>
 
     <div class="pull">
       <p>같은 버그가 증상을 양방향으로 냅니다. 어떤 종목은 말도 안 되게 벌었고 어떤 종목은 말도 안 되게 잃은 것으로 나옵니다. 증상만 보면 서로 다른 두 버그처럼 보이지만, 뿌리는
-        <code>COALESCE</code> 인자 두 개의 순서 하나였습니다.</p>
+        <code>COALESCE</code> 인자 두 개의 순서 하나였습니다.
+      </p>
     </div>
 
     <h2>두 번째 겹 — 순서를 고쳐도 설계는 그대로다</h2>
@@ -168,7 +169,8 @@ saved_close = COALESCE(신규_값, 기존_값)</code></pre>
 
     <p>이 사건은 <a href="/lag-window-function.html">LAG 함수</a>, <a href="/what-day-is-yesterday.html">거래일이 아닌 날짜</a>와 함께 같은
       계열의 세 번째 기록입니다. 셋 다 크래시 없이, 그럴듯한 숫자를 뱉으면서, 데이터가 조용히 틀리는 사고였습니다. 금융 데이터 파이프라인에서 가장 무서운 버그는 예외를 던지는 버그가 아니라
-      <strong>정상으로 보이는 버그</strong>입니다.</p>
+      <strong>정상으로 보이는 버그</strong>입니다.
+    </p>
 
     <div class="footnotes">
       <p><strong>이 글에 관하여</strong> — 본문의 +367%는 버그 발견 당시(2026-07 초) 관측·기록된 값입니다. 해당 오염 데이터는 수정 커밋과 함께 실행된 재계산으로 덮어써져 현재

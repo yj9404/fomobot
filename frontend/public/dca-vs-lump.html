@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>물타기는 정말 구제해줬나 — 일시매수 vs 분할매수 — FomoBot</title>
+  <meta name="description" content="1년간 반토막 넘게 빠진 종목을 한 번에 산 경우와 12번에 나눠 산 경우를 백테스트로 비교했습니다. 분할매수는 손실을 20~50%p 줄였지만, 없애지는 못했습니다. 그리고 하락이 일직선인 종목에서는 그마저도 통하지 않았습니다." />
+  <link rel="icon" type="image/svg+xml" href="/icons/favicon.svg" />
+  <link rel="stylesheet" href="/static-page.css" />
+  <link rel="canonical" href="https://fomobot-dun.vercel.app/dca-vs-lump.html" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:title" content="물타기는 정말 구제해줬나 — 일시매수 vs 분할매수 — FomoBot" />
+  <meta property="og:description" content="분할매수는 손실을 20~50%p 줄였지만 없애지 못했고, 하락이 일직선인 종목에서는 그마저도 통하지 않았습니다." />
+  <meta property="og:url" content="https://fomobot-dun.vercel.app/dca-vs-lump.html" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "물타기는 정말 구제해줬나 — 일시매수 vs 분할매수",
+    "datePublished": "2026-07-16",
+    "dateModified": "2026-07-16",
+    "author": { "@type": "Organization", "name": "FomoBot" },
+    "publisher": { "@type": "Organization", "name": "FomoBot" },
+    "mainEntityOfPage": "https://fomobot-dun.vercel.app/dca-vs-lump.html"
+  }
+  </script>
+</head>
+<body>
+  <nav>
+    <a href="/" class="brand">FomoBot</a>
+    <div class="links">
+      <a href="/about.html">소개</a>
+      <a href="/articles.html">읽을거리</a>
+      <a href="/methodology.html">방법론</a>
+      <a href="/survivorship-bias.html">생존 편향</a>
+      <a href="/glossary.html">용어 해설</a>
+      <a href="/privacy.html">개인정보처리방침</a>
+    </div>
+  </nav>
+
+  <main>
+    <h1>물타기는 정말 구제해줬나</h1>
+    <p class="article-meta">2026-07-16 · 데이터 분석</p>
+
+    <p>떨어지는 종목을 들고 있을 때 흔히 나오는 대응이 물타기입니다. 지금 사면 평균 단가가 낮아지니, 조금만 반등해도 본전이 온다는 계산. 정식 이름은 <strong>분할매수(DCA)</strong>입니다.</p>
+
+    <p>이게 정말 구제해주는지, FomoBot의 백테스트 엔진으로 확인했습니다. 방법은 두 가지입니다. 1년 전에 <strong>한 번에 전액</strong> 산 경우(일시매수)와, 같은 금액을 <strong>매달 12번에 나눠</strong> 산 경우(분할매수).</p>
+
+    <p>대상은 최근 1년 하락률 상위 종목들입니다. 즉 <strong>가장 많이 떨어진 것들</strong>을 일부러 골랐습니다. 물타기의 효과를 보려면 물릴 종목이 필요하니까요.</p>
+
+    <h2>결과</h2>
+
+    <table class="data-table">
+      <caption>1년 하락률 상위 종목 · 일시매수 vs 분할매수(월 1회 12분할)</caption>
+      <thead>
+        <tr><th>종목</th><th>일시매수 수익률</th><th>일시매수 최저</th><th>분할매수 수익률</th><th>분할매수 최저</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>KBI동양철관 (KOSPI)</td><td>-64.7%</td><td>-71.6%</td><td>-44.3%</td><td>-46.8%</td></tr>
+        <tr><td>Decoy Therapeutics (NASDAQ)</td><td>-94.9%</td><td>-97.6%</td><td>-44.0%</td><td>-59.3%</td></tr>
+        <tr class="spot"><td>Sadot Group (NASDAQ)</td><td>-94.1%</td><td>-99.2%</td><td>-42.8%</td><td>-82.9%</td></tr>
+      </tbody>
+    </table>
+
+    <p>분할매수가 최종 수익률을 <strong>20~50%p 방어</strong>했습니다. -94.9%가 -44.0%로 줄었습니다. 물타기의 논리는 실제로 작동합니다 — 고점에 전액을 넣는 대신, 떨어지는 동안 나눠 사면서 평균 단가를 낮춘 효과입니다.</p>
+
+    <p>여기까지만 보면 "물타기가 답이다"입니다. 그런데 두 가지를 마저 봐야 합니다.</p>
+
+    <h2>첫째 — 줄였지, 없애지 않았다</h2>
+
+    <p>분할매수의 최종 수익률을 다시 보십시오. -44.3%, -44.0%, -42.8%. 세 종목 모두 <strong>여전히 반토막에 가깝습니다.</strong></p>
+
+    <div class="pull">
+      <p>분할매수는 -95%를 -44%로 바꿉니다. 그건 대단한 방어입니다. 하지만 -44%는 여전히 재산의 절반이 사라진 상태입니다. 물타기는 손실을 <strong>줄이는</strong> 기술이지 <strong>없애는</strong> 기술이 아닙니다.</p>
+    </div>
+
+    <p>그리고 이 종목들은 <a href="/catching-the-knife.html">앞선 분석</a>에서 봤던 바로 그 부류입니다 — 많이 떨어진 뒤 더 떨어진 종목들. 애초에 이것들을 사지 않는 것이 어떤 물타기보다 나은 선택이었습니다. 분할매수는 <strong>이미 잘못 탄 배</strong>에서 피해를 줄이는 방법이지, 그 배를 타도 좋다는 허가가 아닙니다.</p>
+
+    <h2>둘째 — 일직선으로 떨어지면 물타기도 소용없다</h2>
+
+    <p>표에서 굵게 표시한 Sadot Group을 보십시오. 최종 수익률은 분할매수가 크게 방어했습니다(-94.1% → -42.8%). 그런데 <strong>보유 중 최저점</strong>은 거의 줄지 않았습니다. -99.2%에서 -82.9%로, 여전히 바닥입니다.</p>
+
+    <p>다른 두 종목과 비교하면 차이가 분명합니다. KBI동양철관과 Decoy는 보유 중 최저점도 크게 개선됐습니다(-71.6%→-46.8%, -97.6%→-59.3%). 무엇이 달랐을까요.</p>
+
+    <p><strong>하락의 모양</strong>이 달랐습니다. KBI동양철관과 Decoy는 떨어지는 중에도 등락이 있었습니다 — 빠졌다가 얼마간 회복하고 다시 빠지는 흐름. 이런 종목에서는 반등 구간에 사둔 물량이 평가이익을 내주니, 분할매수가 골짜기 자체를 얕게 만듭니다.</p>
+
+    <p>Sadot Group은 달랐습니다. <strong>거의 일직선으로 계속 떨어졌습니다.</strong> 이러면 매달 나눠 사는 것이 "더 싸게 산다"가 아니라 "매번 그 시점 나름대로 또 물린다"가 됩니다. 살 때마다 그게 그달의 고점이었던 셈입니다.</p>
+
+    <div class="pull">
+      <p>물타기의 전제는 "떨어졌다가 오른다"입니다. 반등이 있어야 낮춰둔 평균 단가가 이익으로 돌아옵니다. 반등 없이 일직선으로 떨어지면, 분할매수는 손실을 미루며 나눠 겪게 할 뿐입니다.</p>
+    </div>
+
+    <h2>정리 — 물타기의 자리</h2>
+
+    <p>세 종목의 데이터가 말하는 것은 이렇습니다.</p>
+
+    <p>분할매수는 일시매수보다 대체로 낫습니다. 고점에 전액을 몰아넣는 최악을 피하고, 하락 구간의 평균 단가를 낮춰줍니다. 최종 손실을 20~50%p 줄인 건 사실입니다.</p>
+
+    <p>하지만 <strong>세 가지 한계</strong>가 분명합니다. 손실을 줄일 뿐 없애지 못하고(셋 다 결국 -40%대), 반등 없이 일직선으로 떨어지는 종목에서는 그 방어력마저 사라지며(Sadot Group), 무엇보다 <strong>이 종목들을 애초에 사지 않는 것</strong>이 어떤 매수 방식보다 나은 선택이었습니다.</p>
+
+    <p>물타기는 이미 물린 사람의 피해 축소 기술입니다. 물릴지 말지를 정하는 단계에서 쓸 도구가 아닙니다. "나눠 사면 되니까 일단 사자"는 이 데이터가 지지하지 않는 결론입니다. 나눠 사도 -44%는 -44%입니다.</p>
+
+    <p><a href="/?tab=stock&amp;period=365d&amp;order=asc">백테스트 직접 돌려보기 →</a></p>
+
+    <div class="footnotes">
+      <p><strong>방법</strong> — FomoBot의 실측 백테스트 엔진으로 2026-07-15 기준 최근 1년(365일) 하락률 상위 종목에 대해 계산했습니다. 일시매수는 1년 전 전액 매수 후 보유, 분할매수는 같은 총액을 월 1회씩 12회에 나눠 매수하는 방식입니다. "최저"는 보유 기간 중 평가수익률이 도달한 최저점(구간 내 최대낙폭)입니다.</p>
+      <p><strong>두 최저점은 정의가 다릅니다</strong> — 일시매수의 최저점은 전액을 투입한 상태의 가격 경로 그대로입니다. 분할매수의 최저점은 <strong>이미 투입한 금액만 그날 주가로 평가하고, 아직 투입하지 않은 금액은 현금(수익률 0)으로 취급한</strong> 자산 곡선 기준입니다. 초기에는 투입액이 적어 평가손이 작게 잡히므로, 두 최저점을 같은 잣대로 직접 비교할 수는 없습니다. 그럼에도 Sadot Group의 분할매수 최저점이 -82.9%까지 간 것은, 후반으로 갈수록 투입액이 쌓인 상태에서 하락이 멈추지 않았다는 뜻입니다.</p>
+      <p><strong>거래비용·생존 편향</strong> — 수수료·세금·슬리피지는 반영하지 않았습니다. 또한 이 계산은 세 종목이 상장을 유지했기에 가능했습니다. 급락 후 상장폐지된 종목은 이런 비교 자체가 불가능하며, 그 경우 실제 손실은 여기 나온 어떤 수치보다 큽니다(<a href="/bias-we-kept.html">생존 편향</a>).</p>
+      <p><strong>투자 판단에 대하여</strong> — FomoBot은 이미 지나간 가격을 정리해 보여주는 도구입니다. 특정 종목의 매수·매도나 분할매수 전략을 권유하지 않으며, 이 글의 어떤 내용도 투자 자문이 아닙니다. 여기 쓰인 종목들은 설명을 위한 실제 사례일 뿐 추천이 아닙니다. 투자 손익의 책임은 투자자 본인에게 있습니다.</p>
+    </div>
+  </main>
+</body>
+</html>
