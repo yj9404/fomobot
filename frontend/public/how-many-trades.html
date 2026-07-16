@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>1등 단지는 몇 건 팔려서 1등이 됐나 — FomoBot</title>
+  <meta name="description" content="아파트 상승률 랭킹 상위10의 40%가 최소 거래 건수(3건)로 만들어진 순위입니다. 유니버스 전체의 5배가 넘습니다. 최소 거래 필터를 끄면 1위는 매매 두 건짜리가 됩니다. 필터가 막는 것과, 필터로도 못 막는 것." />
+  <link rel="icon" type="image/svg+xml" href="/icons/favicon.svg" />
+  <link rel="stylesheet" href="/static-page.css" />
+  <link rel="canonical" href="https://fomobot-dun.vercel.app/how-many-trades.html" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:title" content="1등 단지는 몇 건 팔려서 1등이 됐나 — FomoBot" />
+  <meta property="og:description" content="상승률 랭킹 상위10의 40%가 최소 거래 건수로 만들어진 순위입니다. 필터를 끄면 1위는 매매 두 건짜리가 됩니다." />
+  <meta property="og:url" content="https://fomobot-dun.vercel.app/how-many-trades.html" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "1등 단지는 몇 건 팔려서 1등이 됐나",
+    "datePublished": "2026-07-15",
+    "dateModified": "2026-07-15",
+    "author": { "@type": "Organization", "name": "FomoBot" },
+    "publisher": { "@type": "Organization", "name": "FomoBot" },
+    "mainEntityOfPage": "https://fomobot-dun.vercel.app/how-many-trades.html"
+  }
+  </script>
+</head>
+<body>
+  <nav>
+    <a href="/" class="brand">FomoBot</a>
+    <div class="links">
+      <a href="/about.html">소개</a>
+      <a href="/articles.html">읽을거리</a>
+      <a href="/methodology.html">방법론</a>
+      <a href="/survivorship-bias.html">생존 편향</a>
+      <a href="/glossary.html">용어 해설</a>
+      <a href="/privacy.html">개인정보처리방침</a>
+    </div>
+  </nav>
+
+  <main>
+    <h1>1등 단지는 몇 건 팔려서 1등이 됐나</h1>
+    <p class="article-meta">2026-07-15</p>
+
+    <p><a href="/no-price-today.html">앞선 글</a>에서 "3건으로 만들어진 1위와 30건으로 만들어진 1위는 같은 1위가 아니다"라고 했습니다. 이번엔 그 말을 랭킹 전체로 검증합니다. 실제로 상위 단지들은 몇 건씩 팔려서 그 자리에 올랐을까요.</p>
+
+    <h2>상위권일수록 얇다</h2>
+
+    <p>2026년 5월 기준 3개월 상승률 랭킹에서, 각 구간의 종료창 실거래 건수를 셌습니다.</p>
+
+    <table class="data-table">
+      <caption>구간별 종료창 거래 건수와 "정확히 3건(최소선)" 비중</caption>
+      <thead>
+        <tr><th>구간</th><th>중앙값</th><th>정확히 3건</th><th>5건 이하</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>상위 10</td><td>6.0건</td><td>40.0%</td><td>50.0%</td></tr>
+        <tr><td>상위 20</td><td>8.0건</td><td>25.0%</td><td>35.0%</td></tr>
+        <tr><td>상위 30</td><td>7.0건</td><td>20.0%</td><td>33.3%</td></tr>
+        <tr><td>유니버스 전체 (5,582)</td><td>10.0건</td><td>7.4%</td><td>22.8%</td></tr>
+      </tbody>
+    </table>
+
+    <p>상위 10의 <strong>40%</strong>가 최소 거래 건수인 3건, 딱 그 자리에서 만들어진 순위입니다. 유니버스 전체에서 3건짜리는 7.4%뿐이니, 상위권에서 <strong>5.4배 과대표집</strong>됩니다.</p>
+
+    <div class="pull">
+      <p>이건 우연이 아니라 구조입니다. 표본이 얇을수록 극단적인 숫자가 나오기 쉽고, 극단적인 숫자일수록 상승률 랭킹 위쪽에 오릅니다. 그래서 랭킹 상단은 <strong>거래가 적었던 단지</strong>로 채워지는 경향이 있습니다.</p>
+    </div>
+
+    <p>"대부분이 3건"은 아닙니다. 상위 10의 60%는 3건을 넘습니다. 하지만 방향은 분명합니다. <strong>위로 갈수록 표본이 얇아집니다.</strong></p>
+
+    <h2>필터를 끄면 어떻게 되나</h2>
+
+    <p>FomoBot은 시작창과 종료창 각각 최소 3건의 거래를 요구합니다. 이 필터가 실제로 무슨 일을 하는지 보려면, 꺼보면 됩니다.</p>
+
+    <p>최소 건수를 1건으로 낮추면, 랭킹에 오를 수 있는 단지가 5,582개에서 <strong>9,036개</strong>로 늘어납니다. 필터가 3,454개(38%)를 걸러내고 있었던 겁니다. 그리고 상위 10 중 <strong>8개가 통째로 교체</strong>됩니다. 필터를 끈 세계의 새로운 순위는 이렇습니다.</p>
+
+    <table class="data-table">
+      <caption>최소 거래 필터를 끈(1건 허용) 경우의 상위 4위</caption>
+      <thead>
+        <tr><th>순위</th><th>단지</th><th>시작→종료 건수</th><th>상승률</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>1</td><td>반포동 한신서래</td><td>1건 → 2건</td><td>+105.8%</td></tr>
+        <tr><td>2</td><td>의정부 우미쁘띠린1차</td><td>2건 → 2건</td><td>+101.7%</td></tr>
+        <tr class="spot"><td>3</td><td>행촌동 대성아파트</td><td>1건 → 1건</td><td>+78.6%</td></tr>
+        <tr><td>4</td><td>일원동 우성7</td><td>2건 → 1건</td><td>+75.0%</td></tr>
+      </tbody>
+    </table>
+
+    <p>굵게 표시한 3위를 보십시오. 시작창 <strong>1건</strong>, 종료창 <strong>1건</strong>. 이건 단지의 가격 변화가 아닙니다. <strong>서로 다른 두 세대가 각각 한 번씩 팔린 것을 비교한 값</strong>입니다. 그리고 이 사례는 거기서 한 단계 더 나갑니다.</p>
+
+    <table class="data-table">
+      <caption>대성아파트(1971년 준공)의 시작창·종료창 실거래 — 각 1건</caption>
+      <thead>
+        <tr><th>거래일</th><th>전용면적</th><th>거래금액</th><th>㎡당 가격</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>2025-12-31 (시작창)</td><td>94.94㎡</td><td>6억 9,500만원</td><td>732만원</td></tr>
+        <tr><td>2026-05-22 (종료창)</td><td>19.27㎡</td><td>2억 5,200만원</td><td>1,308만원</td></tr>
+      </tbody>
+    </table>
+
+    <p>거래금액만 보면 6억 9,500만원짜리가 2억 5,200만원으로 <em>떨어졌습니다.</em> 그런데 랭킹에는 <strong>+78.6%</strong>로 찍혔습니다. 어떻게 된 걸까요.</p>
+
+    <p>두 거래는 완전히 다른 크기의 세대입니다. 시작창은 94.94㎡(대형), 종료창은 19.27㎡(약 5.8평, 사실상 원룸급 초소형). 이 노후 저층 단지에서는 소형 세대의 ㎡당 가격이 구조적으로 더 높게 형성됩니다. 그래서 면적을 나눈 ㎡당가로 보면 732만원에서 1,308만원으로 뛰고, 상승률이 +78.6%가 됩니다.</p>
+
+    <div class="pull">
+      <p>단지 시세가 오른 게 아닙니다. 시작창엔 대형이, 종료창엔 초소형이 <strong>우연히 한 건씩</strong> 팔렸고, 그 둘의 ㎡당가 차이가 상승률로 둔갑했습니다. 표본이 얇은 정도가 아니라 <strong>비교 대상 자체가 서로 다른 상품</strong>입니다. 실제 거래된 금액은 오히려 내렸는데 말입니다.</p>
+    </div>
+
+    <p>이 한 사례에 두 가지 문제가 겹쳐 있습니다. 거래가 각 1건뿐이라는 표본 부족(<a href="/no-price-today.html">첫 글</a>의 주제)과, 서로 다른 평형을 비교한 데서 오는 착시(<a href="/price-per-sqm.html">둘째 글</a>의 주제)입니다. 필터를 끄면 이렇게 두 문제가 동시에 터진 순위가 최상단에 올라옵니다.</p>
+
+    <p>1위 한신서래(1건→2건), 4위 우성7(2건→1건)도 표본이 얇기는 마찬가지입니다. 필터가 없으면 랭킹 최상단이 <strong>개별 세대 몇 건을 비교한 숫자</strong>로 뒤덮입니다. 이것이 최소 거래 필터가 막고 있는 상태입니다.</p>
+
+    <h2>그런데 필터로도 못 막는 것</h2>
+
+    <p>여기서 멈추면 "우리 필터가 훌륭하다"는 자랑이 됩니다. 절반만 맞습니다.</p>
+
+    <p>필터를 <strong>켠</strong> 지금 상태에서도, 상위 10의 40%는 여전히 3건짜리였습니다. 최소선을 통과했을 뿐 그 최소선에 걸쳐 있습니다. 최소 거래 필터는 <strong>"1~2건짜리 최악을 막는" 장치이지, "표본을 두툼하게 만드는" 장치가 아닙니다.</strong></p>
+
+    <p>왜 하한을 3건보다 높이지 않느냐고 물을 수 있습니다. <a href="/no-price-today.html">앞선 글</a>에서 말했듯 이건 맞교환입니다. 하한을 10건으로 올리면 대부분의 단지가 랭킹에서 사라져 서비스가 성립하지 않습니다. 아파트는 원래 거래가 드문 자산이라, 두툼한 표본을 요구하면 볼 게 남지 않습니다. 3건은 "그나마 순위라 부를 수 있는" 최소선이지 안전선이 아닙니다.</p>
+
+    <h2>건수가 적을수록 더 극단적인가</h2>
+
+    <p>거래 건수와 상승률의 관계도 봤습니다. 그런데 여기서 하마터면 오판할 뻔했습니다.</p>
+
+    <p>둘의 선형 상관계수는 <strong>-0.035</strong>. 거의 0입니다. 이 숫자만 보면 "거래 건수와 상승률은 관계없다"고 결론 내리기 쉽습니다.</p>
+
+    <p>하지만 건수 구간별로 나눠보면 다른 그림이 나옵니다.</p>
+
+    <table class="data-table">
+      <caption>종료창 거래 건수별 평균 상승률(절대값)</caption>
+      <thead>
+        <tr><th>거래 건수</th><th>단지 수</th><th>평균 |상승률|</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>3건</td><td>414</td><td>6.28%</td></tr>
+        <tr><td>4건</td><td>436</td><td>5.30%</td></tr>
+        <tr><td>5건</td><td>423</td><td>5.63%</td></tr>
+        <tr><td>6~10건</td><td>1,781</td><td>5.36%</td></tr>
+        <tr><td>11~20건</td><td>1,516</td><td>4.52%</td></tr>
+        <tr><td>21건+</td><td>1,012</td><td>4.80%</td></tr>
+      </tbody>
+    </table>
+
+    <p>3건짜리의 평균 변동폭(6.28%)이 21건 이상(4.80%)의 <strong>1.3배</strong>이고, 대체로 건수가 늘수록 변동폭이 줄어듭니다. 약하지만 진짜인 기울기입니다.</p>
+
+    <div class="pull">
+      <p>상관계수 하나만 봤으면 "관계 없음"으로 넘어갔을 겁니다. 구간을 나누니 실제 구조가 드러났습니다. 하나의 요약 숫자는 이렇게 진짜 패턴을 지웁니다 — <a href="/small-cap-machine.html">앞서 12개월 평균이 시장의 국면 전환을 지웠던 것</a>과 같은 함정입니다.</p>
+    </div>
+
+    <p>얇은 표본은 더 극단적인 숫자를 만듭니다. 그 극단이 위쪽이면 상승률 1위가 되고, 아래쪽이면 하락률 1위가 됩니다. 어느 쪽이든 <strong>단지가 그만큼 움직였다는 뜻이 아니라, 그 몇 건이 우연히 그런 값이었다는 뜻</strong>일 수 있습니다.</p>
+
+    <h2>정리 — 순위 옆의 작은 숫자</h2>
+
+    <p>FomoBot의 부동산 랭킹에는 상승률 옆에 항상 거래 건수가 붙어 있습니다. 이 글은 그 작은 숫자를 왜 지우지 않는지에 대한 이야기입니다.</p>
+
+    <p>최소 거래 필터는 최악(1~2건짜리 순위)을 막습니다. 하지만 그걸 통과한 상위권에도 3건짜리가 40%나 됩니다. <strong>필터가 하한을 세워도, 그 하한에 걸친 단지의 순위는 여전히 얇은 표본 위에 서 있습니다.</strong></p>
+
+    <p>그래서 부동산 상승률 1위를 볼 때 던져야 할 질문은 "얼마나 올랐나"가 아니라 <strong>"몇 건으로 오른 걸로 집계됐나"</strong>입니다. 3건짜리 +100%와 30건짜리 +20% 중 후자가 훨씬 믿을 만한 신호입니다. 순위 옆의 그 작은 숫자가, 순위 자체보다 더 많은 것을 말해줍니다.</p>
+
+    <p><a href="/?tab=realestate">아파트 단지 랭킹 보기 →</a></p>
+
+    <div class="footnotes">
+      <p><strong>데이터 기준</strong> — 2026년 5월 스냅샷, 3개월 상승률 랭킹. 거래 건수는 종료창 실거래 수입니다. 필터 ON은 시작·종료창 각 최소 3건을 요구하는 현행 기준(유니버스 5,582개), 필터 OFF는 최소 1건 허용(9,036개)입니다. 필터 OFF 결과는 실제 파이프라인 로직을 그대로 적용해 재현했으며, 현행 값과 일치를 확인했습니다.</p>
+      <p><strong>시점·지역 분리</strong> — 시점별 비교는 부동산 랭킹 기능이 최근 도입돼 스냅샷이 2개월치뿐이라 아직 불가능합니다. 몇 달 더 쌓인 뒤 재확인할 사안입니다. 지역은 이 서비스가 수도권(서울·경기·인천)만 수집해 "지방" 비교 대상이 없습니다. 수도권 내부로 보면 상위50의 종료창 중앙값이 서울 7건·경기 9건으로, 방향이 뒤집히는 패턴은 없었습니다. 인천은 이번 상위50에 포함되지 않았습니다.</p>
+      <p><strong>사례에 관하여</strong> — 필터 OFF 상위 단지는 실제 실거래 데이터 기준이며, 특정 단지의 시세 전망을 담지 않습니다. 이 단지들은 최소 거래 필터를 통과하지 못해 실제 FomoBot 랭킹에는 노출되지 않습니다.</p>
+      <p><strong>투자 판단에 대하여</strong> — FomoBot은 이미 지나간 실거래를 정리해 보여주는 도구입니다. 특정 단지의 매수·매도를 권유하지 않으며, 이 글의 어떤 내용도 투자 자문이 아닙니다. 거래 건수가 적은 단지의 상승률은 특히 신중하게 읽어야 합니다. 투자 손익의 책임은 투자자 본인에게 있습니다.</p>
+    </div>
+  </main>
+</body>
+</html>
