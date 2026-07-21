@@ -6,7 +6,7 @@ run_gap_fill_for_market은 DB 접근 지점을 monkeypatch해 오케스트레이
 (실제 DB에는 절대 쓰지 않는다).
 """
 
-from datetime import date, timedelta
+from datetime import date
 
 import pytest
 
