@@ -51,7 +51,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=_allowed_origins,
     allow_methods=["GET"],
-    allow_headers=["*"],
+    allow_headers=["Content-Type", "Authorization", "Accept"],
 )
 
 app.include_router(rankings_router)
