@@ -4,3 +4,18 @@
 *.md text eol=lf
 *.ini text eol=lf
 *.env.example text eol=lf
+
+# Web assets — force LF text, no BOM (Googlebot parses sitemap.xml strictly)
+*.xml text eol=lf
+*.html text eol=lf
+*.txt text eol=lf
+*.css text eol=lf
+*.json text eol=lf
+
+# Binary assets — never line-ending/BOM normalize
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
