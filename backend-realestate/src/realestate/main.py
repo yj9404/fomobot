@@ -1,6 +1,6 @@
 import logging
 from contextlib import asynccontextmanager
-from datetime import date, datetime, timezone
+from datetime import date
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
