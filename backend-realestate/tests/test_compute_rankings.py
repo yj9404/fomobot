@@ -4,7 +4,6 @@
 subtract_months, 상승률 계산, 데이터 부족 판정 등을 DB 없이 테스트한다.
 """
 
-import pytest
 from decimal import Decimal
 
 from realestate.batch.complex_rankings import subtract_months, PERIOD_MONTHS
