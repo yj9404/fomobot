@@ -420,27 +420,24 @@ async def get_latest_prices_async(
     if not tickers:
         return {}
 
-    from sqlalchemy import text
-
-    placeholders = ", ".join(f":t{i}" for i in range(len(tickers)))
-    params = {f"t{i}": t for i, t in enumerate(tickers)}
-    params["market"] = market
-
     # 단일 서브쿼리로 최신 날짜를 구한 뒤 해당 날짜의 가격만 반환.
     # 상장폐지 종목은 최신 날짜에 행이 없으므로 자연스럽게 누락된다.
-    query = text(f"""
-        SELECT pd.ticker, pd.close_adj
-        FROM price_daily pd
-        WHERE pd.market = :market
-          AND pd.ticker IN ({placeholders})
-          AND pd.date = (
-              SELECT MAX(date)
-              FROM price_daily
-              WHERE market = :market
-          )
-    """)
+    subq = (
+        select(func.max(PriceDaily.date))
+        .where(PriceDaily.market == market)
+        .scalar_subquery()
+    )
 
-    result = await session.execute(query, params)
+    stmt = (
+        select(PriceDaily.ticker, PriceDaily.close_adj)
+        .where(
+            PriceDaily.market == market,
+            PriceDaily.ticker.in_(tickers),
+            PriceDaily.date == subq
+        )
+    )
+
+    result = await session.execute(stmt)
     return {row.ticker: row.close_adj for row in result.fetchall()}
 
 
