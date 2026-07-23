@@ -6,9 +6,7 @@ run_gap_fill_for_market은 DB 접근 지점을 monkeypatch해 오케스트레이
 (실제 DB에는 절대 쓰지 않는다).
 """
 
-from datetime import date, timedelta
-
-import pytest
+from datetime import date
 
 from fomobot.batch import gap_fill
 from fomobot.batch.gap_fill import GapScanResult, find_gaps, plan_fill_jobs
