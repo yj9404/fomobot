@@ -13,7 +13,7 @@ import logging
 from decimal import Decimal
 
 import pandas as pd
-from sqlalchemy import text
+from sqlalchemy import bindparam, text
 
 from realestate.batch.normalize import make_complex_key, normalize_apt_name
 from realestate.db.crud import upsert_complex_stats_sync
@@ -107,10 +107,71 @@ def aggregate_sigungu_complex(sigungu_code: str, deal_yms: list[str]) -> int:
 
 def aggregate_all_sigungu_complex(deal_yms: list[str]) -> None:
     """수도권 전체 시군구에 대해 단지 집계를 실행한다."""
-    from realestate.batch.regions import SUDOGWON_SIGUNGU
+    if not deal_yms:
+        return
 
-    for sg in SUDOGWON_SIGUNGU:
-        try:
-            aggregate_sigungu_complex(sg["code"], deal_yms)
-        except Exception:
-            logger.exception("%s 단지 집계 중 오류", sg["code"])
+    with SyncSessionLocal() as session:
+        sql = text("""
+            SELECT sigungu_code, eupmyeondong, apt_name, deal_ym, deal_date, price_per_sqm
+            FROM re_transaction
+            WHERE deal_ym IN :deal_yms
+              AND price_per_sqm > 0
+            ORDER BY deal_date ASC
+        """)
+        sql = sql.bindparams(bindparam("deal_yms", expanding=True))
+        result = session.execute(sql, {"deal_yms": deal_yms})
+        rows = [dict(r._mapping) for r in result]
+
+    if not rows:
+        logger.info("전체 단지 집계: 해당 기간 거래 없음")
+        return
+
+    df = pd.DataFrame(rows)
+    df["price_per_sqm"] = df["price_per_sqm"].astype(float)
+
+    df["apt_name_norm"] = df["apt_name"].apply(normalize_apt_name)
+    df["complex_key"] = df.apply(
+        lambda r: make_complex_key(
+            r["sigungu_code"], r["eupmyeondong"], r["apt_name_norm"]
+        ),
+        axis=1,
+    )
+
+    # 단지별 가장 최근 표기를 표시명으로 사용
+    meta_df = df.groupby("complex_key")[
+        ["eupmyeondong", "apt_name", "apt_name_norm"]
+    ].last()
+
+    # (complex_key, deal_ym) 단위 중위값·건수 집계
+    agg = (
+        df.groupby(["complex_key", "sigungu_code", "deal_ym"])["price_per_sqm"]
+        .agg(median="median", tx_count="count")
+        .reset_index()
+    )
+
+    meta_dict = meta_df.to_dict("index")
+
+    records: list[dict] = []
+    for row in agg.itertuples(index=False):
+        key = row.complex_key
+        meta = meta_dict[key]
+        records.append(
+            {
+                "complex_key": key,
+                "sigungu_code": row.sigungu_code,
+                "eupmyeondong": str(meta["eupmyeondong"])[:100],
+                "apt_name": str(meta["apt_name"])[:200],
+                "apt_name_norm": str(meta["apt_name_norm"])[:200],
+                "deal_ym": row.deal_ym,
+                "median_price_per_sqm": round(Decimal(str(row.median)), 2),
+                "transaction_count": int(row.tx_count),
+            }
+        )
+
+    with SyncSessionLocal() as session:
+        upsert_complex_stats_sync(session, records)
+        logger.info(
+            "전체 단지 집계 완료: %d개월, 단지×월 %d건 저장",
+            len(deal_yms),
+            len(records),
+        )
