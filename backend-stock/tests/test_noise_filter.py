@@ -173,7 +173,6 @@ class TestPriceSanityFilter:
 
         # 매일 ±250% 수준의 극단적 변동 (임계값 3.0 미만이지만 변동성 폭발)
         # 실제로 2.5 = 250%도 max_daily_move_pct=3.0 기준으로는 통과
-        import numpy as np
         rng = np.random.default_rng(42)
         prices = [100.0]
         for _ in range(29):

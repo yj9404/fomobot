@@ -8,6 +8,7 @@ NASDAQ 가격 데이터 수집 배치.
 - 스케줄:      매일 07:30 KST (NYSE 장 마감 16:00 EST = KST 06:00 + 여유 1.5h)
 """
 
+import concurrent.futures
 import io
 import logging
 import time
@@ -195,39 +196,47 @@ def run_nasdaq_collection(target_date: date | None = None) -> None:
     all_records: list[dict] = []
     consecutive_failures = 0
 
-    for batch_idx, batch in enumerate(batches):
-        # 서킷 브레이커: 연속 실패가 임계값 초과 시 대기 후 재개
-        if consecutive_failures >= settings.nasdaq_max_consec_failures:
-            wait_sec = settings.nasdaq_circuit_breaker_wait_sec
-            logger.warning(
-                "NASDAQ 연속 %d배치 실패, %d분 대기 후 재개",
-                consecutive_failures, wait_sec // 60,
-            )
-            time.sleep(wait_sec)
-            consecutive_failures = 0
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+        future = executor.submit(_download_batch, batches[0], start_str, end_str) if batches else None
 
-        try:
-            df = _download_batch(batch, start_str, end_str)
-            records = _parse_batch_df(df, batch, MARKET)
-            all_records.extend(records)
-            consecutive_failures = 0
+        for batch_idx, batch in enumerate(batches):
+            # 서킷 브레이커: 연속 실패가 임계값 초과 시 대기 후 재개
+            if consecutive_failures >= settings.nasdaq_max_consec_failures:
+                wait_sec = settings.nasdaq_circuit_breaker_wait_sec
+                logger.warning(
+                    "NASDAQ 연속 %d배치 실패, %d분 대기 후 재개",
+                    consecutive_failures, wait_sec // 60,
+                )
+                time.sleep(wait_sec)
+                consecutive_failures = 0
 
-            logger.debug("배치 %d/%d: %d건 수집", batch_idx + 1, len(batches), len(records))
+            try:
+                df = future.result()
+                records = _parse_batch_df(df, batch, MARKET)
+                all_records.extend(records)
+                consecutive_failures = 0
 
-        except Exception:
-            logger.warning("NASDAQ 배치 %d/%d 실패, 스킵", batch_idx + 1, len(batches))
-            consecutive_failures += 1
-            continue
+                logger.debug("배치 %d/%d: %d건 수집", batch_idx + 1, len(batches), len(records))
 
-        # 배치 간 딜레이
-        time.sleep(settings.nasdaq_batch_delay_sec)
+            except Exception:
+                logger.warning("NASDAQ 배치 %d/%d 실패, 스킵", batch_idx + 1, len(batches))
+                consecutive_failures += 1
+                if batch_idx + 1 < len(batches):
+                    future = executor.submit(_download_batch, batches[batch_idx + 1], start_str, end_str)
+                continue
 
-        # 메모리 절약: 5000건마다 중간 저장
-        if len(all_records) >= 5_000:
-            with SyncSessionLocal() as session:
-                upsert_price_daily_sync(session, all_records)
-            logger.info("NASDAQ 중간 저장: %d건", len(all_records))
-            all_records.clear()
+            if batch_idx + 1 < len(batches):
+                future = executor.submit(_download_batch, batches[batch_idx + 1], start_str, end_str)
+
+            # 배치 간 딜레이
+            time.sleep(settings.nasdaq_batch_delay_sec)
+
+            # 메모리 절약: 5000건마다 중간 저장
+            if len(all_records) >= 5_000:
+                with SyncSessionLocal() as session:
+                    upsert_price_daily_sync(session, all_records)
+                logger.info("NASDAQ 중간 저장: %d건", len(all_records))
+                all_records.clear()
 
     # QQQ 지수 수집 (NASDAQ 대용 지수)
     index_records: list[dict] = []
@@ -306,33 +315,41 @@ def run_nasdaq_full_history(start_date: date, end_date: date) -> None:
     all_records: list[dict] = []
     consecutive_failures = 0
 
-    for batch_idx, batch in enumerate(batches):
-        if consecutive_failures >= settings.nasdaq_max_consec_failures:
-            wait_sec = settings.nasdaq_circuit_breaker_wait_sec
-            logger.warning("서킷 브레이커 발동, %d분 대기", wait_sec // 60)
-            time.sleep(wait_sec)
-            consecutive_failures = 0
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+        future = executor.submit(_download_batch, batches[0], start_str, end_str) if batches else None
 
-        try:
-            df = _download_batch(batch, start_str, end_str)
-            records = _parse_batch_df(df, batch, MARKET)
-            all_records.extend(records)
-            consecutive_failures = 0
-        except Exception:
-            logger.warning("배치 %d/%d 실패", batch_idx + 1, len(batches))
-            consecutive_failures += 1
-            continue
+        for batch_idx, batch in enumerate(batches):
+            if consecutive_failures >= settings.nasdaq_max_consec_failures:
+                wait_sec = settings.nasdaq_circuit_breaker_wait_sec
+                logger.warning("서킷 브레이커 발동, %d분 대기", wait_sec // 60)
+                time.sleep(wait_sec)
+                consecutive_failures = 0
 
-        time.sleep(settings.nasdaq_batch_delay_sec)
+            try:
+                df = future.result()
+                records = _parse_batch_df(df, batch, MARKET)
+                all_records.extend(records)
+                consecutive_failures = 0
+            except Exception:
+                logger.warning("배치 %d/%d 실패", batch_idx + 1, len(batches))
+                consecutive_failures += 1
+                if batch_idx + 1 < len(batches):
+                    future = executor.submit(_download_batch, batches[batch_idx + 1], start_str, end_str)
+                continue
 
-        if len(all_records) >= 10_000:
-            with SyncSessionLocal() as session:
-                upsert_price_daily_sync(session, all_records)
-            logger.info("중간 저장 %d건", len(all_records))
-            all_records.clear()
+            if batch_idx + 1 < len(batches):
+                future = executor.submit(_download_batch, batches[batch_idx + 1], start_str, end_str)
 
-        if (batch_idx + 1) % 10 == 0:
-            logger.info("진행률: %d/%d 배치", batch_idx + 1, len(batches))
+            time.sleep(settings.nasdaq_batch_delay_sec)
+
+            if len(all_records) >= 10_000:
+                with SyncSessionLocal() as session:
+                    upsert_price_daily_sync(session, all_records)
+                logger.info("중간 저장 %d건", len(all_records))
+                all_records.clear()
+
+            if (batch_idx + 1) % 10 == 0:
+                logger.info("진행률: %d/%d 배치", batch_idx + 1, len(batches))
 
     master_records = [
         {"ticker": t, "market": MARKET, "name": name_map.get(t), "is_active": True}
