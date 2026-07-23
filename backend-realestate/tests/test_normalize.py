@@ -1,7 +1,5 @@
 """단지 식별·정규화 테스트."""
 
-import pytest
-
 from realestate.batch.normalize import make_complex_key, normalize_apt_name
 
 
@@ -9,12 +7,16 @@ class TestNormalizeAptName:
     def test_whitespace_variants(self):
         """공백 차이는 같은 단지로 병합된다."""
         assert normalize_apt_name("래미안 강남") == normalize_apt_name("래미안강남")
-        assert normalize_apt_name("힐스테이트 1단지") == normalize_apt_name("힐스테이트1단지")
+        assert normalize_apt_name("힐스테이트 1단지") == normalize_apt_name(
+            "힐스테이트1단지"
+        )
         assert normalize_apt_name("GS 자이") == normalize_apt_name("GS자이")
 
     def test_fullwidth_normalization(self):
         """전각 숫자는 반각으로 통일된다."""
-        assert normalize_apt_name("힐스테이트１단지") == normalize_apt_name("힐스테이트1단지")
+        assert normalize_apt_name("힐스테이트１단지") == normalize_apt_name(
+            "힐스테이트1단지"
+        )
         assert normalize_apt_name("래미안２차") == normalize_apt_name("래미안2차")
 
     def test_punctuation_removal(self):
