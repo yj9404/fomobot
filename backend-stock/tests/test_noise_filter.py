@@ -5,7 +5,6 @@ apply_nasdaq_filter의 market_cap 로직과
 apply_price_sanity_filter의 corporate action 감지를 검증한다.
 """
 
-import numpy as np
 import pandas as pd
 
 from fomobot.services.noise_filter import apply_nasdaq_filter, apply_price_sanity_filter
