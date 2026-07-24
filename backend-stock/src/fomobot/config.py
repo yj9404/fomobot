@@ -33,6 +33,15 @@ class Settings(BaseSettings):
         self.database_url_sync = to_psycopg2(self.database_url_sync)
         return self
 
+    @model_validator(mode="after")
+    def _validate_cors_origins(self) -> "Settings":
+        if self.app_env.lower() == "production":
+            origins = [o.strip() for o in self.allowed_origins.split(",") if o.strip()]
+            for origin in origins:
+                if "localhost" in origin or "127.0.0.1" in origin:
+                    raise ValueError(f"Localhost origins are not allowed in production: {origin}")
+        return self
+
     # App
     app_env: str = "development"
     log_level: str = "INFO"
