@@ -100,18 +100,6 @@ def _fetch_kospi_index(start: str, end: str) -> pd.DataFrame:
     return df
 
 
-def _compute_avg_volume_30d(
-    ohlcv: pd.DataFrame, cap: pd.DataFrame, reference_date: date
-) -> float:
-    """최근 30일 평균 거래대금 계산."""
-    start_30d = reference_date - timedelta(days=30)
-    # 거래대금 컬럼: pykrx OHLCV에 '거래대금' 포함
-    if "거래대금" in ohlcv.columns:
-        recent = ohlcv[ohlcv.index >= pd.Timestamp(start_30d)]["거래대금"]
-        return float(recent.mean()) if not recent.empty else 0.0
-    return 0.0
-
-
 def run_kospi_collection(target_date: date | None = None) -> None:
     """
     KOSPI 전 종목 가격 데이터를 수집해 DB에 저장한다.
@@ -168,7 +156,6 @@ def run_kospi_collection(target_date: date | None = None) -> None:
 
             cap_col = "시가총액" if "시가총액" in cap_df.columns else cap_df.columns[0]
 
-            avg_vol_30d = _compute_avg_volume_30d(ohlcv, cap_df, today)
             master_records.append({
                 "ticker": ticker,
                 "market": MARKET,

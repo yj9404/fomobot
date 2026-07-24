@@ -35,7 +35,7 @@ def _collect_kospi() -> int:
     """KOSPI 수집 후 저장된 레코드 수를 반환한다."""
     from fomobot.batch.collect_kospi import run_kospi_collection
     logger.info("=== KOSPI 수집 시작 ===")
-    result = run_kospi_collection()
+    run_kospi_collection()
     # run_kospi_collection 은 내부에서 저장까지 완료 후 반환
     # 반환값이 없으므로 0 반환 (로그로 건수 확인)
     return 0
