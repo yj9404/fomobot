@@ -1,6 +1,5 @@
 """단지 식별·정규화 테스트."""
 
-import pytest
 
 from realestate.batch.normalize import make_complex_key, normalize_apt_name
 

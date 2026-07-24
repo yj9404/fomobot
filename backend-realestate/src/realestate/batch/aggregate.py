@@ -12,7 +12,7 @@ import logging
 from decimal import Decimal
 
 import pandas as pd
-from sqlalchemy import text
+from sqlalchemy import bindparam, text
 
 from realestate.db.crud import upsert_monthly_stats_sync
 from realestate.db.session import SyncSessionLocal
@@ -23,15 +23,14 @@ logger = logging.getLogger(__name__)
 def _load_transactions(session, sigungu_code: str, deal_yms: list[str]) -> pd.DataFrame:
     if not deal_yms:
         return pd.DataFrame()
-    ym_list = ", ".join(f"'{ym}'" for ym in deal_yms)
-    sql = text(f"""
+    sql = text("""
         SELECT eupmyeondong, deal_ym, price_per_sqm
         FROM re_transaction
         WHERE sigungu_code = :code
-          AND deal_ym IN ({ym_list})
+          AND deal_ym IN :deal_yms
           AND price_per_sqm > 0
-    """)
-    result = session.execute(sql, {"code": sigungu_code})
+    """).bindparams(bindparam("deal_yms", expanding=True))
+    result = session.execute(sql, {"code": sigungu_code, "deal_yms": deal_yms})
     rows = [dict(r._mapping) for r in result]
     if not rows:
         return pd.DataFrame()
