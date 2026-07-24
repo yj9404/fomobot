@@ -54,7 +54,6 @@ async def get_region_detail(
             detail=f"sigungu_code={sigungu_code} 데이터가 없습니다. 수집이 아직 실행되지 않았을 수 있습니다.",
         )
 
-    first = rows[0]
     sigungu_name = sigungu_code  # re_monthly_stat에는 name이 없음 → 클라이언트가 별도 매핑하거나 rankings API에서 조합
     level = "dong" if eupmyeondong else "gu"
 
