@@ -8,7 +8,6 @@ API 컬럼명이 PublicDataReader 버전에 따라 다를 수 있으므로 방�
 """
 
 import logging
-import time
 from decimal import Decimal, InvalidOperation
 
 import pandas as pd
@@ -94,8 +93,6 @@ def _clean_df(raw: pd.DataFrame, sigungu_code: str, sigungu_name: str, deal_ym: 
     dong_col = _pick_col(df, _COL_CANDIDATES["eupmyeondong"])
     amount_col = _pick_col(df, _COL_CANDIDATES["deal_amount_raw"])
     area_col = _pick_col(df, _COL_CANDIDATES["exclusive_area"])
-    year_col = _pick_col(df, _COL_CANDIDATES["deal_year"])
-    month_col = _pick_col(df, _COL_CANDIDATES["deal_month"])
     day_col = _pick_col(df, _COL_CANDIDATES["deal_day"])
     floor_col = _pick_col(df, _COL_CANDIDATES["floor"])
     build_col = _pick_col(df, _COL_CANDIDATES["build_year"])
