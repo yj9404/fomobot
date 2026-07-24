@@ -12,6 +12,7 @@ import pytest
 from fomobot.services.calculator import (
     compute_excess_return,
     compute_mdd,
+    compute_quote_metrics,
     compute_returns,
     compute_volatility,
     build_ranking_df,
@@ -235,3 +236,48 @@ class TestBuildRankingDf:
         required = {"rank", "ticker", "return_pct", "mdd_pct",
                     "volatility_annualized_pct", "excess_return_pct"}
         assert required.issubset(result.columns)
+
+
+# ── compute_quote_metrics ─────────────────────────────────────────────────────
+
+class TestComputeQuoteMetrics:
+    def test_compute_quote_metrics_normal(self):
+        """정상적인 가격 시리즈를 입력했을 때 지표들이 올바르게 계산되는지 확인"""
+        prices = [100.0, 110.0, 99.0, 108.9, 98.01]
+        dates = pd.date_range("2024-01-01", periods=5)
+        series = pd.Series(prices, index=dates)
+
+        result = compute_quote_metrics(series)
+
+        # 수익률 검증: 100 -> 98.01 이므로 -1.99%
+        assert result["return_pct"] == pytest.approx(-1.99)
+
+        # MDD 검증: 최고점 110 -> 최저점 98.01 (또는 99), (98.01 - 110) / 110 * 100 = -10.9%
+        assert result["mdd_pct"] == pytest.approx(-10.9)
+
+        # Volatility 검증:
+        daily = series.pct_change().dropna()
+        expected_vol = daily.std() * np.sqrt(252) * 100
+        assert result["volatility_annualized_pct"] == pytest.approx(expected_vol, rel=1e-6)
+
+    def test_compute_quote_metrics_empty(self):
+        """빈 시리즈를 입력했을 때 None을 반환하는지 확인"""
+        series = pd.Series(dtype=float)
+        result = compute_quote_metrics(series)
+
+        assert result == {
+            "return_pct": None,
+            "mdd_pct": None,
+            "volatility_annualized_pct": None,
+        }
+
+    def test_compute_quote_metrics_single(self):
+        """데이터가 1개인 시리즈를 입력했을 때 None을 반환하는지 확인"""
+        series = pd.Series([100.0], index=pd.DatetimeIndex(["2024-01-01"]))
+        result = compute_quote_metrics(series)
+
+        assert result == {
+            "return_pct": None,
+            "mdd_pct": None,
+            "volatility_annualized_pct": None,
+        }
