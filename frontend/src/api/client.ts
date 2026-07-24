@@ -15,6 +15,12 @@ export class ApiError extends Error {
   }
 }
 
+export const client = {
+  get: async <T>(path: string, params: Record<string, string | number>): Promise<T> => {
+    return apiFetch<T>(path, params);
+  }
+};
+
 export async function apiFetch<T>(path: string, params: Record<string, string | number>): Promise<T> {
   const url = new URL(resolveBase(path) + path, window.location.href)
   for (const [k, v] of Object.entries(params)) {
