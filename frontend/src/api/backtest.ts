@@ -1,13 +1,18 @@
-import { apiFetch } from './client'
+import { client } from './client'
 import type { Market, Period, BacktestResponse, BacktestDetailResponse } from '../types'
 
 export function fetchBacktest(
   market: Market,
   asOf: string,
   period: Period,
-  top = 10,
+  top: number = 20
 ): Promise<BacktestResponse> {
-  return apiFetch<BacktestResponse>('/api/stock/backtest', { market, as_of: asOf, period, top })
+  return client.get<BacktestResponse>('/api/stock/backtest', {
+    market,
+    as_of: asOf,
+    period,
+    top: top.toString(),
+  });
 }
 
 export function fetchBacktestDetail(
@@ -16,7 +21,7 @@ export function fetchBacktestDetail(
   asOf: string,
   period: Period,
 ): Promise<BacktestDetailResponse> {
-  return apiFetch<BacktestDetailResponse>('/api/stock/backtest/detail', {
+  return client.get<BacktestDetailResponse>('/api/stock/backtest/detail', {
     market,
     ticker,
     as_of: asOf,
