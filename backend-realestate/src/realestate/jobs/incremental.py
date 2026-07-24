@@ -42,16 +42,14 @@ def _recent_year_months(n_months: int = 3) -> list[str]:
 
 def _force_reset_collection_log(sigungu_code: str, deal_yms: list[str]) -> None:
     """재수집을 위해 해당 항목의 수집 로그를 삭제(재설정)한다."""
-    from sqlalchemy import text
+    from sqlalchemy import delete
+    from realestate.db.models import ReCollectionLog
     with SyncSessionLocal() as session:
-        ym_list = ", ".join(f"'{ym}'" for ym in deal_yms)
-        session.execute(
-            text(f"""
-                DELETE FROM re_collection_log
-                WHERE sigungu_code = :code AND deal_ym IN ({ym_list})
-            """),
-            {"code": sigungu_code},
+        stmt = delete(ReCollectionLog).where(
+            ReCollectionLog.sigungu_code == sigungu_code,
+            ReCollectionLog.deal_ym.in_(deal_yms)
         )
+        session.execute(stmt)
         session.commit()
 
 
