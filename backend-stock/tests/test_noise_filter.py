@@ -5,7 +5,6 @@ apply_nasdaq_filter의 market_cap 로직과
 apply_price_sanity_filter의 corporate action 감지를 검증한다.
 """
 
-import numpy as np
 import pandas as pd
 
 from fomobot.services.noise_filter import apply_nasdaq_filter, apply_price_sanity_filter
@@ -173,6 +172,7 @@ class TestPriceSanityFilter:
 
         # 매일 ±250% 수준의 극단적 변동 (임계값 3.0 미만이지만 변동성 폭발)
         # 실제로 2.5 = 250%도 max_daily_move_pct=3.0 기준으로는 통과
+        # (테스트 재현용 난수 생성, 통계적인 극단 케이스 검증)
         import numpy as np
         rng = np.random.default_rng(42)
         prices = [100.0]
