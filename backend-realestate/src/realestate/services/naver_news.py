@@ -6,6 +6,7 @@ LLM 미사용 — 관련성 판정은 "제목에 대상명 직접 언급 + 발�
 건 기사 제목+링크+날짜뿐).
 """
 
+import html
 import logging
 import re
 from datetime import date
@@ -32,8 +33,8 @@ GU_FALLBACK_KEYWORDS = [
 
 
 def _strip_tags(text: str) -> str:
-    """네이버 API가 매칭 키워드를 감싸는 <b></b> 태그를 제거한다."""
-    return _TAG_RE.sub("", text)
+    """네이버 API가 매칭 키워드를 감싸는 <b></b> 태그를 제거하고 HTML 엔티티를 디코딩한다."""
+    return html.unescape(_TAG_RE.sub("", text))
 
 
 def _parse_pub_date(pub_date: str) -> date | None:
