@@ -1,139 +1,139 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://fomobot-dun.vercel.app/</loc>
+    <loc>https://fomobot.net/</loc>
     <lastmod>2026-06-23</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://fomobot-dun.vercel.app/about.html</loc>
+    <loc>https://fomobot.net/about.html</loc>
     <lastmod>2026-07-04</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://fomobot-dun.vercel.app/articles.html</loc>
+    <loc>https://fomobot.net/articles.html</loc>
     <lastmod>2026-07-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://fomobot-dun.vercel.app/five-year-winner.html</loc>
+    <loc>https://fomobot.net/five-year-winner.html</loc>
     <lastmod>2026-07-14</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://fomobot-dun.vercel.app/buying-last-months-winners.html</loc>
+    <loc>https://fomobot.net/buying-last-months-winners.html</loc>
     <lastmod>2026-07-14</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://fomobot-dun.vercel.app/lag-window-function.html</loc>
+    <loc>https://fomobot.net/lag-window-function.html</loc>
     <lastmod>2026-07-14</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://fomobot-dun.vercel.app/index-illusion.html</loc>
+    <loc>https://fomobot.net/index-illusion.html</loc>
     <lastmod>2026-07-14</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://fomobot-dun.vercel.app/adjusted-price-trap.html</loc>
+    <loc>https://fomobot.net/adjusted-price-trap.html</loc>
     <lastmod>2026-07-15</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://fomobot-dun.vercel.app/no-price-today.html</loc>
+    <loc>https://fomobot.net/no-price-today.html</loc>
     <lastmod>2026-07-15</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://fomobot-dun.vercel.app/price-per-sqm.html</loc>
+    <loc>https://fomobot.net/price-per-sqm.html</loc>
     <lastmod>2026-07-15</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://fomobot-dun.vercel.app/small-cap-machine.html</loc>
+    <loc>https://fomobot.net/small-cap-machine.html</loc>
     <lastmod>2026-07-15</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://fomobot-dun.vercel.app/catching-the-knife.html</loc>
+    <loc>https://fomobot.net/catching-the-knife.html</loc>
     <lastmod>2026-07-15</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://fomobot-dun.vercel.app/what-day-is-yesterday.html</loc>
+    <loc>https://fomobot.net/what-day-is-yesterday.html</loc>
     <lastmod>2026-07-15</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://fomobot-dun.vercel.app/bias-we-kept.html</loc>
+    <loc>https://fomobot.net/bias-we-kept.html</loc>
     <lastmod>2026-07-15</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://fomobot-dun.vercel.app/how-many-trades.html</loc>
+    <loc>https://fomobot.net/how-many-trades.html</loc>
     <lastmod>2026-07-15</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://fomobot-dun.vercel.app/dca-vs-lump.html</loc>
+    <loc>https://fomobot.net/dca-vs-lump.html</loc>
     <lastmod>2026-07-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://fomobot-dun.vercel.app/lookahead-bias.html</loc>
+    <loc>https://fomobot.net/lookahead-bias.html</loc>
     <lastmod>2026-07-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://fomobot-dun.vercel.app/coalesce-order.html</loc>
+    <loc>https://fomobot.net/coalesce-order.html</loc>
     <lastmod>2026-07-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://fomobot-dun.vercel.app/cleanup-deleted-history.html</loc>
+    <loc>https://fomobot.net/cleanup-deleted-history.html</loc>
     <lastmod>2026-07-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://fomobot-dun.vercel.app/methodology.html</loc>
+    <loc>https://fomobot.net/methodology.html</loc>
     <lastmod>2026-07-04</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://fomobot-dun.vercel.app/survivorship-bias.html</loc>
+    <loc>https://fomobot.net/survivorship-bias.html</loc>
     <lastmod>2026-07-04</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://fomobot-dun.vercel.app/glossary.html</loc>
+    <loc>https://fomobot.net/glossary.html</loc>
     <lastmod>2026-07-04</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>https://fomobot-dun.vercel.app/privacy.html</loc>
+    <loc>https://fomobot.net/privacy.html</loc>
     <lastmod>2026-07-04</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
