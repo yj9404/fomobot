@@ -6,7 +6,7 @@ KOSPI·NASDAQ 기간별 상승률 랭킹 서비스. **투자 조언이 아닙니
 
 | 레이어 | 기술 |
 |--------|------|
-| 프론트엔드 | React + Vite → Vercel |
+| 프론트엔드 | React + Vite → Cloudflare Workers |
 | 백엔드 | FastAPI + PostgreSQL → Railway |
 | 배치 | Railway Cron (독립 프로세스) |
 | 모니터링 | Sentry (에러), UptimeRobot (uptime/데이터 신선도) |
@@ -48,7 +48,7 @@ npm run dev
 DATABASE_URL=postgresql+asyncpg://...
 DATABASE_URL_SYNC=postgresql+psycopg2://...
 APP_ENV=production
-ALLOWED_ORIGINS=https://your-frontend.vercel.app
+ALLOWED_ORIGINS=https://your-frontend.workers.dev
 SENTRY_DSN=https://...@sentry.io/...
 ENABLE_SCHEDULER=false
 HEALTH_STALE_HOURS=25
@@ -90,15 +90,21 @@ python scripts/init_history.py
 
 ---
 
-### 프론트엔드 — Vercel
+### 프론트엔드 — Cloudflare Workers
 
-1. Vercel 프로젝트 생성 → GitHub 저장소 연결
+1. Cloudflare 대시보드 → **Workers & Pages** → 프로젝트 생성 → GitHub 저장소 연결
 2. **Root Directory**: `frontend`
-3. Vercel 이 `frontend/vercel.json` 을 자동 감지
-4. **Environment Variables** 설정:
+3. Cloudflare 가 `frontend/wrangler.jsonc` 를 자동 감지 (Workers Static Assets + SPA fallback)
+4. **Environment Variables** 설정 (대시보드 → Settings → Variables):
 
 ```
 VITE_API_BASE_URL=https://your-backend.up.railway.app
+```
+
+5. GitHub 저장소에 push 시 자동 빌드·배포. 수동 배포는 `frontend`에서:
+
+```bash
+npm run deploy   # npm run build && wrangler deploy
 ```
 
 ---
@@ -141,6 +147,6 @@ FomoBot/
 │   └── .env.example
 └── frontend/
     ├── src/
-    ├── vercel.json
+    ├── wrangler.jsonc
     └── vite.config.ts
 ```

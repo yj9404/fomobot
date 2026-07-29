@@ -20,5 +20,5 @@ export default defineConfig({
     },
   },
   // VITE_API_BASE_URL 이 설정된 경우 빌드 결과물에 포함됨
-  // Vercel 환경변수로 주입: VITE_API_BASE_URL=https://fomobot-api.up.railway.app
+  // Cloudflare Workers 환경변수로 주입: VITE_API_BASE_URL=https://fomobot-api.up.railway.app
 })

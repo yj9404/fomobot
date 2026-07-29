@@ -47,7 +47,7 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
 
     # CORS — 콤마로 구분된 허용 오리진 목록
-    # 예: "http://localhost:5173,https://fomobot.vercel.app"
+    # 예: "http://localhost:5173,https://fomobot.net"
     allowed_origins: str = "http://localhost:5173,http://localhost:4173"
 
     # Sentry — 값이 없으면 초기화 스킵
