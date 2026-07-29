@@ -16,6 +16,7 @@ from datetime import date, timedelta
 import pandas as pd
 
 from fomobot.db.crud import (
+    get_flagged_tickers_sync,
     get_index_range_sync,
     get_last_trading_day_sync,
     get_price_range_sync,
@@ -247,6 +248,43 @@ def compute_rankings_for_market(
 
                 if price_matrix.empty:
                     logger.warning("%s %s: 필터 후 종목 없음", market, period_key)
+                    continue
+
+                # corporate action 격리 목록 제외 — 조용히 빼지 않고 사유를 로그로 남긴다
+                # (NASDAQ sanity 필터가 warning만 남기고 조용히 빼던 방식이 문제였음).
+                # fail-loud: 조회 자체가 실패해도 "제외 없음으로 조용히 진행"하지 않고
+                # Sentry+로그로 명시한다(오염 종목이 말없이 랭킹에 노출되는 실패 모드 방지).
+                try:
+                    flagged_tickers = get_flagged_tickers_sync(session, market)
+                except Exception:
+                    logger.exception(
+                        "%s %s: corporate_action_flag 조회 실패 — 제외 미적용으로 진행",
+                        market, period_key,
+                    )
+                    try:
+                        import sentry_sdk
+                        sentry_sdk.capture_message(
+                            f"[{market.upper()}] corporate_action_flag 조회 실패 — "
+                            f"{period_key} 랭킹에 제외 미적용",
+                            level="warning",
+                        )
+                    except Exception:
+                        pass
+                    flagged_tickers = set()
+
+                if flagged_tickers:
+                    excluded_present = [t for t in price_matrix.columns if t in flagged_tickers]
+                    if excluded_present:
+                        logger.warning(
+                            "%s %s: corporate_action_flag 제외 %d종목: %s",
+                            market, period_key, len(excluded_present), excluded_present,
+                        )
+                        price_matrix = price_matrix[
+                            [t for t in price_matrix.columns if t not in flagged_tickers]
+                        ]
+
+                if price_matrix.empty:
+                    logger.warning("%s %s: corporate action 제외 후 종목 없음", market, period_key)
                     continue
 
                 # 지수 가격

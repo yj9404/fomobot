@@ -88,6 +88,51 @@ def _compute_breadth(market: str) -> None:
             pass
 
 
+def _run_corporate_action_checks(market: str) -> None:
+    """
+    corporate action(액면분할·병합) 신규 후보 탐지 + halt 재개 체크.
+
+    이번 단계는 알림만 — corporate_action_flag에 자동 insert하지 않는다
+    (오탐률을 몇 주 지켜본 뒤 다음 단계에서 자동 등록 전환 여부 결정).
+    실패해도 본 수집/랭킹 작업에는 영향 없다 — _compute_breadth와 동일하게
+    예외를 여기서 흡수하고 Sentry로만 올린다(격리).
+    """
+    try:
+        from fomobot.batch.detect_corporate_actions import (
+            RESUMPTION_NEXT_STEPS,
+            check_halt_resumption,
+            detect_corporate_actions,
+        )
+
+        candidates = detect_corporate_actions(market, lookback_days=7)
+        for c in candidates:
+            _report_warning(
+                f"[{market.upper()}] corporate action 후보 탐지: {c['ticker']} "
+                f"signal={c['signal_type']} price_ratio={c['price_ratio']:.4f} "
+                f"reason추정={c['reason_guess']} halt인접={c['halt_adjacent']} "
+                f"({c['detected_signal']})"
+            )
+
+        resumptions = check_halt_resumption(market)
+        for r in resumptions:
+            if r["resumed"]:
+                _report_warning(
+                    f"[{market.upper()}] {r['ticker']} 거래 재개 감지 — "
+                    f"재개 첫 실거래일 {r['last_real_trade_date']}. "
+                    f"{RESUMPTION_NEXT_STEPS}"
+                )
+    except Exception:
+        logger.exception(
+            "%s corporate action 감지/halt 재개 체크 실패 — 본 수집/랭킹 작업에는 영향 없음(격리됨)",
+            market.upper(),
+        )
+        try:
+            import sentry_sdk
+            sentry_sdk.capture_exception()
+        except Exception:
+            pass
+
+
 def _report_warning(message: str) -> None:
     """'성공했지만 비정상'인 상황을 Sentry 경고로 전송한다."""
     try:
@@ -146,6 +191,9 @@ def run(market: str) -> None:
 
         # breadth 계산은 내부에서 예외를 흡수하므로 여기서는 별도 try/except 불필요.
         _compute_breadth(mkt)
+
+        # corporate action 감지/halt 재개 체크도 내부에서 예외를 흡수한다(알림만, insert 없음).
+        _run_corporate_action_checks(mkt)
 
     logger.info("배치 완료: %s", market)
 

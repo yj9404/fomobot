@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session, aliased
 
 from fomobot.db.models import (
     PriceDaily, IndexDaily, RankingSnapshot, SecuritiesMaster, StockNews,
-    MarketBreadthDaily,
+    MarketBreadthDaily, CorporateActionFlag,
 )
 
 
@@ -669,3 +669,115 @@ async def get_has_news_tickers_async(
     )
     result = await session.execute(stmt)
     return set(result.scalars().all())
+
+
+# ── CorporateActionFlag ──────────────────────────────────────────────────────
+
+def get_flagged_tickers_sync(
+    session: Session,
+    market: str,
+    statuses: tuple[str, ...] = ("excluded", "pending"),
+) -> set[str]:
+    """주어진 market에서 status가 statuses에 해당하는 격리 종목 티커 집합을 반환한다.
+
+    랭킹 계산이 이 결과를 price_matrix 제외 목록으로 사용한다
+    (compute_rankings.py 참조). resolved 상태는 기본적으로 제외되지 않는다
+    (정정 완료로 간주해 랭킹에 다시 포함).
+    """
+    stmt = select(CorporateActionFlag.ticker).where(
+        CorporateActionFlag.market == market,
+        CorporateActionFlag.status.in_(statuses),
+    )
+    rows = session.execute(stmt).scalars().all()
+    return set(rows)
+
+
+def get_flagged_tickers_detail_sync(
+    session: Session,
+    market: str,
+    statuses: tuple[str, ...] = ("excluded", "pending"),
+) -> list[dict]:
+    """랭킹 제외 로그용으로 ticker·reason·status를 함께 반환한다."""
+    stmt = select(
+        CorporateActionFlag.ticker,
+        CorporateActionFlag.reason,
+        CorporateActionFlag.status,
+    ).where(
+        CorporateActionFlag.market == market,
+        CorporateActionFlag.status.in_(statuses),
+    )
+    return [r._asdict() for r in session.execute(stmt).fetchall()]
+
+
+def upsert_corporate_action_flag_sync(session: Session, records: list[dict]) -> None:
+    """ticker unique 기준 upsert — 이미 플래그된 종목 재탐지 시 갱신, 신규는 삽입."""
+    from sqlalchemy.dialects.postgresql import insert as pg_insert
+    if not records:
+        return
+    stmt = pg_insert(CorporateActionFlag).values(records)
+    stmt = stmt.on_conflict_do_update(
+        constraint="uq_corporate_action_flag_ticker",
+        set_={
+            "market": stmt.excluded.market,
+            "flag_date": stmt.excluded.flag_date,
+            "reason": stmt.excluded.reason,
+            "status": stmt.excluded.status,
+            "detected_signal": stmt.excluded.detected_signal,
+            "note": stmt.excluded.note,
+            "updated_at": func.now(),
+        },
+    )
+    session.execute(stmt)
+    session.commit()
+
+
+def get_resolved_flags_sync(session: Session, market: str) -> dict[str, date]:
+    """status=resolved인 티커의 {ticker: flag_date} 매핑을 반환한다.
+
+    detect_corporate_actions()가 이미 정정 완료된 이벤트를 재알림하지
+    않도록 억제하는 데 사용한다(cutoff 추정일이 flag_date와 근접하면 억제).
+    """
+    stmt = select(CorporateActionFlag.ticker, CorporateActionFlag.flag_date).where(
+        CorporateActionFlag.market == market,
+        CorporateActionFlag.status == "resolved",
+    )
+    rows = session.execute(stmt).fetchall()
+    return {r.ticker: r.flag_date for r in rows}
+
+
+def get_pending_halted_flags_sync(session: Session, market: str) -> list[dict]:
+    """status=pending AND reason=halted인 종목 목록(halt 재개 체크 대상)."""
+    stmt = select(CorporateActionFlag.ticker, CorporateActionFlag.flag_date).where(
+        CorporateActionFlag.market == market,
+        CorporateActionFlag.status == "pending",
+        CorporateActionFlag.reason == "halted",
+    )
+    rows = session.execute(stmt).fetchall()
+    return [{"ticker": r.ticker, "flag_date": r.flag_date} for r in rows]
+
+
+def get_last_real_trade_date_sync(session: Session, market: str, ticker: str) -> date | None:
+    """해당 종목의 마지막 실거래일(volume>0)을 반환한다 — halt 재개 감지용."""
+    stmt = (
+        select(func.max(PriceDaily.date))
+        .where(
+            PriceDaily.market == market,
+            PriceDaily.ticker == ticker,
+            PriceDaily.volume > 0,
+        )
+    )
+    return session.execute(stmt).scalar_one_or_none()
+
+
+def get_all_corporate_action_flags_sync(session: Session) -> list[dict]:
+    """전체 플래그 목록 조회 (검증·운영용)."""
+    stmt = select(CorporateActionFlag).order_by(CorporateActionFlag.ticker)
+    rows = session.execute(stmt).scalars().all()
+    return [
+        {
+            "ticker": r.ticker, "market": r.market, "flag_date": r.flag_date,
+            "reason": r.reason, "status": r.status,
+            "detected_signal": r.detected_signal, "note": r.note,
+        }
+        for r in rows
+    ]

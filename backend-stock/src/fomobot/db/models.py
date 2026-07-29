@@ -1,6 +1,6 @@
 from sqlalchemy import (
-    BigInteger, Boolean, Column, Date, DateTime, Float, Integer, String,
-    UniqueConstraint, Index, text,
+    BigInteger, Boolean, CheckConstraint, Column, Date, DateTime, Float, Integer,
+    String, Text, UniqueConstraint, Index, text,
 )
 from sqlalchemy.orm import DeclarativeBase
 
@@ -156,4 +156,44 @@ class SecuritiesMaster(Base):
     __table_args__ = (
         UniqueConstraint("ticker", "market", name="uq_securities_master"),
         Index("ix_securities_master_market_name", "market", "name"),
+    )
+
+
+class CorporateActionFlag(Base):
+    """
+    액면분할·병합·감자 등 corporate action으로 close_adj 시계열이 오염된
+    종목의 격리 목록. "랭킹에서 뺄 종목"의 단일 진실 소스이며, 랭킹 배치가
+    status가 excluded/pending인 종목을 price_matrix에서 제외한다
+    (compute_rankings.py 참조). 소급 정정 자체는 이 테이블이 아니라
+    price_daily UPDATE로 별도 수행 — 여기는 격리 여부만 관리한다.
+    종목당 활성 레코드 1개 원칙 — 재플래그 시 upsert로 갱신한다(ticker unique).
+    """
+    __tablename__ = "corporate_action_flag"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    ticker = Column(String(20), nullable=False)
+    market = Column(String(10), nullable=False)
+    flag_date = Column(Date, nullable=False)
+    # "split" | "merge" | "capital_reduction" | "new_issuance" | "halted" | "manual"
+    reason = Column(String(20), nullable=False)
+    # "excluded"(랭킹 제외) | "pending"(검증 대기, 제외 유지) | "resolved"(정정 완료, 제외 해제)
+    status = Column(String(10), nullable=False)
+    detected_signal = Column(Text, nullable=True)
+    note = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=text("NOW()"))
+    updated_at = Column(
+        DateTime(timezone=True), server_default=text("NOW()"), onupdate=text("NOW()")
+    )
+
+    __table_args__ = (
+        UniqueConstraint("ticker", name="uq_corporate_action_flag_ticker"),
+        CheckConstraint(
+            "reason IN ('split','merge','capital_reduction','new_issuance','halted','manual')",
+            name="ck_corporate_action_flag_reason",
+        ),
+        CheckConstraint(
+            "status IN ('excluded','pending','resolved')",
+            name="ck_corporate_action_flag_status",
+        ),
+        Index("ix_corporate_action_flag_status", "status"),
     )
