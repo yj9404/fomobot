@@ -292,6 +292,17 @@ export default function App() {
           }}>
             {tab === 'stock' && (
               <>
+                {market === 'nasdaq' && (
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: 8,
+                    margin: '12px 16px 0', padding: '8px 10px',
+                    background: C.blueFill, border: `1px solid ${C.blue}29`, borderRadius: 9,
+                    fontSize: 11, color: C.blue, lineHeight: 1.35,
+                  }}>
+                    <span style={{ fontSize: 12, color: C.blue, flexShrink: 0 }}>ℹ</span>
+                    <span>{t.nasdaqMaintenanceNotice}</span>
+                  </div>
+                )}
                 <StockSearchArea market={market} lang={lang} t={t} />
                 <BreadthWidget market={market} t={t} />
                 {status === 'loading' && <SkeletonList t={t} />}
@@ -368,6 +379,17 @@ export default function App() {
 
         {tab === 'stock' && (
           <>
+            {market === 'nasdaq' && (
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                margin: '12px 16px 0', padding: '8px 10px',
+                background: C.blueFill, border: `1px solid ${C.blue}29`, borderRadius: 9,
+                fontSize: 11, color: C.blue, lineHeight: 1.35,
+              }}>
+                <span style={{ fontSize: 12, color: C.blue, flexShrink: 0 }}>ℹ</span>
+                <span>{t.nasdaqMaintenanceNotice}</span>
+              </div>
+            )}
             <StockSearchArea market={market} lang={lang} t={t} />
             <BreadthWidget market={market} t={t} />
             {status === 'loading' && <SkeletonList t={t} />}
