@@ -38,7 +38,6 @@ export interface Strings {
   breadthPanic: string
   breadthFomo: string
   breadthNeutral: string
-  nasdaqMaintenanceNotice: string
 }
 
 const STR: Record<Lang, Strings> = {
@@ -80,7 +79,6 @@ const STR: Record<Lang, Strings> = {
     breadthPanic: '다들 도망가는 중입니다',
     breadthFomo: '다들 올라타는 중입니다. 당신 빼고.',
     breadthNeutral: '시장도 갈피를 못 잡는 중',
-    nasdaqMaintenanceNotice: '나스닥 데이터 보정 중 — 잠시 후 정상화됩니다',
   },
   en: {
     tagline: 'Hall of fame for things that already mooned',
@@ -120,7 +118,6 @@ const STR: Record<Lang, Strings> = {
     breadthPanic: "Everyone's running for the exits",
     breadthFomo: "Everyone's piling in. Except you.",
     breadthNeutral: "Even the market can't make up its mind",
-    nasdaqMaintenanceNotice: 'NASDAQ data is being recalibrated — back to normal shortly',
   },
 }
 
