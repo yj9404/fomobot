@@ -1,7 +1,11 @@
 """
 NASDAQ 가격 데이터 수집 배치.
 
-- 데이터 소스: yfinance (auto_adjust=True → 수정주가)
+- 데이터 소스: yfinance (auto_adjust=False → raw Close 사용.
+  raw Close는 분할이 이미 내재 반영되어 있고 배당은 미반영된 값이므로
+  close_adj = raw Close 그대로 저장한다. 배당 재조정 절대 금지 — 2026-07-29
+  조사에서 auto_adjust=True의 배당 소급조정이 CBIO 등에서 close_adj를
+  음수로 만드는 원인임을 확인함.)
 - 티커 목록:   NASDAQ 공개 CSV (nasdaqlisted.txt)
 - 배치 방식:   100개씩 묶음 다운로드, 배치 간 2초 딜레이
 - 재시도:      tenacity exponential backoff, 연속 5배치 실패 시 30분 대기
@@ -92,13 +96,19 @@ def _fetch_nasdaq_name_map() -> dict[str, str]:
     reraise=True,
 )
 def _download_batch(tickers: list[str], start: str, end: str) -> pd.DataFrame:
-    """yfinance 배치 다운로드 (수정주가)."""
+    """
+    yfinance 배치 다운로드 (split-only 조정).
+
+    auto_adjust=False로 받은 raw Close를 그대로 close_adj로 쓴다.
+    raw Close는 분할이 항상 소급 반영된 값이라 별도 분할계수 계산이 불필요하며,
+    배당은 반영하지 않는다(_append_ticker_records에서 Close만 사용, Adj Close는 무시).
+    """
     import yfinance as yf
     df = yf.download(
         tickers,
         start=start,
         end=end,
-        auto_adjust=True,
+        auto_adjust=False,
         group_by="ticker",
         progress=False,
         threads=False,   # 멀티스레드 OFF → 레이트리밋 방지
@@ -114,15 +124,18 @@ def _parse_batch_df(
     """
     yfinance 배치 결과를 price_daily 레코드 리스트로 변환.
 
-    단일 티커 조회 시 컬럼 구조가 다름 (MultiIndex 없음) → 두 경우 모두 처리.
+    단일 티커 조회 시 컬럼 구조가 다를 수 있음 (MultiIndex 없는 경우) → 두 경우 모두 처리.
+    티커 개수가 아니라 실제 반환된 컬럼 구조로 판단한다 — auto_adjust=False에서는
+    "Adj Close" 컬럼이 추가되어 단일 티커여도 MultiIndex가 유지되는 경우가 있다
+    (auto_adjust=True일 때만 단일 티커 → flat 컬럼이었음, 2026-07-29 확인).
     """
     records: list[dict] = []
 
     if df.empty:
         return records
 
-    # 단일 티커면 MultiIndex가 없음
-    if len(tickers) == 1:
+    # 단일 티커이면서 MultiIndex가 아닌 경우(flat 컬럼)만 특별 처리
+    if len(tickers) == 1 and not isinstance(df.columns, pd.MultiIndex):
         ticker = tickers[0]
         sub = df
         _append_ticker_records(records, sub, ticker, market)
