@@ -7,6 +7,8 @@
 #   4. cron-kospi-gapfill  — KOSPI 랭킹 스냅샷 gap-fill (self-healing, 정기 cron과 분리)
 #   5. cron-nasdaq-gapfill — NASDAQ 랭킹 스냅샷 gap-fill (self-healing, 정기 cron과 분리)
 #   6. cron-kospi-news     — KOSPI 종목 관련 뉴스 수집 (cron-kospi 직후, 별도 서비스)
+#   7. cron-nasdaq-cliffscan — NASDAQ 내부절벽 주간 전수 스캔(무거움, 알림 전용,
+#                              자동 격리 없음 — fomobot.batch.detect_nasdaq_quality 참조)
 #
 # Cron 서비스는 railway.toml 에서 직접 정의할 수 없으므로
 # Railway Dashboard 에서 수동으로 추가해야 한다.
@@ -50,6 +52,16 @@
 #     KOSPI 단기 구간(1d/7d/30d) top20 상승·하락 종목의 관련 뉴스를 네이버 뉴스
 #     검색 API로 수집해 stock_news TTL 캐시(기본 2일)에 저장한다. 랭킹 스냅샷이
 #     없으면 검색 없이 스킵한다. NAVER_CLIENT_ID/SECRET 환경변수 설정 필요.)
+#
+#  [cron-nasdaq-cliffscan]
+#    Schedule : 0 3 * * 0
+#    Command  : python -m fomobot.jobs.detect_nasdaq_cliffs
+#    (매주 일요일 03:00 UTC = 12:00 KST, 정기 cron-nasdaq/랭킹 계산과
+#     겹치지 않는 한가한 시간대. NASDAQ market_cap이 전량 NULL이라 KOSPI식
+#     shares_ratio 신호를 못 쓰므로, 가격절벽+거래량 신호로 5년 윈도우 전
+#     종목을 스캔한다(STEP2.7d 로직 상시화). 자동 격리 없음 — Sentry 경고
+#     + 로그만 남긴다. 음수/0 가격의 가벼운 일일 가드는 이 서비스가 아니라
+#     cron-nasdaq(fomobot.jobs.collect)에 이미 편입돼 있다.)
 #
 # ──────────────────────────────────────────────────────────────────────────────
 

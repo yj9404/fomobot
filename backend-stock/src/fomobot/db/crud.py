@@ -769,6 +769,84 @@ def get_last_real_trade_date_sync(session: Session, market: str, ticker: str) ->
     return session.execute(stmt).scalar_one_or_none()
 
 
+def get_cliff_candidates_sync(session: Session, market: str, window_start: date) -> list[dict]:
+    """
+    윈도우 내 인접 close_adj 비율이 [0.35,3] 밖인 절벽 후보 + 전후 5일
+    가격/거래량을 DB window function으로 한 번에 계산해 반환한다
+    (detect_nasdaq_cliffs 전수 스캔용, STEP2.7d에서 검증된 CTE 재사용).
+
+    price_daily 수백만 행 전체를 앱 메모리로 끌어오지 않도록 Postgres에서
+    LAG/LEAD로 절벽 후보만 필터링해 반환한다(실측 NASDAQ 5년 윈도우 기준
+    ~1000건 수준 — 앱 메모리·후속 Python 루프 모두 부담 없음). 티커 격리
+    필터링(이미 flagged 종목 스킵)은 이 함수가 하지 않고 반환된 소수 후보에
+    한해 호출부(detect_nasdaq_cliffs)가 Python에서 처리한다.
+    """
+    from sqlalchemy import text
+    sql = text("""
+        WITH windowed AS (
+            SELECT ticker, date, close_adj AS c0, volume AS v0,
+                   LAG(close_adj,5) OVER w AS cm5, LAG(close_adj,4) OVER w AS cm4,
+                   LAG(close_adj,3) OVER w AS cm3, LAG(close_adj,2) OVER w AS cm2,
+                   LAG(close_adj,1) OVER w AS cm1, LAG(volume,1) OVER w AS vm1,
+                   LEAD(close_adj,1) OVER w AS cp1, LEAD(close_adj,2) OVER w AS cp2,
+                   LEAD(close_adj,3) OVER w AS cp3, LEAD(close_adj,4) OVER w AS cp4,
+                   LEAD(close_adj,5) OVER w AS cp5,
+                   LEAD(volume,1) OVER w AS vp1, LEAD(volume,2) OVER w AS vp2,
+                   LEAD(volume,3) OVER w AS vp3, LEAD(volume,4) OVER w AS vp4,
+                   LEAD(volume,5) OVER w AS vp5
+            FROM price_daily
+            WHERE market = :market AND date >= :window_start
+            WINDOW w AS (PARTITION BY ticker ORDER BY date)
+        )
+        SELECT * FROM windowed
+        WHERE cm1 IS NOT NULL AND cm1 > 0 AND c0 > 0
+          AND (c0 / cm1 < 0.35 OR c0 / cm1 > 3)
+        ORDER BY ticker, date
+    """)
+    rows = session.execute(sql, {"market": market, "window_start": window_start}).mappings().all()
+    return [dict(r) for r in rows]
+
+
+def get_price_series_for_tickers_sync(
+    session: Session, market: str, tickers: list[str], start_date: date, end_date: date,
+) -> list[dict]:
+    """지정한 소수 티커의 가격 시계열만 조회한다.
+
+    detect_nasdaq_cliffs의 resolved 억제 판정용 — resolved인 티커(보통
+    한 자릿수)만 정확한 거래일 기준 근접 판정을 하려고 전체 시계열이
+    필요할 때 쓴다(전 종목 조회는 get_price_range_sync가 이미 담당).
+    """
+    if not tickers:
+        return []
+    rows = session.execute(
+        select(PriceDaily.ticker, PriceDaily.date, PriceDaily.close_adj, PriceDaily.volume)
+        .where(
+            PriceDaily.market == market,
+            PriceDaily.ticker.in_(tickers),
+            PriceDaily.date >= start_date,
+            PriceDaily.date <= end_date,
+        )
+        .order_by(PriceDaily.ticker, PriceDaily.date)
+    ).fetchall()
+    return [{"ticker": r.ticker, "date": r.date, "close_adj": r.close_adj, "volume": r.volume} for r in rows]
+
+
+def get_negative_price_rows_sync(session: Session, market: str) -> list[dict]:
+    """close_adj<=0인 행 전수 조회 (detect_nasdaq_negative 일일 가드용).
+
+    price_daily에 WHERE 한 줄만 거는 가벼운 쿼리 — 인덱스(market, ticker, date)
+    범위 스캔이라 일일 배치 끝에 매번 돌려도 부담 없다.
+    """
+    stmt = select(
+        PriceDaily.ticker, PriceDaily.date, PriceDaily.close_adj, PriceDaily.volume,
+    ).where(
+        PriceDaily.market == market,
+        PriceDaily.close_adj <= 0,
+    ).order_by(PriceDaily.ticker, PriceDaily.date)
+    rows = session.execute(stmt).fetchall()
+    return [{"ticker": r.ticker, "date": r.date, "close_adj": r.close_adj, "volume": r.volume} for r in rows]
+
+
 def get_all_corporate_action_flags_sync(session: Session) -> list[dict]:
     """전체 플래그 목록 조회 (검증·운영용)."""
     stmt = select(CorporateActionFlag).order_by(CorporateActionFlag.ticker)

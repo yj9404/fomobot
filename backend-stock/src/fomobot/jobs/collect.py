@@ -133,6 +133,40 @@ def _run_corporate_action_checks(market: str) -> None:
             pass
 
 
+def _run_negative_price_guard(market: str) -> None:
+    """
+    NASDAQ 전용 음수/0 가격 일일 가드(close_adj<=0 자동 격리).
+
+    price_daily WHERE 한 줄만 거는 가벼운 쿼리라 매일 돌려도 부담 없다.
+    발견 시 corporate_action_flag에 자동 insert(reason=negative_price,
+    status=excluded)까지 이 함수가 수행한다 — 음수는 명백한 오류라
+    오탐 여지가 없다(_run_corporate_action_checks의 절벽 후보와 달리
+    자동 격리가 안전). 실패해도 본 수집/랭킹 작업에는 영향 없음(격리).
+    KOSPI는 대상 아님 — pykrx 수집 경로는 이 문제가 없었다.
+    """
+    if market != "nasdaq":
+        return
+    try:
+        from fomobot.batch.detect_nasdaq_quality import detect_nasdaq_negative
+
+        results = detect_nasdaq_negative(market)
+        for r in results:
+            _report_warning(
+                f"[{market.upper()}] 음수/0 가격 자동 격리: {r['ticker']} "
+                f"{r['count']}건 (최근 {r['last_negative_date']}, "
+                f"classification={r['classification']})"
+            )
+    except Exception:
+        logger.exception(
+            "%s 음수 가격 가드 실패 — 본 수집/랭킹 작업에는 영향 없음(격리됨)", market.upper()
+        )
+        try:
+            import sentry_sdk
+            sentry_sdk.capture_exception()
+        except Exception:
+            pass
+
+
 def _report_warning(message: str) -> None:
     """'성공했지만 비정상'인 상황을 Sentry 경고로 전송한다."""
     try:
@@ -194,6 +228,9 @@ def run(market: str) -> None:
 
         # corporate action 감지/halt 재개 체크도 내부에서 예외를 흡수한다(알림만, insert 없음).
         _run_corporate_action_checks(mkt)
+
+        # NASDAQ 음수/0 가격 일일 가드 — 발견 시 자동 격리까지 수행(내부에서 예외 흡수).
+        _run_negative_price_guard(mkt)
 
     logger.info("배치 완료: %s", market)
 

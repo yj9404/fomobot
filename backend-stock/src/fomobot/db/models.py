@@ -175,6 +175,7 @@ class CorporateActionFlag(Base):
     market = Column(String(10), nullable=False)
     flag_date = Column(Date, nullable=False)
     # "split" | "merge" | "capital_reduction" | "new_issuance" | "halted" | "manual"
+    # | "negative_price"(close_adj<=0 자동 격리, detect_nasdaq_negative)
     reason = Column(String(20), nullable=False)
     # "excluded"(랭킹 제외) | "pending"(검증 대기, 제외 유지) | "resolved"(정정 완료, 제외 해제)
     status = Column(String(10), nullable=False)
@@ -188,7 +189,7 @@ class CorporateActionFlag(Base):
     __table_args__ = (
         UniqueConstraint("ticker", name="uq_corporate_action_flag_ticker"),
         CheckConstraint(
-            "reason IN ('split','merge','capital_reduction','new_issuance','halted','manual')",
+            "reason IN ('split','merge','capital_reduction','new_issuance','halted','manual','negative_price')",
             name="ck_corporate_action_flag_reason",
         ),
         CheckConstraint(
