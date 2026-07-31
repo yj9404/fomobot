@@ -25,13 +25,17 @@ export function HaltResumptionInfo({ t }: Props) {
 
   useEffect(() => {
     if (!open) return
+    // 'click'을 쓴다(mousedown 아님) — RankingCard의 인라인 확장판에서
+    // mousedown이 레이아웃 시프트와 겹쳐 다른 행의 클릭을 놓치는 버그가
+    // 실측됐다. 여기는 플로팅 박스라 레이아웃 시프트는 없지만, 두 컴포넌트가
+    // 다른 이벤트를 쓰면 동작이 미묘하게 갈릴 수 있어 동일하게 맞춘다.
     const handler = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
         setOpen(false)
       }
     }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
+    document.addEventListener('click', handler)
+    return () => document.removeEventListener('click', handler)
   }, [open])
 
   return (

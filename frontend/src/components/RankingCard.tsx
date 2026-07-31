@@ -54,13 +54,20 @@ export function RankingCard({ item, open, market, days, period, btDetail, newsDe
 
   useEffect(() => {
     if (!haltInfoOpen) return
+    // 'click'을 쓴다(mousedown 아님) — 이 설명 블록은 카드 하단에 인라인으로
+    // 확장되므로 닫히면 아래 카드들이 위로 당겨진다(레이아웃 시프트). mousedown
+    // 시점에 먼저 닫아버리면 그 직후 발생하는 click이 시프트된 레이아웃 기준
+    // 좌표로 처리돼 사용자가 실제로 누른 다른 카드의 버튼을 놓친다(다른 카드가
+    // 안 열림). click으로 통일하면 React가 같은 이벤트 디스패치 안에서 다른
+    // 카드의 onClick(먼저, 원래 좌표 기준)과 이 정리 로직(나중)을 함께
+    // 처리하므로 레이아웃 시프트가 끼어들 틈이 없다.
     const handler = (e: MouseEvent) => {
       if (cardRef.current && !cardRef.current.contains(e.target as Node)) {
         setHaltInfoOpen(false)
       }
     }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
+    document.addEventListener('click', handler)
+    return () => document.removeEventListener('click', handler)
   }, [haltInfoOpen])
 
   return (
