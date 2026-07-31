@@ -1,6 +1,7 @@
 import { useC, useTheme } from '../ThemeContext'
 import { FONT, DECLINE_ACCENT_DARK, DECLINE_ACCENT_LIGHT } from '../tokens'
 import { NewsDot } from './NewsDot'
+import { HaltResumptionInfo } from './HaltResumptionInfo'
 import type { RankingItem, Market, Lang, Period } from '../types'
 import type { Strings } from '../i18n/strings'
 
@@ -119,13 +120,11 @@ export function RankingTable({ rankings, selectedRank, lang, t, period, asOf, on
 
                 {/* Return */}
                 <td style={{ ...td, textAlign: 'right' }}>
-                  {item.halt_resumption === true && (
-                    <span title={t.haltResumptionTitle} style={{ fontSize: 11, marginRight: 4, cursor: 'help', color: C.textDim }}>
-                      ⓘ
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                    {item.halt_resumption === true && <HaltResumptionInfo t={t} />}
+                    <span style={{ fontFamily: FONT.mono, fontSize: 16, fontWeight: 800, color: positive ? C.green : C.red }}>
+                      {fmtPct(item.return_pct)}
                     </span>
-                  )}
-                  <span style={{ fontFamily: FONT.mono, fontSize: 16, fontWeight: 800, color: positive ? C.green : C.red }}>
-                    {fmtPct(item.return_pct)}
                   </span>
                 </td>
 
