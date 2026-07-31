@@ -74,7 +74,7 @@ const STR: Record<Lang, Strings> = {
     newsTitle: '관련 뉴스',
     newsLoading: '뉴스 불러오는 중…',
     newsDotTitle: '관련 뉴스 있음',
-    haltResumptionTitle: '이 종목은 장기 거래정지 후 재개된 첫날입니다. 재개 첫날은 가격제한폭(±30%)이 적용되지 않아 하루 등락이 클 수 있습니다. 데이터 오류가 아닙니다.',
+    haltResumptionTitle: '이 종목은 장기 거래정지 후 재개된 첫날입니다. 재개 첫날은 가격제한폭(±30%)이 적용되지 않아 하루 등락이 클 수 있습니다.',
     breadthUp: '상승',
     breadthDown: '하락',
     breadthFlat: '보합',
