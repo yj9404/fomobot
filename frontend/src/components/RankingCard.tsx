@@ -78,8 +78,21 @@ export function RankingCard({ item, open, market, days, period, btDetail, newsDe
             <div style={{ fontFamily: FONT.mono, fontSize: 11, color: C.textDim, marginTop: 2 }}>{item.ticker}</div>
           </div>
           <div style={{ textAlign: 'right', flexShrink: 0 }}>
-            <div style={{ fontFamily: FONT.mono, fontSize: 20, fontWeight: 800, color: item.return_pct >= 0 ? C.green : C.red, lineHeight: 1, letterSpacing: '-0.02em' }}>
-              {fmtPct(item.return_pct)}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 4 }}>
+              {item.halt_resumption === true && (
+                <span
+                  title={t.haltResumptionTitle}
+                  style={{
+                    fontSize: 11, lineHeight: 1, cursor: 'help', flexShrink: 0,
+                    color: C.textDim,
+                  }}
+                >
+                  ⓘ
+                </span>
+              )}
+              <div style={{ fontFamily: FONT.mono, fontSize: 20, fontWeight: 800, color: item.return_pct >= 0 ? C.green : C.red, lineHeight: 1, letterSpacing: '-0.02em' }}>
+                {fmtPct(item.return_pct)}
+              </div>
             </div>
             <div style={{ fontSize: 9.5, color: C.textDim, marginTop: 4 }}>{t.moveLabel}</div>
           </div>

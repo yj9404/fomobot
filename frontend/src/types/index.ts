@@ -16,6 +16,7 @@ export interface RankingItem {
   volatility_annualized_pct: number | null
   excess_return_vs_index_pct: number | null
   has_news?: boolean | null
+  halt_resumption?: boolean
 }
 
 export interface RankingsResponse {

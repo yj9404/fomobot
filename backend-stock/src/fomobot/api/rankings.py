@@ -106,6 +106,7 @@ async def get_rankings_endpoint(
             volatility_annualized_pct=r.volatility_annualized_pct,
             excess_return_vs_index_pct=r.excess_return_pct,
             has_news=(r.ticker in has_news_tickers) if market == "kospi" and period in ("1d", "7d", "30d") else None,
+            halt_resumption=r.halt_resumption,
         )
         for r in rows
     ]

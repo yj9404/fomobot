@@ -105,6 +105,13 @@ class RankingSnapshot(Base):
     # 정렬 방향: 'desc'=상승률 상위(rank 1=최고 상승), 'asc'=하락률 상위(rank 1=최고 하락).
     # 저장 시 양방향 각각 전체 순위를 부여해 저장하므로 조회 시 필터로만 사용.
     order_dir = Column(String(4), nullable=False, server_default=text("'desc'"))
+    # 장기 거래정지(volume=0 10거래일+ 연속, close_adj 동결) 후 재개 첫
+    # 실거래일 표시 — 재개일은 가격제한폭 미적용이라 등락이 커도 정상이라는
+    # 걸 프론트가 tooltip으로 설명하는 데 사용한다. 오염이 아니므로
+    # return_pct 등은 그대로 두고 이 플래그만 참고용으로 추가한다.
+    # 이번 단계는 1d period만 채움(다른 period는 항상 False) — 컬럼명은
+    # 기간 중립으로 둬 향후 확장 여지를 남긴다.
+    halt_resumption = Column(Boolean, nullable=False, server_default=text("false"))
 
     __table_args__ = (
         UniqueConstraint(

@@ -167,6 +167,7 @@ def upsert_ranking_snapshots_sync(session: Session, records: list[dict]) -> None
                 stmt.excluded.market_cap,
                 RankingSnapshot.market_cap,
             ),
+            "halt_resumption": stmt.excluded.halt_resumption,
         },
     )
     session.execute(stmt)

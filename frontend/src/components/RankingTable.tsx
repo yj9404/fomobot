@@ -119,6 +119,11 @@ export function RankingTable({ rankings, selectedRank, lang, t, period, asOf, on
 
                 {/* Return */}
                 <td style={{ ...td, textAlign: 'right' }}>
+                  {item.halt_resumption === true && (
+                    <span title={t.haltResumptionTitle} style={{ fontSize: 11, marginRight: 4, cursor: 'help', color: C.textDim }}>
+                      ⓘ
+                    </span>
+                  )}
                   <span style={{ fontFamily: FONT.mono, fontSize: 16, fontWeight: 800, color: positive ? C.green : C.red }}>
                     {fmtPct(item.return_pct)}
                   </span>

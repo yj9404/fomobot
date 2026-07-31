@@ -26,6 +26,15 @@ class RankingItem(BaseModel):
             "그 외(NASDAQ, 90d 이상)는 null — 프론트는 null이면 인디케이터를 표시하지 않습니다."
         ),
     )
+    halt_resumption: bool = Field(
+        False,
+        description=(
+            "장기 거래정지 후 재개 첫 실거래일 여부. true면 재개일은 가격제한폭이 "
+            "적용되지 않아 1d 등락이 커도 정상 — 프론트는 tooltip으로 설명해야 하며, "
+            "값 자체를 의심하거나 제외해서는 안 됩니다. 현재는 1d period에서만 채워지고 "
+            "다른 period는 항상 false입니다."
+        ),
+    )
 
 
 class RankingsResponse(BaseModel):

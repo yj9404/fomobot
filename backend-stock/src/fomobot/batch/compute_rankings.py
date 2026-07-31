@@ -27,6 +27,7 @@ from fomobot.services.calculator import (
     PERIOD_TO_DAYS,
     build_ranking_df,
 )
+from fomobot.services.halt_resumption import is_prev_day_halt_resumption
 from fomobot.services.noise_filter import (
     apply_kospi_filter,
     apply_nasdaq_filter,
@@ -316,6 +317,26 @@ def compute_rankings_for_market(
                 # price_daily 과거분 없이도 기준 주가를 참조할 수 있다.
                 last_row = price_matrix.iloc[-1]  # snapshot_date 행
 
+                # halt_resumption 판별 — 1d period에서 |return_pct|>30%인 종목만
+                # (전 종목 호출 아님, 호출 수가 적어 성능 부담 없음). 다른 period는
+                # 항상 False(이번 범위 아님, 컬럼명만 기간 중립으로 남겨둠).
+                halt_resumption_map: dict[str, bool] = {}
+                if period_key == "1d":
+                    extreme_tickers = ranking_df.loc[
+                        ranking_df["return_pct"].abs() > 30, "ticker"
+                    ].tolist()
+                    for t in extreme_tickers:
+                        try:
+                            halt_resumption_map[t] = is_prev_day_halt_resumption(
+                                session, market, t, start_date, snapshot_date
+                            )
+                        except Exception:
+                            logger.exception(
+                                "%s %s: halt_resumption 판별 실패(%s) — False로 처리",
+                                market, period_key, t,
+                            )
+                            halt_resumption_map[t] = False
+
                 def _make_records(df: pd.DataFrame, order_dir: str) -> list[dict]:
                     records = []
                     for _, row in df.iterrows():
@@ -345,6 +366,7 @@ def compute_rankings_for_market(
                                 else None
                             ),
                             "market_cap": cap_from_meta.get(ticker_str),
+                            "halt_resumption": halt_resumption_map.get(ticker_str, False),
                         })
                     return records
 
