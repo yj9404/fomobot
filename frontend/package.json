@@ -5,10 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "prebuild": "node scripts/gen-index-articles.mjs",
     "build": "tsc -b && vite build",
     "preview": "npm run build && wrangler dev",
     "deploy": "npm run build && wrangler deploy",
-    "test": "vitest run"
+    "test": "vitest run",
+    "gen:articles": "node scripts/gen-index-articles.mjs"
   },
   "dependencies": {
     "react": "^18.3.1",

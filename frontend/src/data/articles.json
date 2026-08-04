@@ -1,0 +1,19 @@
+[
+  { "slug": "five-year-winner", "title": "5년 수익률 1위를 들고 있으려면", "category": "데이터 분석", "date": "2026-07-14" },
+  { "slug": "buying-last-months-winners", "title": "지난달 급등주를 사면 어떻게 되나", "category": "데이터 분석", "date": "2026-07-14" },
+  { "slug": "index-illusion", "title": "코스피가 2.7배 오르는 동안, 왜 내 계좌만 그대로였나", "category": "데이터 분석", "date": "2026-07-14" },
+  { "slug": "small-cap-machine", "title": "급등 랭킹은 어떤 회사를 위로 올리는가", "category": "데이터 분석", "date": "2026-07-15" },
+  { "slug": "catching-the-knife", "title": "떨어진 걸 주우면 반등하나", "category": "데이터 분석", "date": "2026-07-15" },
+  { "slug": "how-many-trades", "title": "1등 단지는 몇 건 팔려서 1등이 됐나", "category": "데이터 분석", "date": "2026-07-15" },
+  { "slug": "dca-vs-lump", "title": "물타기는 정말 구제해줬나", "category": "데이터 분석", "date": "2026-07-16" },
+  { "slug": "adjusted-price-trap", "title": "같은 이름의 다른 물건 — 수정주가라는 함정", "category": "방법론", "date": "2026-07-15" },
+  { "slug": "no-price-today", "title": "아파트에는 '오늘의 가격'이 없다", "category": "방법론", "date": "2026-07-15" },
+  { "slug": "price-per-sqm", "title": "단지 평균가는 거짓말한다 — ㎡당가와 84㎡", "category": "방법론", "date": "2026-07-15" },
+  { "slug": "bias-we-kept", "title": "고칠 수 있었지만 고치지 않은 것", "category": "방법론", "date": "2026-07-15" },
+  { "slug": "lookahead-bias", "title": "백테스트가 거짓말하는 가장 흔한 방식", "category": "방법론", "date": "2026-07-16" },
+  { "slug": "lag-window-function", "title": "LAG 함수가 조용히 틀리는 이유", "category": "개발기", "date": "2026-07-14" },
+  { "slug": "what-day-is-yesterday", "title": "같은 날짜가 두 개의 다른 날이 될 때", "category": "개발기", "date": "2026-07-15" },
+  { "slug": "coalesce-order", "title": "인자 순서 하나가 수익률을 +367%로 만들었다", "category": "개발기", "date": "2026-07-16" },
+  { "slug": "cleanup-deleted-history", "title": "정리 크론이 과거를 지웠다", "category": "개발기", "date": "2026-07-16" },
+  { "slug": "adjusted-price-contract", "title": "수정주가여야 한다: 코드 주석이 지키지 못한 약속", "category": "개발기", "date": "2026-07-31" }
+]

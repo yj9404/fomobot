@@ -7,18 +7,36 @@
     <meta name="description" content="그때 샀더라면 얼마였을까. FomoBot은 코스피·나스닥 종목과 국내 아파트 단지의 기간별 수익률 순위를 정리해 보여줍니다. 이미 지나간 가격만 다루며, 특정 종목의 매수를 권유하지 않습니다." />
     <link rel="icon" type="image/svg+xml" href="/icons/favicon.svg" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <link rel="canonical" href="https://fomobot.net/" />
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
     <meta property="og:title" content="FomoBot — 급등 랭킹" />
-    <meta property="og:description" content="그때 샀더라면 얼마였을까. 코스피·나스닥·아파트의 기간별 수익률 순위를 정리해 보여주는 도구." />
+    <meta property="og:description" content="그때 샀더라면 얼마였을까. FomoBot은 코스피·나스닥 종목과 국내 아파트 단지의 기간별 수익률 순위를 정리해 보여줍니다. 이미 지나간 가격만 다루며, 특정 종목의 매수를 권유하지 않습니다." />
+    <meta property="og:url" content="https://fomobot.net/" />
     <meta property="og:image" content="/og-image.png" />
 
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="FomoBot — 급등 랭킹" />
-    <meta name="twitter:description" content="그때 샀더라면 얼마였을까. 코스피·나스닥·아파트의 기간별 수익률 순위를 정리해 보여주는 도구." />
+    <meta name="twitter:description" content="그때 샀더라면 얼마였을까. FomoBot은 코스피·나스닥 종목과 국내 아파트 단지의 기간별 수익률 순위를 정리해 보여줍니다. 이미 지나간 가격만 다루며, 특정 종목의 매수를 권유하지 않습니다." />
     <meta name="twitter:image" content="/og-image.png" />
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "FomoBot",
+      "url": "https://fomobot.net/",
+      "description": "그때 샀더라면 얼마였을까. FomoBot은 코스피·나스닥 종목과 국내 아파트 단지의 기간별 수익률 순위를 정리해 보여줍니다. 이미 지나간 가격만 다루며, 특정 종목의 매수를 권유하지 않습니다.",
+      "publisher": {
+        "@type": "Organization",
+        "name": "FomoBot",
+        "logo": "https://fomobot.net/og-image.png",
+        "email": "yjlee.k94@gmail.com"
+      }
+    }
+    </script>
 
     <!-- Google AdSense -->
     <meta name="google-adsense-account" content="ca-pub-8831511030878038">
@@ -37,8 +55,43 @@
   </head>
   <body>
     <div id="root"></div>
-    <noscript>
-      <main style="max-width: 640px; margin: 40px auto; padding: 0 20px; font-family: sans-serif; line-height: 1.7; color: #1a1a1a;">
+    <section id="fb-fallback" aria-label="FomoBot 소개 및 읽을거리 목록">
+      <style>
+        #fb-fallback {
+          background: #ffffff;
+          color: #1a1a1a;
+          border-top: 1px solid rgba(128, 128, 128, 0.15);
+          font-family: -apple-system, BlinkMacSystemFont, "Pretendard", "Segoe UI", sans-serif;
+          line-height: 1.7;
+        }
+        #fb-fallback .fb-inner { max-width: 640px; margin: 0 auto; padding: 40px 20px 60px; box-sizing: border-box; }
+        #fb-fallback h1 { font-size: 24px; margin: 0 0 16px; }
+        #fb-fallback h2 { font-size: 17px; margin: 32px 0 8px; }
+        #fb-fallback h3 { font-size: 14px; margin: 20px 0 8px; opacity: 0.7; }
+        #fb-fallback p { font-size: 14px; margin: 0 0 8px; color: inherit; }
+        #fb-fallback ul { margin: 0; padding: 0; list-style: none; }
+        #fb-fallback a { color: #3e7bfa; text-decoration: none; }
+        #fb-fallback a:hover { text-decoration: underline; }
+        #fb-fallback .fb-links { display: flex; flex-wrap: wrap; gap: 8px 16px; margin: 4px 0 0; }
+        #fb-fallback .fb-links li a { font-size: 13px; font-weight: 600; }
+        #fb-fallback .fb-article-group { margin-top: 4px; }
+        #fb-fallback .fb-article-list li {
+          display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
+          padding: 8px 0; border-bottom: 1px solid rgba(128, 128, 128, 0.12); font-size: 13px;
+        }
+        #fb-fallback .fb-article-list li:last-child { border-bottom: none; }
+        #fb-fallback .fb-article-list a { flex: 1; }
+        #fb-fallback .fb-date { flex-shrink: 0; font-size: 11px; opacity: 0.55; font-variant-numeric: tabular-nums; }
+        #fb-fallback .fb-note { margin-top: 28px; font-size: 12px; opacity: 0.6; }
+        @media (prefers-color-scheme: dark) {
+          #fb-fallback { background: #0b0d12; color: #e5e7eb; border-top-color: rgba(255, 255, 255, 0.08); }
+          #fb-fallback a { color: #7aa2ff; }
+        }
+        @media (max-width: 480px) {
+          #fb-fallback .fb-article-list li { flex-direction: column; gap: 2px; }
+        }
+      </style>
+      <div class="fb-inner">
         <h1>FomoBot — 이미 오른 것들의 명예의 전당</h1>
         <p>FomoBot은 주식·부동산 등 급등 자산 랭킹 및 정보를 제공하는 서비스입니다. "그때 샀어야 했는데..." 하는 후회를 데이터로 보여줍니다. 투자 조언이 아니며, FomoBot은 지나간 걸 보여줄 뿐입니다.</p>
 
@@ -49,7 +102,7 @@
         <p>투자 조언이 아닙니다. FomoBot은 과거 데이터를 보여주는 도구일 뿐이며, 미래 수익을 보장하지 않습니다. 백테스트 결과는 생존 편향이 있습니다 — 상장폐지된 종목은 포함되지 않기 때문에 실제 수익률보다 좋게 보일 수 있습니다.</p>
 
         <h2>더 알아보기</h2>
-        <ul>
+        <ul class="fb-links">
           <li><a href="/about.html">서비스 소개</a></li>
           <li><a href="/methodology.html">랭킹 산출 방법론</a></li>
           <li><a href="/survivorship-bias.html">백테스트와 생존 편향</a></li>
@@ -58,9 +111,45 @@
           <li><a href="/privacy.html">개인정보처리방침</a></li>
         </ul>
 
-        <p>이 페이지를 정상적으로 이용하려면 JavaScript를 활성화해 주세요.</p>
-      </main>
-    </noscript>
+        <h2>읽을거리 전체 목록</h2>
+        <!-- ARTICLES:START -->
+        <div class="fb-article-group">
+          <h3>데이터 분석</h3>
+          <ul class="fb-article-list">
+          <li><a href="/five-year-winner.html">5년 수익률 1위를 들고 있으려면</a><span class="fb-date">2026-07-14</span></li>
+          <li><a href="/buying-last-months-winners.html">지난달 급등주를 사면 어떻게 되나</a><span class="fb-date">2026-07-14</span></li>
+          <li><a href="/index-illusion.html">코스피가 2.7배 오르는 동안, 왜 내 계좌만 그대로였나</a><span class="fb-date">2026-07-14</span></li>
+          <li><a href="/small-cap-machine.html">급등 랭킹은 어떤 회사를 위로 올리는가</a><span class="fb-date">2026-07-15</span></li>
+          <li><a href="/catching-the-knife.html">떨어진 걸 주우면 반등하나</a><span class="fb-date">2026-07-15</span></li>
+          <li><a href="/how-many-trades.html">1등 단지는 몇 건 팔려서 1등이 됐나</a><span class="fb-date">2026-07-15</span></li>
+          <li><a href="/dca-vs-lump.html">물타기는 정말 구제해줬나</a><span class="fb-date">2026-07-16</span></li>
+          </ul>
+        </div>
+        <div class="fb-article-group">
+          <h3>방법론</h3>
+          <ul class="fb-article-list">
+          <li><a href="/adjusted-price-trap.html">같은 이름의 다른 물건 — 수정주가라는 함정</a><span class="fb-date">2026-07-15</span></li>
+          <li><a href="/no-price-today.html">아파트에는 '오늘의 가격'이 없다</a><span class="fb-date">2026-07-15</span></li>
+          <li><a href="/price-per-sqm.html">단지 평균가는 거짓말한다 — ㎡당가와 84㎡</a><span class="fb-date">2026-07-15</span></li>
+          <li><a href="/bias-we-kept.html">고칠 수 있었지만 고치지 않은 것</a><span class="fb-date">2026-07-15</span></li>
+          <li><a href="/lookahead-bias.html">백테스트가 거짓말하는 가장 흔한 방식</a><span class="fb-date">2026-07-16</span></li>
+          </ul>
+        </div>
+        <div class="fb-article-group">
+          <h3>개발기</h3>
+          <ul class="fb-article-list">
+          <li><a href="/lag-window-function.html">LAG 함수가 조용히 틀리는 이유</a><span class="fb-date">2026-07-14</span></li>
+          <li><a href="/what-day-is-yesterday.html">같은 날짜가 두 개의 다른 날이 될 때</a><span class="fb-date">2026-07-15</span></li>
+          <li><a href="/coalesce-order.html">인자 순서 하나가 수익률을 +367%로 만들었다</a><span class="fb-date">2026-07-16</span></li>
+          <li><a href="/cleanup-deleted-history.html">정리 크론이 과거를 지웠다</a><span class="fb-date">2026-07-16</span></li>
+          <li><a href="/adjusted-price-contract.html">수정주가여야 한다: 코드 주석이 지키지 못한 약속</a><span class="fb-date">2026-07-31</span></li>
+          </ul>
+        </div>
+        <!-- ARTICLES:END -->
+
+        <p class="fb-note">이 섹션은 JavaScript 실행 여부와 무관하게 항상 표시됩니다. 랭킹 조회·백테스트 등 실시간 기능을 이용하려면 JavaScript를 활성화해 주세요.</p>
+      </div>
+    </section>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

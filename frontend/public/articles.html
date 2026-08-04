@@ -32,7 +32,11 @@
          카테고리는 "데이터 분석" / "방법론" / "개발기" 3개로 고정.
       3) 그 카테고리가 지금 비어 있어 통째로 주석 처리돼 있다면, 주석을 해제하고 첫 <li>를 채운다.
       4) frontend/public/sitemap.xml 에 새 글 URL 추가 (changefreq: monthly, priority: 0.7).
-      5) 이 글이 최신 글이라면 frontend/src/data/latestArticle.ts 의 LATEST_ARTICLE 값을 이 글로 교체한다
+      5) frontend/src/data/articles.json 에 { slug, title, category, date } 항목을 추가한다.
+         index.html의 정적 폴백 목록(#fb-fallback, noscript 대체)은 이 파일에서 빌드 시
+         자동 생성된다 (npm run build → prebuild → scripts/gen-index-articles.mjs).
+         로컬에서 바로 반영하려면 npm run gen:articles 를 실행한다.
+      6) 이 글이 최신 글이라면 frontend/src/data/latestArticle.ts 의 LATEST_ARTICLE 값을 이 글로 교체한다
          (메인 화면 랭킹 리스트 하단 "읽을거리" 카드에 노출되는 글).
     -->
 
