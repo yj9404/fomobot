@@ -3,6 +3,16 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+    <script>
+      // #fb-fallback을 앱의 실제 테마(ThemeContext, localStorage: fomobot-theme)와 맞춘다.
+      // prefers-color-scheme(OS 설정)이 아니라 이 값을 기준으로 하는 이유는, 앱 자체가
+      // OS 설정과 무관하게 이 값(없으면 light)만 보고 테마를 정하기 때문이다.
+      try {
+        if (localStorage.getItem('fomobot-theme') === 'dark') {
+          document.documentElement.setAttribute('data-fb-theme', 'dark')
+        }
+      } catch (e) {}
+    </script>
     <title>FomoBot — 급등 랭킹</title>
     <meta name="description" content="그때 샀더라면 얼마였을까. FomoBot은 코스피·나스닥 종목과 국내 아파트 단지의 기간별 수익률 순위를 정리해 보여줍니다. 이미 지나간 가격만 다루며, 특정 종목의 매수를 권유하지 않습니다." />
     <link rel="icon" type="image/svg+xml" href="/icons/favicon.svg" />
@@ -55,64 +65,73 @@
   </head>
   <body>
     <div id="root"></div>
-    <section id="fb-fallback" aria-label="FomoBot 소개 및 읽을거리 목록">
+    <section id="fb-fallback" aria-label="FomoBot 읽을거리 및 관련 페이지">
       <style>
         #fb-fallback {
-          background: #ffffff;
-          color: #1a1a1a;
-          border-top: 1px solid rgba(128, 128, 128, 0.15);
-          font-family: -apple-system, BlinkMacSystemFont, "Pretendard", "Segoe UI", sans-serif;
-          line-height: 1.7;
+          background: #eef0f7;
+          font-family: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
         }
-        #fb-fallback .fb-inner { max-width: 640px; margin: 0 auto; padding: 40px 20px 60px; box-sizing: border-box; }
-        #fb-fallback h1 { font-size: 24px; margin: 0 0 16px; }
-        #fb-fallback h2 { font-size: 17px; margin: 32px 0 8px; }
-        #fb-fallback h3 { font-size: 14px; margin: 20px 0 8px; opacity: 0.7; }
-        #fb-fallback p { font-size: 14px; margin: 0 0 8px; color: inherit; }
+        #fb-fallback .fb-inner {
+          max-width: 390px; margin: 0 auto; background: #ffffff;
+          padding: 28px 20px 32px; box-sizing: border-box;
+          border-top: 1px solid rgba(0, 0, 0, 0.08);
+        }
+        #fb-fallback h1.fb-title {
+          font-size: 11px; font-weight: 700; letter-spacing: 0.04em;
+          color: #9ca3af; text-transform: uppercase; margin: 0 0 20px;
+        }
+        #fb-fallback h2.fb-heading { font-size: 16px; font-weight: 700; color: #111827; margin: 0 0 4px; }
+        #fb-fallback > .fb-inner > .fb-article-grid { margin-top: 12px; }
+        #fb-fallback .fb-article-group > h3 {
+          font-size: 10.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+          color: #3b82f6; margin: 20px 0 4px;
+        }
+        #fb-fallback .fb-article-group:first-child > h3 { margin-top: 0; }
         #fb-fallback ul { margin: 0; padding: 0; list-style: none; }
-        #fb-fallback a { color: #3e7bfa; text-decoration: none; }
-        #fb-fallback a:hover { text-decoration: underline; }
-        #fb-fallback .fb-links { display: flex; flex-wrap: wrap; gap: 8px 16px; margin: 4px 0 0; }
-        #fb-fallback .fb-links li a { font-size: 13px; font-weight: 600; }
-        #fb-fallback .fb-article-group { margin-top: 4px; }
+        #fb-fallback a { color: inherit; text-decoration: none; }
         #fb-fallback .fb-article-list li {
           display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
-          padding: 8px 0; border-bottom: 1px solid rgba(128, 128, 128, 0.12); font-size: 13px;
+          padding: 9px 0; border-bottom: 1px solid rgba(0, 0, 0, 0.08); font-size: 13px;
         }
         #fb-fallback .fb-article-list li:last-child { border-bottom: none; }
-        #fb-fallback .fb-article-list a { flex: 1; }
-        #fb-fallback .fb-date { flex-shrink: 0; font-size: 11px; opacity: 0.55; font-variant-numeric: tabular-nums; }
-        #fb-fallback .fb-note { margin-top: 28px; font-size: 12px; opacity: 0.6; }
-        @media (prefers-color-scheme: dark) {
-          #fb-fallback { background: #0b0d12; color: #e5e7eb; border-top-color: rgba(255, 255, 255, 0.08); }
-          #fb-fallback a { color: #7aa2ff; }
+        #fb-fallback .fb-article-list a { flex: 1; font-weight: 600; color: #111827; }
+        #fb-fallback .fb-article-list a:hover { color: #3b82f6; }
+        #fb-fallback .fb-date { flex-shrink: 0; font-size: 11px; font-weight: 400; color: #9ca3af; font-variant-numeric: tabular-nums; }
+        #fb-fallback .fb-static { margin-top: 24px; padding-top: 16px; border-top: 1px solid rgba(0, 0, 0, 0.08); }
+        #fb-fallback .fb-static-label {
+          display: block; font-size: 10.5px; font-weight: 700; letter-spacing: 0.06em;
+          text-transform: uppercase; color: #9ca3af; margin-bottom: 8px;
         }
-        @media (max-width: 480px) {
-          #fb-fallback .fb-article-list li { flex-direction: column; gap: 2px; }
+        #fb-fallback .fb-links { display: flex; flex-wrap: wrap; gap: 6px 14px; }
+        #fb-fallback .fb-links a { font-size: 12px; font-weight: 600; color: #374151; }
+        #fb-fallback .fb-links a:hover { color: #3b82f6; }
+        #fb-fallback .fb-note { margin-top: 20px; font-size: 11px; line-height: 1.6; color: #9ca3af; }
+        html[data-fb-theme="dark"] #fb-fallback { background: #0b0d12; }
+        html[data-fb-theme="dark"] #fb-fallback .fb-inner { background: #0a0c10; border-top-color: rgba(255, 255, 255, 0.06); }
+        html[data-fb-theme="dark"] #fb-fallback h1.fb-title,
+        html[data-fb-theme="dark"] #fb-fallback .fb-date,
+        html[data-fb-theme="dark"] #fb-fallback .fb-static-label,
+        html[data-fb-theme="dark"] #fb-fallback .fb-note { color: #7c8699; }
+        html[data-fb-theme="dark"] #fb-fallback h2.fb-heading,
+        html[data-fb-theme="dark"] #fb-fallback .fb-article-list a { color: #e9edf5; }
+        html[data-fb-theme="dark"] #fb-fallback .fb-article-group > h3 { color: #7aa2ff; }
+        html[data-fb-theme="dark"] #fb-fallback .fb-article-list a:hover,
+        html[data-fb-theme="dark"] #fb-fallback .fb-links a:hover { color: #7aa2ff; }
+        html[data-fb-theme="dark"] #fb-fallback .fb-links a { color: #c7cedc; }
+        html[data-fb-theme="dark"] #fb-fallback .fb-article-list li,
+        html[data-fb-theme="dark"] #fb-fallback .fb-static { border-color: rgba(255, 255, 255, 0.06); }
+        @media (min-width: 1024px) {
+          #fb-fallback .fb-inner { max-width: 1280px; padding: 32px 24px 44px; }
+          #fb-fallback .fb-article-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0 32px; margin-top: 16px; }
+          #fb-fallback .fb-article-group > h3 { margin-top: 0; }
         }
       </style>
       <div class="fb-inner">
-        <h1>FomoBot — 이미 오른 것들의 명예의 전당</h1>
-        <p>FomoBot은 주식·부동산 등 급등 자산 랭킹 및 정보를 제공하는 서비스입니다. "그때 샀어야 했는데..." 하는 후회를 데이터로 보여줍니다. 투자 조언이 아니며, FomoBot은 지나간 걸 보여줄 뿐입니다.</p>
+        <h1 class="fb-title">FomoBot — 이미 오른 것들의 기록</h1>
 
-        <h2>주요 기능</h2>
-        <p>기간별(전일·7일·30일·90일·1년·5년) 급등 랭킹을 제공하며, 상승률 외에도 변동성(σ), 지수 대비 초과수익, MDD(최대낙폭) 정보를 함께 보여줍니다. 랭킹에 오른 종목은 "그 시점에 샀다면 지금 수익률이 얼마였는가"를 바로 확인하는 백테스트 기능을 제공합니다. 시총이 너무 낮거나 거래대금이 없는 저유동성 종목은 자동으로 제외합니다.</p>
-
-        <h2>주의사항</h2>
-        <p>투자 조언이 아닙니다. FomoBot은 과거 데이터를 보여주는 도구일 뿐이며, 미래 수익을 보장하지 않습니다. 백테스트 결과는 생존 편향이 있습니다 — 상장폐지된 종목은 포함되지 않기 때문에 실제 수익률보다 좋게 보일 수 있습니다.</p>
-
-        <h2>더 알아보기</h2>
-        <ul class="fb-links">
-          <li><a href="/about.html">서비스 소개</a></li>
-          <li><a href="/methodology.html">랭킹 산출 방법론</a></li>
-          <li><a href="/survivorship-bias.html">백테스트와 생존 편향</a></li>
-          <li><a href="/glossary.html">지표 용어 해설</a></li>
-          <li><a href="/articles.html">읽을거리</a></li>
-          <li><a href="/privacy.html">개인정보처리방침</a></li>
-        </ul>
-
-        <h2>읽을거리 전체 목록</h2>
-        <!-- ARTICLES:START -->
+        <h2 class="fb-heading">읽을거리</h2>
+        <div class="fb-article-grid">
+          <!-- ARTICLES:START -->
         <div class="fb-article-group">
           <h3>데이터 분석</h3>
           <ul class="fb-article-list">
@@ -146,6 +165,19 @@
           </ul>
         </div>
         <!-- ARTICLES:END -->
+        </div>
+
+        <div class="fb-static">
+          <span class="fb-static-label">더 알아보기</span>
+          <ul class="fb-links">
+            <li><a href="/about.html">서비스 소개</a></li>
+            <li><a href="/methodology.html">랭킹 산출 방법론</a></li>
+            <li><a href="/survivorship-bias.html">백테스트와 생존 편향</a></li>
+            <li><a href="/glossary.html">지표 용어 해설</a></li>
+            <li><a href="/articles.html">읽을거리 전체 보기</a></li>
+            <li><a href="/privacy.html">개인정보처리방침</a></li>
+          </ul>
+        </div>
 
         <p class="fb-note">이 섹션은 JavaScript 실행 여부와 무관하게 항상 표시됩니다. 랭킹 조회·백테스트 등 실시간 기능을 이용하려면 JavaScript를 활성화해 주세요.</p>
       </div>
