@@ -19,12 +19,12 @@ def init_sentry(release: str | None = None) -> None:
     import sentry_sdk
     from sentry_sdk.integrations.logging import LoggingIntegration
 
-    _YFINANCE_NOISE = ("possibly delisted", "no price data found")
-
     def _before_send(event, hint):
-        # yfinance가 logger.error()로 찍는 상폐/데이터 없음 메시지는 이슈가 아님
-        msg = event.get("message") or event.get("logentry", {}).get("message", "")
-        if any(phrase in msg for phrase in _YFINANCE_NOISE):
+        # yfinance가 logger.error()로 찍는 개별 종목 조회 실패(상폐, 데이터 없음,
+        # Yahoo 쪽 500/파싱 오류 등)는 배치가 다음 티커로 넘어가며 정상 처리하는
+        # 노이즈이지 우리 코드의 이슈가 아님. 티커별로 메시지가 달라 필터링을
+        # 문구 매칭이 아닌 logger 이름 기준으로 통째로 제외한다.
+        if event.get("logger") == "yfinance":
             return None
         return event
 
