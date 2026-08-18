@@ -107,6 +107,8 @@ async def get_rankings_endpoint(
             excess_return_vs_index_pct=r.excess_return_pct,
             has_news=(r.ticker in has_news_tickers) if market == "kospi" and period in ("1d", "7d", "30d") else None,
             halt_resumption=r.halt_resumption,
+            first_valid_date=r.first_valid_date,
+            start_validity=r.start_validity,
         )
         for r in rows
     ]

@@ -131,6 +131,9 @@ def test_upsert_ranking_snapshots_sync_with_records(monkeypatch):
     mock_excluded.volatility_annualized_pct = "ex_volatility"
     mock_excluded.excess_return_pct = "ex_excess_return"
     mock_excluded.close_price_at_snapshot = "ex_close"
+    mock_excluded.halt_resumption = "ex_halt_resumption"
+    mock_excluded.first_valid_date = "ex_first_valid_date"
+    mock_excluded.start_validity = "ex_start_validity"
     mock_stmt.excluded = mock_excluded
 
     mock_coalesce = MagicMock(return_value="mocked_coalesce")
@@ -165,6 +168,9 @@ def test_upsert_ranking_snapshots_sync_with_records(monkeypatch):
             "excess_return_pct": "ex_excess_return",
             "close_price_at_snapshot": "mocked_coalesce",
             "market_cap": "mocked_coalesce",
+            "halt_resumption": "ex_halt_resumption",
+            "first_valid_date": "ex_first_valid_date",
+            "start_validity": "ex_start_validity",
         },
     )
     session.execute.assert_called_once_with("final_stmt")

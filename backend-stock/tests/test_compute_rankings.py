@@ -26,13 +26,16 @@ class _FakeSessionCM:
         return False
 
 
-def _fake_price_matrix(*_args, **_kwargs) -> tuple[pd.DataFrame, pd.DataFrame]:
+def _fake_price_matrix(*_args, **_kwargs) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """2종목 × 2거래일짜리 최소 price_matrix. meta_df는 빈 DF로 필터 단계를 건너뛴다."""
     idx = pd.to_datetime(["2026-07-02", "2026-07-03"])
     price_matrix = pd.DataFrame(
         {"AAA": [100.0, 110.0], "BBB": [200.0, 190.0]}, index=idx
     )
-    return price_matrix, pd.DataFrame()
+    volume_matrix = pd.DataFrame(
+        {"AAA": [1000, 1100], "BBB": [2000, 1900]}, index=idx
+    )
+    return price_matrix, volume_matrix, pd.DataFrame()
 
 
 @pytest.fixture
@@ -137,7 +140,9 @@ class TestPeriodStartDateSnapsToTradingDay:
         def _fake_load_price_matrix(_session, _market, start_date, end_date):
             calls.append((start_date, end_date))
             idx = pd.to_datetime([start_date, end_date])
-            return pd.DataFrame({"AAA": [100.0, 105.0]}, index=idx), pd.DataFrame()
+            price_matrix = pd.DataFrame({"AAA": [100.0, 105.0]}, index=idx)
+            volume_matrix = pd.DataFrame({"AAA": [1000, 1050]}, index=idx)
+            return price_matrix, volume_matrix, pd.DataFrame()
 
         monkeypatch.setattr(compute_rankings, "SyncSessionLocal", lambda: _FakeSessionCM())
         monkeypatch.setattr(

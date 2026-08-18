@@ -26,6 +26,7 @@ from fomobot.db.session import SyncSessionLocal
 from fomobot.services.calculator import (
     PERIOD_TO_DAYS,
     build_ranking_df,
+    compute_start_validity,
 )
 from fomobot.services.halt_resumption import is_prev_day_halt_resumption
 from fomobot.services.noise_filter import (
@@ -106,17 +107,22 @@ def _load_price_matrix(
     market: str,
     start_date: date,
     end_date: date,
-) -> tuple[pd.DataFrame, pd.DataFrame]:
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """
-    DB에서 가격 데이터를 읽어 (price_matrix, meta_df) 반환.
+    DB에서 가격 데이터를 읽어 (price_matrix, volume_matrix, meta_df) 반환.
 
-    price_matrix: index=날짜, columns=ticker, 값=close_adj
-    meta_df:      columns=[ticker, market_cap, avg_volume_30d, close_adj]
-                  (노이즈 필터용, 최근 30일 평균 거래대금은 여기서 계산)
+    price_matrix:  index=날짜, columns=ticker, 값=close_adj
+    volume_matrix: index=날짜, columns=ticker, 값=volume (price_matrix와 동일 shape,
+                   동일 쿼리 결과를 한 번 더 pivot한 것 — DB 재조회 없음).
+                   compute_returns/compute_mdd/compute_volatility는 여전히
+                   price_matrix만 소비한다 — 이 값은 compute_start_validity
+                   (기간 시작점 유효성 표시용, return_pct 등 계산에 미관여) 전용.
+    meta_df:       columns=[ticker, market_cap, avg_volume_30d, close_adj]
+                   (노이즈 필터용, 최근 30일 평균 거래대금은 여기서 계산)
     """
     rows = get_price_range_sync(session, market, start_date, end_date)
     if not rows:
-        return pd.DataFrame(), pd.DataFrame()
+        return pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
 
     df = pd.DataFrame(rows)
     df["date"] = pd.to_datetime(df["date"])
@@ -124,6 +130,9 @@ def _load_price_matrix(
     # pivot: 날짜 × 종목
     price_matrix = df.pivot(index="date", columns="ticker", values="close_adj")
     price_matrix = price_matrix.sort_index()
+
+    volume_matrix = df.pivot(index="date", columns="ticker", values="volume")
+    volume_matrix = volume_matrix.sort_index()
 
     # 메타: 최신 날짜 기준 시총 + 최근 30일 평균 거래대금
     cutoff_30d = end_date - timedelta(days=30)
@@ -152,7 +161,7 @@ def _load_price_matrix(
     meta["avg_volume_30d"] = meta["avg_volume_30d"].fillna(0)
     meta["market_cap"] = meta["market_cap"].fillna(0)
 
-    return price_matrix, meta
+    return price_matrix, volume_matrix, meta
 
 
 def compute_rankings_for_market(
@@ -211,7 +220,11 @@ def compute_rankings_for_market(
                     or raw_start_date
                 )
 
-                price_matrix, meta_df = _load_price_matrix(
+                # volume_matrix는 이번 단계(1~2)에서는 아직 랭킹 계산 흐름에
+                # 안 쓰인다 — compute_start_validity 실사용 배선은 3단계
+                # (스키마·저장) 승인 후 진행. price_matrix만 쓰는 아래 로직은
+                # 전부 기존 그대로다.
+                price_matrix, volume_matrix, meta_df = _load_price_matrix(
                     session, market, start_date, snapshot_date
                 )
                 # KOSPI는 meta_df에 실제 시총이 있음; NASDAQ는 0으로 채워져 있으므로 None 처리
@@ -337,11 +350,37 @@ def compute_rankings_for_market(
                             )
                             halt_resumption_map[t] = False
 
+                # 기간 시작점 유효성 — halt_resumption과 달리 1d 전용이 아니라
+                # 전 period 대상(002210류가 30d/90d/365d에서 반복될 수 있어서).
+                # return_pct 등 계산에는 전혀 관여하지 않는 표시용 메타데이터만
+                # 만든다 — price_matrix/volume_matrix는 읽기 전용으로 재사용.
+                try:
+                    start_validity_df = compute_start_validity(
+                        price_matrix, volume_matrix, pd.Timestamp(start_date), days
+                    )
+                except Exception:
+                    logger.exception(
+                        "%s %s: start_validity 계산 실패 — 표시 없이 진행(랭킹 자체엔 영향 없음)",
+                        market, period_key,
+                    )
+                    start_validity_df = pd.DataFrame(columns=["first_valid_date", "start_validity"])
+
+                def _lookup_start_validity(ticker_str: str) -> tuple[object, object]:
+                    # 1d에서 halt_resumption이 이미 이 등락을 설명하는 종목은
+                    # 같은 사실을 다른 문구로 중복 배지하지 않는다.
+                    if period_key == "1d" and halt_resumption_map.get(ticker_str):
+                        return None, None
+                    if ticker_str in start_validity_df.index:
+                        row = start_validity_df.loc[ticker_str]
+                        return row["first_valid_date"], row["start_validity"]
+                    return None, None
+
                 def _make_records(df: pd.DataFrame, order_dir: str) -> list[dict]:
                     records = []
                     for _, row in df.iterrows():
                         ticker_str = str(row["ticker"])
                         close_at_snapshot = last_row.get(ticker_str)
+                        first_valid_date, start_validity = _lookup_start_validity(ticker_str)
                         records.append({
                             "snapshot_date": snapshot_date,
                             "market": market,
@@ -367,6 +406,8 @@ def compute_rankings_for_market(
                             ),
                             "market_cap": cap_from_meta.get(ticker_str),
                             "halt_resumption": halt_resumption_map.get(ticker_str, False),
+                            "first_valid_date": first_valid_date,
+                            "start_validity": start_validity,
                         })
                     return records
 

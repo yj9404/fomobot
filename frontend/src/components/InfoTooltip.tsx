@@ -1,24 +1,27 @@
 import { useEffect, useRef, useState } from 'react'
 import { useC } from '../ThemeContext'
-import type { Strings } from '../i18n/strings'
 
 interface Props {
-  t: Strings
+  text: string
 }
 
 /**
- * halt_resumption=true 카드/행에 붙는 ⓘ 아이콘 — hover가 없는 모바일 대응으로
- * tap(클릭)으로 여닫는다. 아이콘 클릭은 stopPropagation해 부모 행/버튼의
- * onClick(카드 토글, 종목 선택 등)으로 번지지 않게 막고, 바깥 아무 곳이나
- * 탭하면 document mousedown 리스너로 닫는다(StockSearchArea의 outside-click
- * 패턴과 동일). 팝오버 라이브러리 없이 useState 하나로만 상태를 관리한다.
+ * 랭킹 카드/행에 붙는 ⓘ 아이콘 — hover가 없는 모바일 대응으로 tap(클릭)으로
+ * 여닫는다. 아이콘 클릭은 stopPropagation해 부모 행/버튼의 onClick(카드
+ * 토글, 종목 선택 등)으로 번지지 않게 막고, 바깥 아무 곳이나 탭하면 document
+ * click 리스너로 닫는다(StockSearchArea의 outside-click 패턴과 동일). 팝오버
+ * 라이브러리 없이 useState 하나로만 상태를 관리한다.
+ *
+ * halt_resumption 전용이었던 HaltResumptionInfo에서 일반화됨 — text prop만
+ * 받고 내용은 신경 쓰지 않는다. start_validity(기간 시작점 유효성) tooltip도
+ * 이 컴포넌트를 그대로 재사용한다.
  *
  * 이 컴포넌트는 절대위치 플로팅 박스로 뜬다(RankingTable처럼 조상에
  * overflow:hidden이 없는 곳 전용). RankingCard처럼 조상 카드가
  * overflow:hidden이라 플로팅 박스가 잘리는 곳에서는 이 컴포넌트를 쓰지
  * 말고, 카드 내부에 인라인으로 확장되는 블록을 직접 구현할 것.
  */
-export function HaltResumptionInfo({ t }: Props) {
+export function InfoTooltip({ text }: Props) {
   const C = useC()
   const [open, setOpen] = useState(false)
   const containerRef = useRef<HTMLSpanElement>(null)
@@ -63,7 +66,7 @@ export function HaltResumptionInfo({ t }: Props) {
             textAlign: 'left', fontWeight: 400, whiteSpace: 'normal',
           }}
         >
-          {t.haltResumptionTitle}
+          {text}
         </span>
       )}
     </span>

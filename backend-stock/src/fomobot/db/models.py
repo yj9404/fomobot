@@ -112,6 +112,16 @@ class RankingSnapshot(Base):
     # 이번 단계는 1d period만 채움(다른 period는 항상 False) — 컬럼명은
     # 기간 중립으로 둬 향후 확장 여지를 남긴다.
     halt_resumption = Column(Boolean, nullable=False, server_default=text("false"))
+    # 이 return_pct 계산에 실제로 쓰인 첫 유효 가격의 날짜 — 정상(윈도우 전체
+    # 실거래)이면 NULL. 002210(halt 중 조용한 basis 변경) 사고로 "N일
+    # 수익률"이 실제로는 훨씬 긴 기간 대비였던 문제 대응. first_valid_date가
+    # 있을 때만 start_validity도 채워진다(둘은 항상 함께 NULL이거나 함께 값).
+    first_valid_date = Column(Date, nullable=True)
+    # "gap"(윈도우 시작일에 데이터 자체가 없음 — 신규상장 등) |
+    # "halted"(데이터는 있으나 volume=0, 정지 중 동결값) | NULL(정상).
+    # 둘 다 해당하면 halted 우선(더 구체적인 설명). period 무관하게 전 기간 대상
+    # (halt_resumption과 달리 1d 전용 아님).
+    start_validity = Column(String(10), nullable=True)
 
     __table_args__ = (
         UniqueConstraint(

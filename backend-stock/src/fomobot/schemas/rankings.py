@@ -35,6 +35,24 @@ class RankingItem(BaseModel):
             "다른 period는 항상 false입니다."
         ),
     )
+    first_valid_date: date | None = Field(
+        None,
+        description=(
+            "이 return_pct 계산에 실제로 쓰인 첫 유효 가격의 날짜. null이면 윈도우 "
+            "전체가 정상 실거래(표시 불필요). start_validity가 있을 때만 채워집니다."
+        ),
+    )
+    start_validity: Literal["gap", "halted"] | None = Field(
+        None,
+        description=(
+            "기간 시작점이 표시된 기간 길이를 대표하지 못하는 사유. "
+            "'gap'=윈도우 시작일에 데이터 자체가 없었음(신규상장 등), "
+            "'halted'=데이터는 있으나 거래정지 중 동결값(실거래 아님). null이면 정상. "
+            "halt_resumption과 달리 전 period에서 채워질 수 있습니다. return_pct 등 "
+            "계산값 자체는 정확하니 '데이터 오류' 취급하지 말고, 실제 비교 시작일을 "
+            "명시하는 용도로만 쓰세요."
+        ),
+    )
 
 
 class RankingsResponse(BaseModel):

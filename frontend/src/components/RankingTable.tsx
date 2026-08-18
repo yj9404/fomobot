@@ -1,9 +1,9 @@
 import { useC, useTheme } from '../ThemeContext'
 import { FONT, DECLINE_ACCENT_DARK, DECLINE_ACCENT_LIGHT } from '../tokens'
 import { NewsDot } from './NewsDot'
-import { HaltResumptionInfo } from './HaltResumptionInfo'
+import { InfoTooltip } from './InfoTooltip'
 import type { RankingItem, Market, Lang, Period } from '../types'
-import type { Strings } from '../i18n/strings'
+import { getInfoBadgeText, type Strings } from '../i18n/strings'
 
 interface Props {
   rankings: RankingItem[]
@@ -77,6 +77,7 @@ export function RankingTable({ rankings, selectedRank, lang, t, period, asOf, on
           {rankings.map((item) => {
             const selected = selectedRank === item.rank
             const positive = item.return_pct >= 0
+            const infoBadgeText = getInfoBadgeText(item, t)
             return (
               <tr
                 key={item.ticker}
@@ -121,7 +122,7 @@ export function RankingTable({ rankings, selectedRank, lang, t, period, asOf, on
                 {/* Return */}
                 <td style={{ ...td, textAlign: 'right' }}>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                    {item.halt_resumption === true && <HaltResumptionInfo t={t} />}
+                    {infoBadgeText && <InfoTooltip text={infoBadgeText} />}
                     <span style={{ fontFamily: FONT.mono, fontSize: 16, fontWeight: 800, color: positive ? C.green : C.red }}>
                       {fmtPct(item.return_pct)}
                     </span>

@@ -17,6 +17,8 @@ export interface RankingItem {
   excess_return_vs_index_pct: number | null
   has_news?: boolean | null
   halt_resumption?: boolean
+  first_valid_date?: string | null
+  start_validity?: 'gap' | 'halted' | null
 }
 
 export interface RankingsResponse {

@@ -1,4 +1,4 @@
-import type { Lang } from '../types'
+import type { Lang, RankingItem } from '../types'
 
 export interface Strings {
   tagline: string
@@ -33,6 +33,8 @@ export interface Strings {
   newsLoading: string
   newsDotTitle: string
   haltResumptionTitle: string
+  startValidityGapTitle: (date: string) => string
+  startValidityHaltedTitle: (date: string) => string
   breadthUp: string
   breadthDown: string
   breadthFlat: string
@@ -75,6 +77,8 @@ const STR: Record<Lang, Strings> = {
     newsLoading: '뉴스 불러오는 중…',
     newsDotTitle: '관련 뉴스 있음',
     haltResumptionTitle: '이 종목은 장기 거래정지 후 재개된 첫날입니다. 재개 첫날은 가격제한폭(±30%)이 적용되지 않아 하루 등락이 클 수 있습니다.',
+    startValidityGapTitle: (d) => `이 기간 시작 시점에는 거래 데이터가 없습니다. 실제 비교 시작일: ${d}`,
+    startValidityHaltedTitle: (d) => `이 기간 시작 시점에 거래가 정지 상태였습니다. 실제 비교 시작일: ${d}`,
     breadthUp: '상승',
     breadthDown: '하락',
     breadthFlat: '보합',
@@ -115,6 +119,8 @@ const STR: Record<Lang, Strings> = {
     newsLoading: 'Loading news…',
     newsDotTitle: 'Related news available',
     haltResumptionTitle: 'This stock just resumed trading after a long halt. The daily price limit (±30%) doesn\'t apply on the first day back, so a large move here is expected — not a data error.',
+    startValidityGapTitle: (d) => `No trading data existed yet at the start of this period. Actual comparison start date: ${d}`,
+    startValidityHaltedTitle: (d) => `Trading was suspended at the start of this period. Actual comparison start date: ${d}`,
     breadthUp: 'Up',
     breadthDown: 'Down',
     breadthFlat: 'Flat',
@@ -126,4 +132,22 @@ const STR: Record<Lang, Strings> = {
 
 export function useStrings(lang: Lang): Strings {
   return STR[lang]
+}
+
+/**
+ * 랭킹 카드/행에 ⓘ 아이콘으로 보여줄 문구를 결정한다. halt_resumption과
+ * start_validity는 백엔드에서 1d 한정 상호배타(compute_rankings.py의
+ * _lookup_start_validity)지만, 프론트도 방어적으로 halt_resumption을
+ * 우선한다 — 이미 더 구체적인 설명이므로. 어느 것도 해당 없으면 null
+ * (호출부가 아이콘 자체를 렌더링하지 않아야 함).
+ */
+export function getInfoBadgeText(item: RankingItem, t: Strings): string | null {
+  if (item.halt_resumption === true) return t.haltResumptionTitle
+  if (item.start_validity === 'halted' && item.first_valid_date) {
+    return t.startValidityHaltedTitle(item.first_valid_date)
+  }
+  if (item.start_validity === 'gap' && item.first_valid_date) {
+    return t.startValidityGapTitle(item.first_valid_date)
+  }
+  return null
 }

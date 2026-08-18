@@ -171,6 +171,77 @@ PERIOD_TO_DAYS: dict[str, int] = {
     "1825d": 1825,
 }
 
+# "데이터 공백형"(gap) 판정 임계 — first_valid_date가 윈도우 길이의 이 비율 이상
+# 늦으면 "N일 수익률"이 실제로는 그보다 훨씬 짧은 기간 대비라고 본다. 순수 비율
+# 기준(절대일수 아님) — 절대일수를 쓰면 7d에서 과하게 걸리고 1825d에서 거의
+# 안 걸리는 문제가 있어(조사 단계에서 사용자가 지적) 기간 무관하게 동일 기준을
+# 적용할 수 있는 비율을 택했다.
+GAP_LAG_RATIO_THRESHOLD = 0.2
+
+
+def compute_start_validity(
+    price_matrix: pd.DataFrame,
+    volume_matrix: pd.DataFrame,
+    window_start_date: pd.Timestamp,
+    period_days: int,
+) -> pd.DataFrame:
+    """
+    각 종목의 기간 수익률(compute_returns의 first_valid)이 실제로 요청한
+    기간 전체를 대표하는지 판정한다. return_pct 등 다른 계산에는 전혀
+    관여하지 않는 표시용 메타데이터 전용 함수 — price_matrix/volume_matrix를
+    읽기만 하고 수정하지 않는다.
+
+    002210(halt 중 조용한 basis 변경) 사고로 두 가지 서로 다른 원인이 있다는
+    게 드러났다 — 하나의 조건으로는 못 잡는다:
+      (A) 'gap'(데이터 공백형): 그 종목의 데이터 자체가 윈도우 시작일에는
+          아직 없었다(신규상장 등) — first_valid_date가 window_start_date보다
+          GAP_LAG_RATIO_THRESHOLD 이상 늦다.
+      (B) 'halted'(정지 시작형): 데이터(행)는 있지만 그 시작값이 실거래가
+          아니다(volume=0, 정지 중 동결값) — 002210이 이 경우였다. 이 경우
+          first_valid_date는 window_start_date와 거의 같아(행 자체는 존재)
+          (A)로는 전혀 안 잡히므로 volume을 직접 확인해야 한다.
+    두 조건이 동시에 해당하면 'halted'를 우선한다(더 구체적인 설명이므로).
+    volume=0 여부는 임계값이 필요 없는 사실 판정이라 별도 비율 기준이 없다.
+
+    Parameters
+    ----------
+    price_matrix : pd.DataFrame   index=날짜, columns=ticker, 값=close_adj
+    volume_matrix : pd.DataFrame  index=날짜, columns=ticker, 값=volume (price_matrix와 동일 shape)
+    window_start_date : pd.Timestamp  이 기간 계산에 실제 쓰인 start_date(거래일 스냅 후)
+    period_days : int  PERIOD_TO_DAYS의 값(예: 30, 365) — 비율 계산의 분모
+
+    Returns
+    -------
+    pd.DataFrame  index=ticker, columns=[first_valid_date, start_validity]
+      start_validity: "gap" | "halted" 뿐(해당 없으면 그 종목은 결과에 없음 —
+      호출부가 반드시 결측을 "정상"으로 처리해야 한다는 뜻).
+    """
+    if price_matrix.empty or period_days <= 0:
+        return pd.DataFrame(columns=["first_valid_date", "start_validity"])
+
+    records: dict[str, tuple] = {}
+    for ticker in price_matrix.columns:
+        first_valid_date = price_matrix[ticker].first_valid_index()
+        if first_valid_date is None:
+            continue
+
+        first_valid_volume = None
+        if ticker in volume_matrix.columns:
+            vol = volume_matrix.at[first_valid_date, ticker]
+            first_valid_volume = None if pd.isna(vol) else vol
+
+        if first_valid_volume is not None and first_valid_volume == 0:
+            records[ticker] = (first_valid_date.date(), "halted")
+            continue
+
+        lag_days = (first_valid_date - window_start_date).days
+        if lag_days / period_days >= GAP_LAG_RATIO_THRESHOLD:
+            records[ticker] = (first_valid_date.date(), "gap")
+
+    return pd.DataFrame.from_dict(
+        records, orient="index", columns=["first_valid_date", "start_validity"]
+    )
+
 
 def compute_quote_metrics(prices: pd.Series) -> dict:
     """

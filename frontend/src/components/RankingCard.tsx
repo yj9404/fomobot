@@ -4,7 +4,7 @@ import { FONT, DECLINE_ACCENT_DARK, DECLINE_ACCENT_LIGHT } from '../tokens'
 import { BacktestPanel } from './BacktestPanel'
 import { NewsDot } from './NewsDot'
 import type { RankingItem, Market, Period, Lang, NewsArticle } from '../types'
-import type { Strings } from '../i18n/strings'
+import { getInfoBadgeText, type Strings } from '../i18n/strings'
 
 interface BtDetailEntry {
   status: 'idle' | 'loading' | 'ok' | 'error'
@@ -45,15 +45,18 @@ export function RankingCard({ item, open, market, days, period, btDetail, newsDe
   const excess = item.excess_return_vs_index_pct ?? 0
   const mddBar = Math.min(100, Math.abs(mdd)).toFixed(0) + '%'
   const volBar = Math.min(100, Math.abs(vol)).toFixed(0) + '%'
+  const infoBadgeText = getInfoBadgeText(item, t)
 
-  // halt_resumption 설명 — hover 없는 모바일 대응으로 tap-toggle(팝오버 라이브러리
-  // 없이 useState만). 카드 전체가 overflow:hidden이라 플로팅 박스가 잘리므로
-  // (RankingTable과 달리) 절대위치 대신 카드 하단에 인라인으로 확장한다.
-  const [haltInfoOpen, setHaltInfoOpen] = useState(false)
+  // 정보 배지 설명(halt_resumption 또는 start_validity) — hover 없는 모바일
+  // 대응으로 tap-toggle(팝오버 라이브러리 없이 useState만). 카드 전체가
+  // overflow:hidden이라 플로팅 박스가 잘리므로(RankingTable과 달리) 절대위치
+  // 대신 카드 하단에 인라인으로 확장한다. 원래 halt_resumption 전용이었으나
+  // start_validity와 공유하도록 일반화됨 — infoBadgeText가 null이 아닐 때만 아이콘 렌더.
+  const [infoOpen, setInfoOpen] = useState(false)
   const cardRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    if (!haltInfoOpen) return
+    if (!infoOpen) return
     // 'click'을 쓴다(mousedown 아님) — 이 설명 블록은 카드 하단에 인라인으로
     // 확장되므로 닫히면 아래 카드들이 위로 당겨진다(레이아웃 시프트). mousedown
     // 시점에 먼저 닫아버리면 그 직후 발생하는 click이 시프트된 레이아웃 기준
@@ -63,12 +66,12 @@ export function RankingCard({ item, open, market, days, period, btDetail, newsDe
     // 처리하므로 레이아웃 시프트가 끼어들 틈이 없다.
     const handler = (e: MouseEvent) => {
       if (cardRef.current && !cardRef.current.contains(e.target as Node)) {
-        setHaltInfoOpen(false)
+        setInfoOpen(false)
       }
     }
     document.addEventListener('click', handler)
     return () => document.removeEventListener('click', handler)
-  }, [haltInfoOpen])
+  }, [infoOpen])
 
   return (
     <div ref={cardRef} style={{
@@ -104,12 +107,12 @@ export function RankingCard({ item, open, market, days, period, btDetail, newsDe
           </div>
           <div style={{ textAlign: 'right', flexShrink: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 4 }}>
-              {item.halt_resumption === true && (
+              {infoBadgeText && (
                 <span
                   onClick={(e) => {
                     e.stopPropagation()
                     e.preventDefault()
-                    setHaltInfoOpen((v) => !v)
+                    setInfoOpen((v) => !v)
                   }}
                   style={{
                     fontSize: 12, lineHeight: 1, cursor: 'pointer', flexShrink: 0,
@@ -165,8 +168,8 @@ export function RankingCard({ item, open, market, days, period, btDetail, newsDe
           </span>
         </div>
 
-        {/* halt_resumption 설명 — 카드 하단 인라인 확장(플로팅 아님, overflow:hidden 대응) */}
-        {haltInfoOpen && item.halt_resumption === true && (
+        {/* 정보 배지 설명 — 카드 하단 인라인 확장(플로팅 아님, overflow:hidden 대응) */}
+        {infoOpen && infoBadgeText && (
           <div
             onClick={(e) => e.stopPropagation()}
             style={{
@@ -175,7 +178,7 @@ export function RankingCard({ item, open, market, days, period, btDetail, newsDe
               fontSize: 11.5, lineHeight: 1.5, color: C.textPrimary, fontWeight: 400,
             }}
           >
-            {t.haltResumptionTitle}
+            {infoBadgeText}
           </div>
         )}
       </button>

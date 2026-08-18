@@ -168,6 +168,8 @@ def upsert_ranking_snapshots_sync(session: Session, records: list[dict]) -> None
                 RankingSnapshot.market_cap,
             ),
             "halt_resumption": stmt.excluded.halt_resumption,
+            "first_valid_date": stmt.excluded.first_valid_date,
+            "start_validity": stmt.excluded.start_validity,
         },
     )
     session.execute(stmt)
@@ -708,6 +710,28 @@ def get_flagged_tickers_detail_sync(
         CorporateActionFlag.status.in_(statuses),
     )
     return [r._asdict() for r in session.execute(stmt).fetchall()]
+
+
+def get_corporate_action_flag_sync(session: Session, market: str, ticker: str) -> dict | None:
+    """단일 종목의 corporate_action_flag 행을 status 무관하게 조회한다.
+
+    ticker는 unique 제약이라 종목당 최대 1행. halt_resumption 배제 조건
+    (services/halt_resumption.py)이 "이 정지 구간에 자본거래(감자/병합/분할)가
+    있었는가"를 판정할 때 사용 — resolved 여부와 무관하게 flag 존재 자체가
+    근거이므로 status로 필터링하지 않는다.
+    """
+    stmt = select(
+        CorporateActionFlag.flag_date,
+        CorporateActionFlag.reason,
+        CorporateActionFlag.status,
+    ).where(
+        CorporateActionFlag.market == market,
+        CorporateActionFlag.ticker == ticker,
+    )
+    row = session.execute(stmt).first()
+    if row is None:
+        return None
+    return {"flag_date": row.flag_date, "reason": row.reason, "status": row.status}
 
 
 def upsert_corporate_action_flag_sync(session: Session, records: list[dict]) -> None:
