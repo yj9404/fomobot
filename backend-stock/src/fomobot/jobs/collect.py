@@ -102,15 +102,40 @@ def _run_corporate_action_checks(market: str) -> None:
             RESUMPTION_NEXT_STEPS,
             check_halt_resumption,
             detect_corporate_actions,
+            detect_long_halts,
         )
 
-        candidates = detect_corporate_actions(market, lookback_days=7)
-        for c in candidates:
+        result = detect_corporate_actions(market, lookback_days=7)
+        for c in result["candidates"]:
             _report_warning(
                 f"[{market.upper()}] corporate action 후보 탐지: {c['ticker']} "
                 f"signal={c['signal_type']} price_ratio={c['price_ratio']:.4f} "
                 f"reason추정={c['reason_guess']} halt인접={c['halt_adjacent']} "
                 f"({c['detected_signal']})"
+            )
+
+        # 후보 유무와 무관하게 항상 별도 확인 — "후보 0건"이 "이벤트 없음"인지
+        # "market_cap 결측으로 계산 자체가 불가능했음"인지 구분하지 못하면
+        # 알림 기반 관찰이 무의미해진다(027970 미탐 사고로 실증됨).
+        # KOSPI 한정 — NASDAQ은 price_daily.market_cap이 애초에 전량 NULL이라
+        # (detect_nasdaq_quality.py 참조) 이 임계값이 매일 무의미하게 울린다.
+        if market == "kospi" and result["market_cap_coverage_alert"]:
+            _report_warning(
+                f"[{market.upper()}] market_cap 결측 {result['market_cap_null_ticker_count']}"
+                f"/{result['checked_ticker_count']}종목 — shares_ratio 신호 계산 불가 구간 존재, "
+                f"감지 사각 발생 가능(임계 초과)"
+            )
+
+        # 정지 시작 → 자동 pending 등록(여기) → 재개 시 알림(check_halt_resumption) →
+        # 사람이 실제 사유 확인해 정정/해제. 가격 점프 데이터를 기다리지 않고
+        # "정지 지속 자체"만으로 판정하므로, 위 detect_corporate_actions와 달리
+        # 여기서 실제 write까지 일어난다(함수 내부에서 자동 insert).
+        long_halts = detect_long_halts(market)
+        for h in long_halts:
+            _report_warning(
+                f"[{market.upper()}] 장기 매매정지 자동 등록: {h['ticker']} "
+                f"정지 시작(추정) {h['halt_start_date']}, 연속 {h['halt_trading_days']}거래일 "
+                f"— corporate_action_flag(pending/halted) 신규 등록, 랭킹 제외 시작"
             )
 
         resumptions = check_halt_resumption(market)

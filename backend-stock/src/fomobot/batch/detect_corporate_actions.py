@@ -12,12 +12,15 @@ import logging
 from datetime import date, timedelta
 
 from fomobot.db.crud import (
+    get_flagged_tickers_sync,
     get_last_real_trade_date_sync,
     get_pending_halted_flags_sync,
     get_price_range_sync,
     get_resolved_flags_sync,
+    upsert_corporate_action_flag_sync,
 )
 from fomobot.db.session import SyncSessionLocal
+from fomobot.services.halt_resumption import HALT_MIN_TRADING_DAYS
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +28,18 @@ JUMP_LO, JUMP_HI = 0.35, 3.0
 LIMIT_LO, LIMIT_HI = 0.65, 1.35  # 상/하한가(±30%) 오탐 방지 구간 — [0.35,3]과 마진 충분(조사로 확인됨)
 SHARES_TOLERANCE = 0.01  # 1%
 RESOLVED_SUPPRESS_TRADING_DAYS = 3  # resolved flag_date와 이 거래일수 이내면 재알림 억제
+
+# market_cap 결측이 이 이상이면 "그날 배치는 후보를 못 잡았을 수도 있다"를 별도로 알린다.
+# 027970(2026-08-06→08-07) 사고 원인 — 관찰 기간 중 실제 라이브 실행 5회(08-07~08-12)가
+# 전부 "후보 없음"을 반환했으나, market_cap이 이후 재수집으로 채워진 뒤 사후 재현하면
+# 잡히는 모순이 실증됐다. 원인은 collect_kospi의 롤링 재수집 특성상 배치 실행 당시의
+# market_cap이 그 시점엔 결측이었다가 이후 UPSERT로 채워지는 경우가 있어, shares_ratio
+# 신호가 라이브 시점에만 조용히 계산 불가였던 것으로 추정(08-08 KOSPI 가격 저장 4715건 —
+# 평소 대비 약 940건 결손과 시기 일치). "후보 0건"과 "결측으로 계산 불가"를 구분하지
+# 못하면 관찰 기간 자체가 무의미해지므로, 이 임계값 중 하나라도 넘으면 후보 유무와
+# 무관하게 별도 경고를 남긴다.
+MARKET_CAP_MISSING_RATIO_THRESHOLD = 0.05  # 5%
+MARKET_CAP_MISSING_ABS_THRESHOLD = 100
 
 # halt 재개 알림에 고정으로 붙이는 다음 액션 안내 — 지금까지 5종목+3종목 정정에 쓴
 # 것과 동일한 dry-run→승인→write 3단계 패턴을 그대로 쓰면 된다는 걸 알림 자체에
@@ -80,19 +95,28 @@ def _resolved_suppresses(series: list[dict], prev_idx: int, flag_date: date) -> 
 
 def detect_corporate_actions(
     market: str, lookback_days: int, suppress_resolved: bool = True,
-) -> list[dict]:
+) -> dict:
     """
     price_daily에서 corporate action 의심 후보를 탐지해 반환한다(DB write 없음).
 
-    두 신호 중 하나라도 걸리면 후보로 채택한다:
+    세 신호 중 하나라도 걸리면 후보로 채택한다:
       1차(shares_ratio): (market_cap/close_adj)의 전일 대비 비율이 정수/역수
         후보(2,3,4,5,6,10 및 역수)에 1% 이내로 근접 — market_cap 양끝이
         non-null이어야 하며, 당일 실거래가 섞여도(004870 사례) 안정적이다.
+        가장 정확한 신호 — 2:1 병합처럼 price_ratio가 [0.35,3] 안에 있는
+        케이스도 잡는다. market_cap이 있으면 항상 이 신호를 우선한다.
       2차(halt_fallback): close_adj 인접 비율이 [0.35,3] 밖이고, 점프 양끝 중
         하나가 거래정지(당일 volume=0)에 인접 — market_cap 결측 시 대비용.
+      3차(price_ratio_no_mktcap): close_adj 인접 비율이 [0.35,3] 밖이고 halt에
+        인접하지 않았지만, market_cap이 없어 shares_ratio를 아예 계산할 수
+        없는 경우의 임시 안전망. 027970(2026-08-06→08-07) 사고 재발 방지용으로
+        추가됨 — halt도 아니고 market_cap도 없는 "조용한 사각지대"를 막는다.
+        ⚠️ 3배 이상 급변만 잡으므로 소배수(예: 2:1) 병합/분할은 market_cap이
+        복구되기 전까지는 여전히 놓칠 수 있다. market_cap이 있는 종목은
+        절대 이 경로를 타지 않는다(shares_ratio가 항상 우선).
 
-    상/하한가(±30%) 오탐 방지: close_adj 비율이 [0.65,1.35]에 있으면 두 신호
-    모두 무시한다(정상적인 상한가·하한가가 [0.35,3] 임계값에 오탐되지 않도록
+    상/하한가(±30%) 오탐 방지: close_adj 비율이 [0.65,1.35]에 있으면 모든 신호를
+    무시한다(정상적인 상한가·하한가가 [0.35,3] 임계값에 오탐되지 않도록
     이미 검증된 마진 — 025560 2026-07-28 하한가(-30%) 등).
 
     resolved 억제(suppress_resolved=True 기본): corporate_action_flag에서
@@ -101,6 +125,13 @@ def detect_corporate_actions(
     완료된 이벤트를 매일 재알림하지 않기 위함. 같은 종목에 flag_date와
     멀리 떨어진 "새" 점프가 생기면 계속 탐지한다(재발 케이스 방지 목적).
     excluded/pending 상태는 억제하지 않는다 — 아직 미해결이라 계속 알려야 함.
+    이 억제는 신호 종류(signal_type)와 무관하게 동일하게 적용된다.
+
+    결측 커버리지 집계: 후보 유무와 무관하게 항상 계산된다. "후보 0건"이
+    "이벤트가 없었다"인지 "market_cap 결측으로 계산 자체가 불가능했다"인지
+    구분하지 못하면 알림 기반 관찰이 무의미해진다는 게 027970 사고로
+    실증됐다(라이브 실행 5회 연속 "후보 없음" → 이후 market_cap이 재수집으로
+    채워지자 사후 재현 시 잡히는 모순 발견).
 
     Parameters
     ----------
@@ -110,9 +141,16 @@ def detect_corporate_actions(
 
     Returns
     -------
-    list[dict]  각 항목: ticker, market, prev_date, cur_date, price_ratio,
-                shares_ratio(nullable), signal_type("shares_ratio"|"halt_fallback"),
-                detected_signal(str), reason_guess, halt_adjacent(bool)
+    dict
+      candidates : list[dict]  각 항목 ticker, market, prev_date, cur_date,
+                   price_ratio, shares_ratio(nullable),
+                   signal_type("shares_ratio"|"halt_fallback"|"price_ratio_no_mktcap"),
+                   detected_signal(str), reason_guess, halt_adjacent(bool)
+      checked_ticker_count : int          lookback 구간에서 실제 비교가 이뤄진 종목 수
+      market_cap_null_ticker_count : int  그중 market_cap 결측 쌍이 하나라도 있던 종목 수
+      close_adj_null_ticker_count : int   그중 close_adj 결측 쌍이 하나라도 있던 종목 수
+      suppressed_count : int              resolved 억제로 스킵된 건수
+      market_cap_coverage_alert : bool    market_cap 결측이 임계 초과(감지 사각 가능성)
     """
     today = date.today()
     # 첫 날짜의 "전일" 비교가 가능하도록 조회 시작을 며칠 더 앞당긴다.
@@ -129,6 +167,9 @@ def detect_corporate_actions(
 
     candidates: list[dict] = []
     suppressed_count = 0
+    checked_tickers: set[str] = set()
+    market_cap_null_tickers: set[str] = set()
+    close_adj_null_tickers: set[str] = set()
 
     for ticker, series in by_ticker.items():
         series.sort(key=lambda r: r["date"])
@@ -136,8 +177,16 @@ def detect_corporate_actions(
             prev, cur = series[i - 1], series[i]
             if cur["date"] < cutoff_start:
                 continue
+
+            checked_tickers.add(ticker)
+
             if not prev["close_adj"] or not cur["close_adj"]:
+                close_adj_null_tickers.add(ticker)
                 continue
+
+            market_cap_missing = not (prev["market_cap"] and cur["market_cap"])
+            if market_cap_missing:
+                market_cap_null_tickers.add(ticker)
 
             price_ratio = cur["close_adj"] / prev["close_adj"]
 
@@ -147,7 +196,7 @@ def detect_corporate_actions(
 
             shares_ratio_value = None
             shares_match = None
-            if prev["market_cap"] and cur["market_cap"]:
+            if not market_cap_missing:
                 shares_prev = prev["market_cap"] / prev["close_adj"]
                 shares_cur = cur["market_cap"] / cur["close_adj"]
                 shares_ratio_value = shares_prev / shares_cur
@@ -158,11 +207,14 @@ def detect_corporate_actions(
 
             fired_by_shares = shares_match is not None
             fired_by_halt_fallback = is_jump and halt_adjacent
+            # market_cap이 없어 shares_ratio를 아예 못 쓰는 경우의 임시 안전망.
+            # halt_adjacent면 이미 위 2차 신호가 잡으므로 여기선 제외(중복 방지).
+            fired_by_price_fallback = is_jump and market_cap_missing and not halt_adjacent
 
-            if not (fired_by_shares or fired_by_halt_fallback):
+            if not (fired_by_shares or fired_by_halt_fallback or fired_by_price_fallback):
                 continue
 
-            # resolved 억제: 이미 정정 완료된 이벤트면 스킵
+            # resolved 억제: 이미 정정 완료된 이벤트면 스킵 (신호 종류 무관 동일 적용)
             flag_date = resolved_flags.get(ticker)
             if flag_date is not None and _resolved_suppresses(series, i - 1, flag_date):
                 suppressed_count += 1
@@ -173,9 +225,16 @@ def detect_corporate_actions(
                 signal_type = "shares_ratio"
                 detected_signal = f"shares_ratio={shares_ratio_value:.4f} candidate={factor:.4f} (오차 {err*100:.2f}%)"
                 reason_guess = "merge" if price_ratio > 1 else "split"
-            else:
+            elif fired_by_halt_fallback:
                 signal_type = "halt_fallback"
                 detected_signal = f"price_ratio={price_ratio:.4f} (halt-adjacent, shares 신호 없음/불일치)"
+                reason_guess = "manual"
+            else:
+                signal_type = "price_ratio_no_mktcap"
+                detected_signal = (
+                    f"price_ratio={price_ratio:.4f} (market_cap 결측으로 shares_ratio 계산 불가, "
+                    f"halt 비인접 — 임시 안전망, 3배 미만 병합/분할은 놓칠 수 있음)"
+                )
                 reason_guess = "manual"
 
             candidates.append({
@@ -191,6 +250,30 @@ def detect_corporate_actions(
                 "halt_adjacent": halt_adjacent,
             })
 
+    checked_count = len(checked_tickers)
+    market_cap_null_count = len(market_cap_null_tickers)
+    close_adj_null_count = len(close_adj_null_tickers)
+
+    logger.info(
+        "%s 데이터 커버리지(최근 %d일): 검사 %d종목, market_cap 결측 %d종목, close_adj 결측 %d종목",
+        market, lookback_days, checked_count, market_cap_null_count, close_adj_null_count,
+    )
+
+    market_cap_coverage_alert = bool(
+        checked_count
+        and (
+            market_cap_null_count > MARKET_CAP_MISSING_ABS_THRESHOLD
+            or market_cap_null_count / checked_count > MARKET_CAP_MISSING_RATIO_THRESHOLD
+        )
+    )
+    if market_cap_coverage_alert:
+        logger.warning(
+            "%s market_cap 결측 %d/%d종목(%.1f%%) — 임계 초과. shares_ratio 계산 불가 구간에서 "
+            "감지 사각 발생 가능(price_ratio_no_mktcap이 3배 이상 급변만 부분 커버)",
+            market, market_cap_null_count, checked_count,
+            market_cap_null_count / checked_count * 100,
+        )
+
     if suppressed_count:
         logger.info(
             "%s resolved 억제로 재알림 스킵 %d건 (이미 정정 완료된 이벤트)",
@@ -205,7 +288,124 @@ def detect_corporate_actions(
     else:
         logger.info("%s corporate action 후보 없음 (최근 %d일)", market, lookback_days)
 
-    return candidates
+    return {
+        "candidates": candidates,
+        "checked_ticker_count": checked_count,
+        "market_cap_null_ticker_count": market_cap_null_count,
+        "close_adj_null_ticker_count": close_adj_null_count,
+        "suppressed_count": suppressed_count,
+        "market_cap_coverage_alert": market_cap_coverage_alert,
+    }
+
+
+LONG_HALT_LOOKBACK_DAYS = 120  # HALT_MIN_TRADING_DAYS(10거래일)를 안전하게 담을 여유(주말·공휴일 포함, ~12배)
+
+
+def detect_long_halts(market: str) -> list[dict]:
+    """
+    현재도 매매정지 중이고 HALT_MIN_TRADING_DAYS(services.halt_resumption과
+    동일 상수) 거래일 이상 지속된 종목을 찾아 corporate_action_flag
+    (reason=halted, status=pending)에 자동 등록한다(DB write — 이 함수는
+    승인 게이트 없이 자동 insert한다, 이유는 아래 참조).
+
+    027970(한국제지) 사고 재발 방지용: 감자/병합으로 정지된 종목은 정지
+    기간 동안 close_adj가 조정 전 값에 머물러 있다가 재개 직전/직후에야
+    KRX가 조정가를 소급 게시하는 경우가 있어(is_prev_day_halt_resumption의
+    "비동결이면 corporate action" 분기가 바로 이 케이스), 가격 점프를
+    기다리는 detect_corporate_actions()로는 원리적으로 라이브 시점에 잡을
+    수 없다(2026-08-07~08-13 5일 연속 미탐으로 실증됨). "정지 자체"는 가격
+    데이터가 갱신되길 기다릴 필요 없이 매일 즉시 판정 가능한 사실이므로,
+    독립적인 선제 신호로 쓴다.
+
+    detect_corporate_actions()의 가격-점프 신호와 달리 이 신호는 자동
+    insert가 안전하다고 판단한다 — "N거래일 연속 거래량 0"은 오탐 여지가
+    거의 없는 사실 판정이고(detect_nasdaq_negative의 음수가격 자동 격리와
+    동일한 근거), 장기 정지 종목이 랭킹에서 빠지는 것 자체가 이미 타당하다
+    (거래가 없어 등락률이 무의미). 이미 corporate_action_flag에 있는
+    종목(status 무관 — excluded/pending/resolved 전부)은 건드리지 않는다 —
+    009310처럼 이미 수동/자동으로 추적 중인 종목의 중복 등록을 막기 위함.
+
+    Parameters
+    ----------
+    market : str  "kospi" | "nasdaq"
+
+    Returns
+    -------
+    list[dict]  신규 등록된 항목: ticker, market, halt_start_date(정지 시작
+                추정일 — LONG_HALT_LOOKBACK_DAYS보다 오래된 정지는 창 시작일로
+                clamp되어 실제보다 짧게 잡힐 수 있음), halt_trading_days
+    """
+    today = date.today()
+    query_start = today - timedelta(days=LONG_HALT_LOOKBACK_DAYS)
+
+    with SyncSessionLocal() as session:
+        rows = get_price_range_sync(session, market, query_start, today)
+        already_flagged = get_flagged_tickers_sync(
+            session, market, statuses=("excluded", "pending", "resolved")
+        )
+
+    by_ticker: dict[str, list[dict]] = {}
+    for r in rows:
+        by_ticker.setdefault(r["ticker"], []).append(r)
+
+    results: list[dict] = []
+    records: list[dict] = []
+
+    for ticker, series in by_ticker.items():
+        if ticker in already_flagged:
+            continue
+        series.sort(key=lambda r: r["date"])
+
+        # 최신 거래일부터 거슬러 올라가며 연속 거래량0(정지) 구간 길이를 센다.
+        # 최신 행이 실거래(volume>0)면 즉시 0으로 끝나 "이미 재개된 과거
+        # 정지"는 자연히 제외된다.
+        halt_days = 0
+        halt_start_date = None
+        for r in reversed(series):
+            if r["volume"]:
+                break
+            halt_days += 1
+            halt_start_date = r["date"]
+
+        if halt_days < HALT_MIN_TRADING_DAYS:
+            continue
+
+        results.append({
+            "ticker": ticker,
+            "market": market,
+            "halt_start_date": halt_start_date,
+            "halt_trading_days": halt_days,
+        })
+        records.append({
+            "ticker": ticker,
+            "market": market,
+            "flag_date": halt_start_date,
+            "reason": "halted",
+            "status": "pending",
+            "detected_signal": (
+                f"장기 매매정지 {halt_days}거래일 연속(정지 시작 추정 {halt_start_date}) "
+                f"— 가격 점프 미확인 상태의 선제 등록(detect_long_halts)"
+            )[:2000],
+            "note": (
+                f"정지 시작일(추정) {halt_start_date}, 연속 {halt_days}거래일, "
+                f"자동 등록(사전 감시 — 027970 사고 재발 방지). 재개 시 "
+                f"check_halt_resumption()이 알리며, 재개 후 실제 사유(감자/병합/기타)를 "
+                f"확인해 필요 시 정정 트랙으로 넘길 것."
+            )[:2000],
+        })
+
+    if records:
+        with SyncSessionLocal() as session:
+            upsert_corporate_action_flag_sync(session, records)
+        logger.warning(
+            "%s 장기 매매정지 %d종목 자동 pending 등록: %s",
+            market, len(results),
+            [(r["ticker"], r["halt_trading_days"]) for r in results],
+        )
+    else:
+        logger.info("%s 장기 매매정지 신규 후보 없음", market)
+
+    return results
 
 
 def check_halt_resumption(market: str) -> list[dict]:
