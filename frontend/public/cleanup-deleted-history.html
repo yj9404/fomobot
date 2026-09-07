@@ -7,12 +7,12 @@
   <meta name="description" content="'오래된 데이터 삭제'라는 무해해 보이는 작업이 5년치 가격 기록을 지웠습니다. 그런데 화면에는 에러가 아니라 그럴듯한 숫자가 떠 있었습니다 — 90일·1년·5년 랭킹이 전부 똑같은 값으로. 데이터가 사라진 사고의 기록." />
   <link rel="icon" type="image/svg+xml" href="/icons/favicon.svg" />
   <link rel="stylesheet" href="/static-page.css" />
-  <link rel="canonical" href="https://fomobot.net/cleanup-deleted-history.html" />
+  <link rel="canonical" href="https://fomobot.net/cleanup-deleted-history" />
 
   <meta property="og:type" content="article" />
   <meta property="og:title" content="정리 크론이 과거를 지웠다 — FomoBot" />
   <meta property="og:description" content="'오래된 데이터 삭제'가 5년치 기록을 지웠는데, 화면에는 에러가 아니라 그럴듯한 숫자가 떠 있었습니다." />
-  <meta property="og:url" content="https://fomobot.net/cleanup-deleted-history.html" />
+  <meta property="og:url" content="https://fomobot.net/cleanup-deleted-history" />
 
   <script type="application/ld+json">
   {
@@ -23,7 +23,7 @@
     "dateModified": "2026-07-16",
     "author": { "@type": "Organization", "name": "FomoBot" },
     "publisher": { "@type": "Organization", "name": "FomoBot" },
-    "mainEntityOfPage": "https://fomobot.net/cleanup-deleted-history.html"
+    "mainEntityOfPage": "https://fomobot.net/cleanup-deleted-history"
   }
   </script>
 
@@ -45,12 +45,12 @@
   <nav>
     <a href="/" class="brand">FomoBot</a>
     <div class="links">
-      <a href="/about.html">소개</a>
-      <a href="/articles.html">읽을거리</a>
-      <a href="/methodology.html">방법론</a>
-      <a href="/survivorship-bias.html">생존 편향</a>
-      <a href="/glossary.html">용어 해설</a>
-      <a href="/privacy.html">개인정보처리방침</a>
+      <a href="/about">소개</a>
+      <a href="/articles">읽을거리</a>
+      <a href="/methodology">방법론</a>
+      <a href="/survivorship-bias">생존 편향</a>
+      <a href="/glossary">용어 해설</a>
+      <a href="/privacy">개인정보처리방침</a>
     </div>
   </nav>
 
@@ -60,7 +60,7 @@
 
     <p>가장 위험한 작업일수록 이름이 무해합니다. "오래된 데이터 정리"보다 안전하게 들리는 작업 이름도 드뭅니다. 이 작업이 5년치 가격 기록을 지웠습니다.</p>
 
-    <p>그리고 이 글이 <a href="/lag-window-function.html">앞선</a> <a href="/what-day-is-yesterday.html">세</a> <a href="/coalesce-order.html">편</a>과 같은 계열인 이유가 여기 있습니다 — 데이터가 사라졌는데도 화면에는 에러가 뜨지 않았습니다. <strong>그럴듯한 숫자가 떠 있었습니다.</strong></p>
+    <p>그리고 이 글이 <a href="/lag-window-function">앞선</a> <a href="/what-day-is-yesterday">세</a> <a href="/coalesce-order">편</a>과 같은 계열인 이유가 여기 있습니다 — 데이터가 사라졌는데도 화면에는 에러가 뜨지 않았습니다. <strong>그럴듯한 숫자가 떠 있었습니다.</strong></p>
 
     <h2>왜 지우려 했나</h2>
 
@@ -107,7 +107,7 @@
 
     <p>다행히 원본을 다시 구할 수 있었습니다. 가격 데이터는 원래 외부 소스에서 수집한 것이라, 삭제된 기간(2020년부터 현재까지)을 <strong>통째로 재수집</strong>했습니다. 지금은 두 시장 모두 2020년 6월부터 빈 구간 없이 복구된 상태입니다.</p>
 
-    <p>하지만 재수집에는 <a href="/bias-we-kept.html">생존 편향</a>과 맞닿는 구조적 허점이 있습니다. 재수집은 <strong>"오늘 기준으로 상장된" 종목 목록</strong>을 순회합니다. 그렇다면 2020년 이후 이 사고 이전에 <strong>이미 상장폐지된 종목</strong>은, 오늘의 목록에 없으니 재수집 대상에서도 빠졌을 수 있습니다. 원래 있던 데이터를 완벽히 복원한 게 아니라, <strong>오늘 살아있는 종목의 과거만 복원</strong>했을 가능성이 있습니다. 확정된 사실은 아니고 구조상 남는 구멍이지만, 밝혀 둡니다. 삭제는 이렇게, 복구한 뒤에도 흔적을 남길 수 있습니다.</p>
+    <p>하지만 재수집에는 <a href="/bias-we-kept">생존 편향</a>과 맞닿는 구조적 허점이 있습니다. 재수집은 <strong>"오늘 기준으로 상장된" 종목 목록</strong>을 순회합니다. 그렇다면 2020년 이후 이 사고 이전에 <strong>이미 상장폐지된 종목</strong>은, 오늘의 목록에 없으니 재수집 대상에서도 빠졌을 수 있습니다. 원래 있던 데이터를 완벽히 복원한 게 아니라, <strong>오늘 살아있는 종목의 과거만 복원</strong>했을 가능성이 있습니다. 확정된 사실은 아니고 구조상 남는 구멍이지만, 밝혀 둡니다. 삭제는 이렇게, 복구한 뒤에도 흔적을 남길 수 있습니다.</p>
 
     <h2>어떻게 막았나</h2>
 
@@ -121,7 +121,7 @@
 
     <p><strong>2. "이 데이터는 누가 쓰는가"를 전부 세십시오.</strong> 이 사고의 뿌리는 "백테스트는 오늘 가격만 쓴다"까지만 확인하고 멈춘 것입니다. 같은 테이블을 랭킹도 읽고 있었습니다. 데이터를 지우기 전에 그 데이터의 <strong>모든</strong> 소비자를 확인해야 합니다. 하나라도 빠뜨리면 그쪽이 조용히 깨집니다.</p>
 
-    <p><strong>3. 빈칸보다 가짜 값을 두려워하십시오.</strong> 데이터가 사라졌을 때 시스템이 에러를 냈다면 즉시 알았을 겁니다. 대신 시스템은 있는 것 중 가장 오래된 값으로 빈칸을 메워 그럴듯한 숫자를 만들었습니다. <a href="/lag-window-function.html">LAG</a>, <a href="/what-day-is-yesterday.html">거래일 라벨</a>, <a href="/coalesce-order.html">박제된 종가</a>와 똑같습니다 — 금융 데이터에서 가장 무서운 실패는 멈추는 실패가 아니라 <strong>계속 돌아가는 실패</strong>입니다.</p>
+    <p><strong>3. 빈칸보다 가짜 값을 두려워하십시오.</strong> 데이터가 사라졌을 때 시스템이 에러를 냈다면 즉시 알았을 겁니다. 대신 시스템은 있는 것 중 가장 오래된 값으로 빈칸을 메워 그럴듯한 숫자를 만들었습니다. <a href="/lag-window-function">LAG</a>, <a href="/what-day-is-yesterday">거래일 라벨</a>, <a href="/coalesce-order">박제된 종가</a>와 똑같습니다 — 금융 데이터에서 가장 무서운 실패는 멈추는 실패가 아니라 <strong>계속 돌아가는 실패</strong>입니다.</p>
 
     <p><strong>4. 삭제는 늘리지 말고 없애십시오.</strong> 위험한 삭제를 "안전한 값으로 조정"하면 위험은 잠들 뿐입니다. 가능하면 삭제 경로 자체를 제거하는 편이, 안전한 값을 고르는 것보다 안전합니다.</p>
 

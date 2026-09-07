@@ -7,12 +7,12 @@
   <meta name="description" content="pykrx의 '수정주가'와 yfinance의 '수정주가'는 이름만 같고 다른 값입니다. 한쪽은 배당을 빼고 한쪽은 넣습니다. 이걸 모르고 두 소스를 한 서비스에 쓰면 방법론 문서가 거짓말을 하게 됩니다. 실제로 우리 문서가 그랬고, 고쳤습니다." />
   <link rel="icon" type="image/svg+xml" href="/icons/favicon.svg" />
   <link rel="stylesheet" href="/static-page.css" />
-  <link rel="canonical" href="https://fomobot.net/adjusted-price-trap.html" />
+  <link rel="canonical" href="https://fomobot.net/adjusted-price-trap" />
 
   <meta property="og:type" content="article" />
   <meta property="og:title" content="같은 이름의 다른 물건 — 수정주가라는 함정 — FomoBot" />
   <meta property="og:description" content="pykrx의 수정주가는 배당을 빼고, yfinance의 수정주가는 넣습니다. 이름이 같아서 우리 방법론 문서가 틀렸고, 고쳤습니다." />
-  <meta property="og:url" content="https://fomobot.net/adjusted-price-trap.html" />
+  <meta property="og:url" content="https://fomobot.net/adjusted-price-trap" />
 
   <script type="application/ld+json">
   {
@@ -23,7 +23,7 @@
     "dateModified": "2026-07-15",
     "author": { "@type": "Organization", "name": "FomoBot" },
     "publisher": { "@type": "Organization", "name": "FomoBot" },
-    "mainEntityOfPage": "https://fomobot.net/adjusted-price-trap.html"
+    "mainEntityOfPage": "https://fomobot.net/adjusted-price-trap"
   }
   </script>
 </head>
@@ -31,12 +31,12 @@
   <nav>
     <a href="/" class="brand">FomoBot</a>
     <div class="links">
-      <a href="/about.html">소개</a>
-      <a href="/articles.html">읽을거리</a>
-      <a href="/methodology.html">방법론</a>
-      <a href="/survivorship-bias.html">생존 편향</a>
-      <a href="/glossary.html">용어 해설</a>
-      <a href="/privacy.html">개인정보처리방침</a>
+      <a href="/about">소개</a>
+      <a href="/articles">읽을거리</a>
+      <a href="/methodology">방법론</a>
+      <a href="/survivorship-bias">생존 편향</a>
+      <a href="/glossary">용어 해설</a>
+      <a href="/privacy">개인정보처리방침</a>
     </div>
   </nav>
 
@@ -56,7 +56,7 @@
 
     <h2>어떻게 발견했나</h2>
 
-    <p>다른 글(<a href="/five-year-winner.html">5년 수익률 1위</a>)을 준비하면서 KOSPI 1위 종목의 수익률을 교차검증하던 중이었습니다. 우리 DB의 pykrx 데이터와, 완전히 독립된 소스인 yfinance를 나란히 놓고 같은 종목을 조회했습니다.</p>
+    <p>다른 글(<a href="/five-year-winner">5년 수익률 1위</a>)을 준비하면서 KOSPI 1위 종목의 수익률을 교차검증하던 중이었습니다. 우리 DB의 pykrx 데이터와, 완전히 독립된 소스인 yfinance를 나란히 놓고 같은 종목을 조회했습니다.</p>
 
     <table class="data-table">
       <caption>같은 종목, 같은 5년 구간 — 두 소스의 수익률</caption>
@@ -118,11 +118,11 @@
 
     <h2>어떻게 고쳤나</h2>
 
-    <p>방법론 문서를 고쳤습니다. "배당 등을 반영"이라는 뭉뚱그린 표현을 지우고, pykrx 수집분은 "액면분할·무상증자·유상증자를 반영, 현금배당은 미반영"으로 정확히 다시 적었습니다. 헷갈리기 쉬운 용어인 만큼 <a href="/glossary.html#수정주가">용어 해설</a>로 가는 링크도 함께 걸어, 읽는 사람이 정의를 바로 확인할 수 있게 했습니다.</p>
+    <p>방법론 문서를 고쳤습니다. "배당 등을 반영"이라는 뭉뚱그린 표현을 지우고, pykrx 수집분은 "액면분할·무상증자·유상증자를 반영, 현금배당은 미반영"으로 정확히 다시 적었습니다. 헷갈리기 쉬운 용어인 만큼 <a href="/glossary#수정주가">용어 해설</a>로 가는 링크도 함께 걸어, 읽는 사람이 정의를 바로 확인할 수 있게 했습니다.</p>
 
     <p>그리고 한 문장을 더 넣었습니다 — <strong>두 시장의 수익률을 직접 비교할 때는 이 비대칭을 감안해야 한다.</strong> KOSPI 종목과 NASDAQ 종목을 나란히 세우면, 배당을 주는 종목일수록 NASDAQ 쪽이 구조적으로 유리하게 보입니다. 같은 시장 안에서의 순위 비교는 영향받지 않지만, 시장을 가로지르는 비교에는 이 각주가 반드시 따라붙어야 합니다.</p>
 
-    <p>이 사이트의 개별 랭킹은 KOSPI와 NASDAQ이 분리돼 있어 순위 자체는 안전합니다. 하지만 <a href="/index-illusion.html">지수 간 비교</a>처럼 두 시장을 한 화면에 놓는 글에서는, 이 차이를 각주로 밝히는 것이 최소한의 정직입니다.</p>
+    <p>이 사이트의 개별 랭킹은 KOSPI와 NASDAQ이 분리돼 있어 순위 자체는 안전합니다. 하지만 <a href="/index-illusion">지수 간 비교</a>처럼 두 시장을 한 화면에 놓는 글에서는, 이 차이를 각주로 밝히는 것이 최소한의 정직입니다.</p>
 
     <h2>왜 이걸 글로 쓰는가</h2>
 
@@ -135,9 +135,9 @@
     <p>"수정주가"는 앞으로도 두 소스에서 다른 것을 뜻할 겁니다. 우리는 이제 그걸 알고, 문서에 그렇게 적어 두었습니다.</p>
 
     <div class="footnotes">
-      <p><strong>데이터 기준</strong> — 교차검증은 2026-07 기준으로 수행했으며, 사용한 5년 구간과 종목의 세부 수치는 <a href="/five-year-winner.html">해당 글</a>에 있습니다. pykrx와 yfinance의 수정주가 정의는 각 라이브러리 및 KRX의 공개 정의에 따른 것으로, 향후 각 소스의 정책이 바뀌면 달라질 수 있습니다.</p>
-      <p><strong>배당 처리</strong> — 이 글에서 설명한 대로, KOSPI(pykrx) 수익률은 배당 미반영, NASDAQ(yfinance) 수익률은 배당 반영입니다. 최신 정의는 <a href="/methodology.html">방법론</a>을 참고하십시오.</p>
-      <p><strong>이 글에 관하여</strong> — 2026-07-29부로 NASDAQ 수집 방식을 배당 반영(auto_adjust)에서 분할만 반영하는 방식으로 전환했습니다. 이 글이 설명하는 비대칭(NASDAQ=배당 반영)은 전환 이전 시점의 기록이며, 현재는 두 시장 모두 배당 미반영으로 통일되어 있습니다. 최신 상태는 <a href="/methodology.html">방법론</a>을 참고하십시오.</p>
+      <p><strong>데이터 기준</strong> — 교차검증은 2026-07 기준으로 수행했으며, 사용한 5년 구간과 종목의 세부 수치는 <a href="/five-year-winner">해당 글</a>에 있습니다. pykrx와 yfinance의 수정주가 정의는 각 라이브러리 및 KRX의 공개 정의에 따른 것으로, 향후 각 소스의 정책이 바뀌면 달라질 수 있습니다.</p>
+      <p><strong>배당 처리</strong> — 이 글에서 설명한 대로, KOSPI(pykrx) 수익률은 배당 미반영, NASDAQ(yfinance) 수익률은 배당 반영입니다. 최신 정의는 <a href="/methodology">방법론</a>을 참고하십시오.</p>
+      <p><strong>이 글에 관하여</strong> — 2026-07-29부로 NASDAQ 수집 방식을 배당 반영(auto_adjust)에서 분할만 반영하는 방식으로 전환했습니다. 이 글이 설명하는 비대칭(NASDAQ=배당 반영)은 전환 이전 시점의 기록이며, 현재는 두 시장 모두 배당 미반영으로 통일되어 있습니다. 최신 상태는 <a href="/methodology">방법론</a>을 참고하십시오.</p>
       <p><strong>투자 판단에 대하여</strong> — FomoBot은 이미 지나간 가격을 정리해 보여주는 도구입니다. 특정 종목의 매수·매도를 권유하지 않으며, 이 글의 어떤 내용도 투자 자문이 아닙니다. 투자 손익의 책임은 투자자 본인에게 있습니다.</p>
     </div>
   </main>

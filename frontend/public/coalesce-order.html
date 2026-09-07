@@ -9,13 +9,13 @@
     content="coalesce(기존, 신규)와 coalesce(신규, 기존)의 차이. 인자 순서 하나로 백테스트 수익률이 +367%로 나왔습니다. 순서를 고치자 그 아래에서 설계 결함이 나왔고, 그걸 고치자 더 아래에서 '그 시점의 가격'이 정의되지 않는 종목이 나왔습니다." />
   <link rel="icon" type="image/svg+xml" href="/icons/favicon.svg" />
   <link rel="stylesheet" href="/static-page.css" />
-  <link rel="canonical" href="https://fomobot.net/coalesce-order.html" />
+  <link rel="canonical" href="https://fomobot.net/coalesce-order" />
 
   <meta property="og:type" content="article" />
   <meta property="og:title" content="인자 순서 하나가 수익률을 +367%로 만들었다 — FomoBot" />
   <meta property="og:description"
     content="coalesce(기존, 신규) vs coalesce(신규, 기존). 순서 하나를 고치자 그 아래에서 더 깊은 문제가 두 겹 나왔습니다." />
-  <meta property="og:url" content="https://fomobot.net/coalesce-order.html" />
+  <meta property="og:url" content="https://fomobot.net/coalesce-order" />
 
   <script type="application/ld+json">
   {
@@ -26,7 +26,7 @@
     "dateModified": "2026-07-16",
     "author": { "@type": "Organization", "name": "FomoBot" },
     "publisher": { "@type": "Organization", "name": "FomoBot" },
-    "mainEntityOfPage": "https://fomobot.net/coalesce-order.html"
+    "mainEntityOfPage": "https://fomobot.net/coalesce-order"
   }
   </script>
 
@@ -60,12 +60,12 @@
   <nav>
     <a href="/" class="brand">FomoBot</a>
     <div class="links">
-      <a href="/about.html">소개</a>
-      <a href="/articles.html">읽을거리</a>
-      <a href="/methodology.html">방법론</a>
-      <a href="/survivorship-bias.html">생존 편향</a>
-      <a href="/glossary.html">용어 해설</a>
-      <a href="/privacy.html">개인정보처리방침</a>
+      <a href="/about">소개</a>
+      <a href="/articles">읽을거리</a>
+      <a href="/methodology">방법론</a>
+      <a href="/survivorship-bias">생존 편향</a>
+      <a href="/glossary">용어 해설</a>
+      <a href="/privacy">개인정보처리방침</a>
     </div>
   </nav>
 
@@ -167,7 +167,7 @@ saved_close = COALESCE(신규_값, 기존_값)</code></pre>
     <p><strong>4. 고친 뒤에 전수 대조를 돌리십시오.</strong> 순서를 고치고 재계산까지 했는데도 80건이 남아 있었습니다. "고쳤다"는 커밋과 "괴리가 없다"는 검증은 다른 것입니다. 이번
       80건은 죽은 컬럼이라 무해했지만, 살아 있는 컬럼이었다면 이 글의 제목이 달라졌을 겁니다.</p>
 
-    <p>이 사건은 <a href="/lag-window-function.html">LAG 함수</a>, <a href="/what-day-is-yesterday.html">거래일이 아닌 날짜</a>와 함께 같은
+    <p>이 사건은 <a href="/lag-window-function">LAG 함수</a>, <a href="/what-day-is-yesterday">거래일이 아닌 날짜</a>와 함께 같은
       계열의 세 번째 기록입니다. 셋 다 크래시 없이, 그럴듯한 숫자를 뱉으면서, 데이터가 조용히 틀리는 사고였습니다. 금융 데이터 파이프라인에서 가장 무서운 버그는 예외를 던지는 버그가 아니라
       <strong>정상으로 보이는 버그</strong>입니다.
     </p>

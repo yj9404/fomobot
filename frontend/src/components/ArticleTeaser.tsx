@@ -18,7 +18,7 @@ export function ArticleTeaser({ lang, style }: { lang: Lang; style?: React.CSSPr
   const C = useC()
   return (
     <a
-      href={`/${ARTICLE.slug}.html`}
+      href={`/${ARTICLE.slug}`}
       style={{
         display: 'block',
         margin: '16px 20px',

@@ -30,7 +30,7 @@ const body = categories
       .filter((a) => a.category === category)
       .map(
         (a) =>
-          `          <li><a href="/${esc(a.slug)}.html">${esc(a.title)}</a><span class="fb-date">${esc(a.date)}</span></li>`,
+          `          <li><a href="/${esc(a.slug)}">${esc(a.title)}</a><span class="fb-date">${esc(a.date)}</span></li>`,
       )
       .join('\n')
     return `        <div class="fb-article-group">\n          <h3>${esc(category)}</h3>\n          <ul class="fb-article-list">\n${items}\n          </ul>\n        </div>`

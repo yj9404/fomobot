@@ -7,12 +7,12 @@
   <meta name="description" content="1년간 반토막 넘게 빠진 종목을 한 번에 산 경우와 12번에 나눠 산 경우를 백테스트로 비교했습니다. 분할매수는 손실을 20~50%p 줄였지만, 없애지는 못했습니다. 그리고 하락이 일직선인 종목에서는 그마저도 통하지 않았습니다." />
   <link rel="icon" type="image/svg+xml" href="/icons/favicon.svg" />
   <link rel="stylesheet" href="/static-page.css" />
-  <link rel="canonical" href="https://fomobot.net/dca-vs-lump.html" />
+  <link rel="canonical" href="https://fomobot.net/dca-vs-lump" />
 
   <meta property="og:type" content="article" />
   <meta property="og:title" content="물타기는 정말 구제해줬나 — 일시매수 vs 분할매수 — FomoBot" />
   <meta property="og:description" content="분할매수는 손실을 20~50%p 줄였지만 없애지 못했고, 하락이 일직선인 종목에서는 그마저도 통하지 않았습니다." />
-  <meta property="og:url" content="https://fomobot.net/dca-vs-lump.html" />
+  <meta property="og:url" content="https://fomobot.net/dca-vs-lump" />
 
   <script type="application/ld+json">
   {
@@ -23,7 +23,7 @@
     "dateModified": "2026-07-16",
     "author": { "@type": "Organization", "name": "FomoBot" },
     "publisher": { "@type": "Organization", "name": "FomoBot" },
-    "mainEntityOfPage": "https://fomobot.net/dca-vs-lump.html"
+    "mainEntityOfPage": "https://fomobot.net/dca-vs-lump"
   }
   </script>
 </head>
@@ -31,12 +31,12 @@
   <nav>
     <a href="/" class="brand">FomoBot</a>
     <div class="links">
-      <a href="/about.html">소개</a>
-      <a href="/articles.html">읽을거리</a>
-      <a href="/methodology.html">방법론</a>
-      <a href="/survivorship-bias.html">생존 편향</a>
-      <a href="/glossary.html">용어 해설</a>
-      <a href="/privacy.html">개인정보처리방침</a>
+      <a href="/about">소개</a>
+      <a href="/articles">읽을거리</a>
+      <a href="/methodology">방법론</a>
+      <a href="/survivorship-bias">생존 편향</a>
+      <a href="/glossary">용어 해설</a>
+      <a href="/privacy">개인정보처리방침</a>
     </div>
   </nav>
 
@@ -76,7 +76,7 @@
       <p>분할매수는 -95%를 -44%로 바꿉니다. 그건 대단한 방어입니다. 하지만 -44%는 여전히 재산의 절반이 사라진 상태입니다. 물타기는 손실을 <strong>줄이는</strong> 기술이지 <strong>없애는</strong> 기술이 아닙니다.</p>
     </div>
 
-    <p>그리고 이 종목들은 <a href="/catching-the-knife.html">앞선 분석</a>에서 봤던 바로 그 부류입니다 — 많이 떨어진 뒤 더 떨어진 종목들. 애초에 이것들을 사지 않는 것이 어떤 물타기보다 나은 선택이었습니다. 분할매수는 <strong>이미 잘못 탄 배</strong>에서 피해를 줄이는 방법이지, 그 배를 타도 좋다는 허가가 아닙니다.</p>
+    <p>그리고 이 종목들은 <a href="/catching-the-knife">앞선 분석</a>에서 봤던 바로 그 부류입니다 — 많이 떨어진 뒤 더 떨어진 종목들. 애초에 이것들을 사지 않는 것이 어떤 물타기보다 나은 선택이었습니다. 분할매수는 <strong>이미 잘못 탄 배</strong>에서 피해를 줄이는 방법이지, 그 배를 타도 좋다는 허가가 아닙니다.</p>
 
     <h2>둘째 — 일직선으로 떨어지면 물타기도 소용없다</h2>
 
@@ -107,7 +107,7 @@
     <div class="footnotes">
       <p><strong>방법</strong> — FomoBot의 실측 백테스트 엔진으로 2026-07-15 기준 최근 1년(365일) 하락률 상위 종목에 대해 계산했습니다. 일시매수는 1년 전 전액 매수 후 보유, 분할매수는 같은 총액을 월 1회씩 12회에 나눠 매수하는 방식입니다. "최저"는 보유 기간 중 평가수익률이 도달한 최저점(구간 내 최대낙폭)입니다.</p>
       <p><strong>두 최저점은 정의가 다릅니다</strong> — 일시매수의 최저점은 전액을 투입한 상태의 가격 경로 그대로입니다. 분할매수의 최저점은 <strong>이미 투입한 금액만 그날 주가로 평가하고, 아직 투입하지 않은 금액은 현금(수익률 0)으로 취급한</strong> 자산 곡선 기준입니다. 초기에는 투입액이 적어 평가손이 작게 잡히므로, 두 최저점을 같은 잣대로 직접 비교할 수는 없습니다. 그럼에도 Sadot Group의 분할매수 최저점이 -82.9%까지 간 것은, 후반으로 갈수록 투입액이 쌓인 상태에서 하락이 멈추지 않았다는 뜻입니다.</p>
-      <p><strong>거래비용·생존 편향</strong> — 수수료·세금·슬리피지는 반영하지 않았습니다. 또한 이 계산은 세 종목이 상장을 유지했기에 가능했습니다. 급락 후 상장폐지된 종목은 이런 비교 자체가 불가능하며, 그 경우 실제 손실은 여기 나온 어떤 수치보다 큽니다(<a href="/bias-we-kept.html">생존 편향</a>).</p>
+      <p><strong>거래비용·생존 편향</strong> — 수수료·세금·슬리피지는 반영하지 않았습니다. 또한 이 계산은 세 종목이 상장을 유지했기에 가능했습니다. 급락 후 상장폐지된 종목은 이런 비교 자체가 불가능하며, 그 경우 실제 손실은 여기 나온 어떤 수치보다 큽니다(<a href="/bias-we-kept">생존 편향</a>).</p>
       <p><strong>투자 판단에 대하여</strong> — FomoBot은 이미 지나간 가격을 정리해 보여주는 도구입니다. 특정 종목의 매수·매도나 분할매수 전략을 권유하지 않으며, 이 글의 어떤 내용도 투자 자문이 아닙니다. 여기 쓰인 종목들은 설명을 위한 실제 사례일 뿐 추천이 아닙니다. 투자 손익의 책임은 투자자 본인에게 있습니다.</p>
     </div>
   </main>

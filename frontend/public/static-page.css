@@ -133,7 +133,7 @@ p code, li code {
   pre { font-size: 0.78em; }
 }
 
-/* ── /articles.html 목록 전용 요소 ───────────────────────────────────── */
+/* ── /articles 목록 전용 요소 ───────────────────────────────────── */
 .article-list { list-style: none; padding: 0; margin: 0 0 8px; }
 .article-list li { padding: 14px 0; border-bottom: 1px solid rgba(128,128,128,0.15); }
 .article-list li:last-child { border-bottom: none; }

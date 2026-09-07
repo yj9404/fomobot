@@ -7,12 +7,12 @@
   <meta name="description" content="한 단지 안에도 여러 평형이 섞여 있고, 평형마다 ㎡당 가격이 다릅니다. 그래서 '단지 평균가'는 어떤 평형이 팔렸느냐에 따라 출렁입니다. FomoBot이 상승률을 ㎡당가로 내고 금액은 84㎡ 기준으로 추산하는 이유." />
   <link rel="icon" type="image/svg+xml" href="/icons/favicon.svg" />
   <link rel="stylesheet" href="/static-page.css" />
-  <link rel="canonical" href="https://fomobot.net/price-per-sqm.html" />
+  <link rel="canonical" href="https://fomobot.net/price-per-sqm" />
 
   <meta property="og:type" content="article" />
   <meta property="og:title" content="단지 평균가는 거짓말한다 — ㎡당가와 84㎡ — FomoBot" />
   <meta property="og:description" content="평형이 섞인 단지에서 평균가는 출렁입니다. 상승률은 ㎡당가로, 금액은 84㎡ 기준으로 추산하는 이유." />
-  <meta property="og:url" content="https://fomobot.net/price-per-sqm.html" />
+  <meta property="og:url" content="https://fomobot.net/price-per-sqm" />
 
   <script type="application/ld+json">
   {
@@ -23,7 +23,7 @@
     "dateModified": "2026-07-15",
     "author": { "@type": "Organization", "name": "FomoBot" },
     "publisher": { "@type": "Organization", "name": "FomoBot" },
-    "mainEntityOfPage": "https://fomobot.net/price-per-sqm.html"
+    "mainEntityOfPage": "https://fomobot.net/price-per-sqm"
   }
   </script>
 </head>
@@ -31,12 +31,12 @@
   <nav>
     <a href="/" class="brand">FomoBot</a>
     <div class="links">
-      <a href="/about.html">소개</a>
-      <a href="/articles.html">읽을거리</a>
-      <a href="/methodology.html">방법론</a>
-      <a href="/survivorship-bias.html">생존 편향</a>
-      <a href="/glossary.html">용어 해설</a>
-      <a href="/privacy.html">개인정보처리방침</a>
+      <a href="/about">소개</a>
+      <a href="/articles">읽을거리</a>
+      <a href="/methodology">방법론</a>
+      <a href="/survivorship-bias">생존 편향</a>
+      <a href="/glossary">용어 해설</a>
+      <a href="/privacy">개인정보처리방침</a>
     </div>
   </nav>
 
@@ -44,7 +44,7 @@
     <h1>단지 평균가는 거짓말한다 — ㎡당가와 84㎡</h1>
     <p class="article-meta">2026-07-15</p>
 
-    <p><a href="/no-price-today.html">지난 글</a>에서 아파트에는 "오늘의 가격"이 없다는 이야기를 했습니다. 거래가 있을 때만 가격이 생기고, 그래서 창을 잡고 최소 거래 건수를 요구한다는 내용이었습니다.</p>
+    <p><a href="/no-price-today">지난 글</a>에서 아파트에는 "오늘의 가격"이 없다는 이야기를 했습니다. 거래가 있을 때만 가격이 생기고, 그래서 창을 잡고 최소 거래 건수를 요구한다는 내용이었습니다.</p>
 
     <p>그 글의 마지막에 한 가지를 다음으로 미뤄뒀습니다. <strong>거래가 충분히 있어도 남는 문제.</strong> 이번 글이 그 이야기입니다.</p>
 
@@ -64,7 +64,7 @@
 
     <p>실제 사례를 보겠습니다. 최근 3개월 상승률 랭킹에서 <strong>1위, +64.8%</strong>를 기록한 단지가 있었습니다.</p>
 
-    <p>이 단지는 <a href="/no-price-today.html">지난 글의 +98% 단지</a>와 다릅니다. 그 단지는 종료 창에 거래가 딱 3건뿐이라 표본이 얇은 게 문제였습니다. 이번 단지는 그렇지 않습니다. <strong>시작 창에 거래가 8건이나 있었습니다.</strong> 최소 거래 건수 조건을 넉넉히 통과했습니다.</p>
+    <p>이 단지는 <a href="/no-price-today">지난 글의 +98% 단지</a>와 다릅니다. 그 단지는 종료 창에 거래가 딱 3건뿐이라 표본이 얇은 게 문제였습니다. 이번 단지는 그렇지 않습니다. <strong>시작 창에 거래가 8건이나 있었습니다.</strong> 최소 거래 건수 조건을 넉넉히 통과했습니다.</p>
 
     <table class="data-table">
       <caption>어느 단지의 시작 창과 종료 창 거래 구성</caption>
@@ -115,7 +115,7 @@
 
     <p>㎡당가는 "130㎡ 20억 vs 65㎡ 10억"처럼 <strong>순수하게 크기만 다른</strong> 경우를 상쇄합니다. 하지만 "작은 평형은 ㎡당가 자체가 높다"는 구조적 차이는 상쇄하지 못합니다. 이건 나눗셈으로 지울 수 있는 종류의 왜곡이 아닙니다.</p>
 
-    <p>완전히 지우려면 평형대별로 시계열을 따로 관리해야 합니다. 84㎡는 84㎡끼리만, 59㎡는 59㎡끼리만 비교하는 방식입니다. 그렇게 하면 정확해지지만, 대부분의 단지에서 특정 평형의 거래가 너무 드물어 <a href="/no-price-today.html">지난 글의 표본 부족 문제</a>가 훨씬 심해집니다. 정확도를 올리면 커버리지가 무너지는 맞교환입니다.</p>
+    <p>완전히 지우려면 평형대별로 시계열을 따로 관리해야 합니다. 84㎡는 84㎡끼리만, 59㎡는 59㎡끼리만 비교하는 방식입니다. 그렇게 하면 정확해지지만, 대부분의 단지에서 특정 평형의 거래가 너무 드물어 <a href="/no-price-today">지난 글의 표본 부족 문제</a>가 훨씬 심해집니다. 정확도를 올리면 커버리지가 무너지는 맞교환입니다.</p>
 
     <h2>정리 — 어디까지 정직할 것인가</h2>
 
@@ -128,7 +128,7 @@
     <p><a href="/?tab=realestate">아파트 단지 랭킹 보기 →</a></p>
 
     <div class="footnotes">
-      <p><strong>데이터 기준</strong> — 국토교통부 실거래가 공개 데이터 기반. 부동산 상승률은 창 안 실거래의 ㎡당 가격(거래금액 ÷ 전용면적) 중위값으로 산출하며, 특정 평형으로 필터링하지 않습니다. 화면에 함께 표시되는 금액은 해당 ㎡당가를 84㎡로 환산한 추산치로, 그 창에 84㎡ 거래가 없었더라도 계산됩니다. 창과 최소 거래 건수 등 그 밖의 설계는 <a href="/no-price-today.html">이전 글</a>과 <a href="/methodology.html">방법론</a>을 참고하십시오.</p>
+      <p><strong>데이터 기준</strong> — 국토교통부 실거래가 공개 데이터 기반. 부동산 상승률은 창 안 실거래의 ㎡당 가격(거래금액 ÷ 전용면적) 중위값으로 산출하며, 특정 평형으로 필터링하지 않습니다. 화면에 함께 표시되는 금액은 해당 ㎡당가를 84㎡로 환산한 추산치로, 그 창에 84㎡ 거래가 없었더라도 계산됩니다. 창과 최소 거래 건수 등 그 밖의 설계는 <a href="/no-price-today">이전 글</a>과 <a href="/methodology">방법론</a>을 참고하십시오.</p>
       <p><strong>사례에 관하여</strong> — 본문의 단지 사례는 실제 실거래 데이터에서 재계산으로 교차검증 가능한 건을 익명으로 인용한 것이며, 평형·건수는 구조를 보이기 위해 단순화했습니다.</p>
       <p><strong>투자 판단에 대하여</strong> — FomoBot은 이미 지나간 실거래를 정리해 보여주는 도구입니다. 특정 단지의 매수·매도를 권유하지 않으며, 이 글의 어떤 내용도 투자 자문이 아닙니다. 평형 구성이 크게 바뀐 단지의 상승률은 특히 신중하게 읽어야 합니다. 투자 손익의 책임은 투자자 본인에게 있습니다.</p>
     </div>
