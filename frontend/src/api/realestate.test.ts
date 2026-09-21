@@ -21,11 +21,11 @@ describe('realestate API client', () => {
     it('calls apiFetch with default params when no optional params provided', async () => {
       vi.mocked(apiFetch).mockResolvedValueOnce({ items: [] } as any)
 
-      const res = await fetchReRankings('1M')
+      const res = await fetchReRankings('3m')
 
       expect(apiFetch).toHaveBeenCalledTimes(1)
       expect(apiFetch).toHaveBeenCalledWith('/api/realestate/rankings', {
-        period: '1M',
+        period: '3m',
         top: 20,
         order: 'desc',
       })
@@ -35,11 +35,11 @@ describe('realestate API client', () => {
     it('calls apiFetch with seg param, ignoring region params', async () => {
       vi.mocked(apiFetch).mockResolvedValueOnce({ items: [] } as any)
 
-      await fetchReRankings('3M', '11', '11680', '대치동', 50, 'gangnam_school', undefined, undefined, 'asc')
+      await fetchReRankings('3m', '11', '11680', '대치동', 50, 'gangnam_school', undefined, undefined, 'asc')
 
       expect(apiFetch).toHaveBeenCalledTimes(1)
       expect(apiFetch).toHaveBeenCalledWith('/api/realestate/rankings', {
-        period: '3M',
+        period: '3m',
         top: 50,
         order: 'asc',
         seg: 'gangnam_school',
@@ -49,11 +49,11 @@ describe('realestate API client', () => {
     it('calls apiFetch with region params when seg is not provided', async () => {
       vi.mocked(apiFetch).mockResolvedValueOnce({ items: [] } as any)
 
-      await fetchReRankings('1Y', '11', '11680', '대치동')
+      await fetchReRankings('1y', '11', '11680', '대치동')
 
       expect(apiFetch).toHaveBeenCalledTimes(1)
       expect(apiFetch).toHaveBeenCalledWith('/api/realestate/rankings', {
-        period: '1Y',
+        period: '1y',
         top: 20,
         order: 'desc',
         sido: '11',
@@ -65,11 +65,11 @@ describe('realestate API client', () => {
     it('calls apiFetch with minPrice and maxPrice', async () => {
       vi.mocked(apiFetch).mockResolvedValueOnce({ items: [] } as any)
 
-      await fetchReRankings('1M', undefined, undefined, undefined, 20, undefined, 10, 20)
+      await fetchReRankings('6m', undefined, undefined, undefined, 20, undefined, 10, 20)
 
       expect(apiFetch).toHaveBeenCalledTimes(1)
       expect(apiFetch).toHaveBeenCalledWith('/api/realestate/rankings', {
-        period: '1M',
+        period: '6m',
         top: 20,
         order: 'desc',
         min_price: 10,
@@ -94,22 +94,22 @@ describe('realestate API client', () => {
     it('calls apiFetch with q and period params', async () => {
       vi.mocked(apiFetch).mockResolvedValueOnce({ items: [] } as any)
 
-      const res = await fetchReAptSearch('은마', '3M')
+      const res = await fetchReAptSearch('은마', '3m')
 
       expect(apiFetch).toHaveBeenCalledTimes(1)
-      expect(apiFetch).toHaveBeenCalledWith('/api/realestate/search', { q: '은마', period: '3M' })
+      expect(apiFetch).toHaveBeenCalledWith('/api/realestate/search', { q: '은마', period: '3m' })
       expect(res).toEqual({ items: [] })
     })
 
     it('calls apiFetch with all params including gu and dong', async () => {
       vi.mocked(apiFetch).mockResolvedValueOnce({ items: [] } as any)
 
-      await fetchReAptSearch('은마', '3M', '11680', '대치동')
+      await fetchReAptSearch('은마', '3m', '11680', '대치동')
 
       expect(apiFetch).toHaveBeenCalledTimes(1)
       expect(apiFetch).toHaveBeenCalledWith('/api/realestate/search', {
         q: '은마',
-        period: '3M',
+        period: '3m',
         gu: '11680',
         dong: '대치동',
       })
