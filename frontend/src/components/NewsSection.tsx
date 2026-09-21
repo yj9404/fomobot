@@ -43,7 +43,7 @@ export function NewsSection({ show, status, articles, t }: Props) {
         {articles.map((a) => (
           <a
             key={a.link}
-            href={a.link}
+            href={(a.link.startsWith('http://') || a.link.startsWith('https://')) ? a.link : '#'}
             target="_blank"
             rel="noopener noreferrer"
             style={{
