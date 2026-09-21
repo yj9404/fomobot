@@ -28,7 +28,7 @@ from fomobot.services.calculator import (
     build_ranking_df,
     compute_start_validity,
 )
-from fomobot.services.halt_resumption import is_prev_day_halt_resumption
+from fomobot.services.halt_resumption import get_prev_day_halt_resumptions
 from fomobot.services.noise_filter import (
     apply_kospi_filter,
     apply_nasdaq_filter,
@@ -338,16 +338,16 @@ def compute_rankings_for_market(
                     extreme_tickers = ranking_df.loc[
                         ranking_df["return_pct"].abs() > 30, "ticker"
                     ].tolist()
-                    for t in extreme_tickers:
-                        try:
-                            halt_resumption_map[t] = is_prev_day_halt_resumption(
-                                session, market, t, start_date, snapshot_date
-                            )
-                        except Exception:
-                            logger.exception(
-                                "%s %s: halt_resumption 판별 실패(%s) — False로 처리",
-                                market, period_key, t,
-                            )
+                    try:
+                        halt_resumption_map.update(get_prev_day_halt_resumptions(
+                            session, market, extreme_tickers, start_date, snapshot_date
+                        ))
+                    except Exception:
+                        logger.exception(
+                            "%s %s: halt_resumption 판별(bulk) 실패 — False로 처리",
+                            market, period_key,
+                        )
+                        for t in extreme_tickers:
                             halt_resumption_map[t] = False
 
                 # 기간 시작점 유효성 — halt_resumption과 달리 1d 전용이 아니라
