@@ -349,6 +349,38 @@ async def get_price_series_async(
     return [(row.date, row.close_adj) for row in result.fetchall()]
 
 
+async def get_price_series_multi_async(
+    session: AsyncSession,
+    market: str,
+    tickers: list[str],
+    start_date: date,
+    end_date: date,
+) -> dict[str, list[tuple[date, float]]]:
+    """다중 종목의 날짜별 수정주가 시계열 반환 (각 종목별 오름차순)."""
+    if not tickers:
+        return {}
+
+    stmt = (
+        select(PriceDaily.ticker, PriceDaily.date, PriceDaily.close_adj)
+        .where(
+            PriceDaily.market == market,
+            PriceDaily.ticker.in_(tickers),
+            PriceDaily.date >= start_date,
+            PriceDaily.date <= end_date,
+            PriceDaily.close_adj.isnot(None),
+        )
+        .order_by(PriceDaily.ticker, PriceDaily.date)
+    )
+    result = await session.execute(stmt)
+
+    res = {}
+    for row in result.fetchall():
+        if row.ticker not in res:
+            res[row.ticker] = []
+        res[row.ticker].append((row.date, row.close_adj))
+    return res
+
+
 async def get_price_history_bounds_async(
     session: AsyncSession,
     market: str,
