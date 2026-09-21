@@ -712,6 +712,32 @@ def get_flagged_tickers_detail_sync(
     return [r._asdict() for r in session.execute(stmt).fetchall()]
 
 
+
+def get_corporate_action_flags_sync(session: Session, market: str, tickers: list[str]) -> dict[str, dict]:
+    """여러 종목의 corporate_action_flag 행을 status 무관하게 조회한다.
+
+    ticker별로 flag가 있으면 dict를 반환한다. (get_corporate_action_flag_sync의 bulk 버전)
+    """
+    if not tickers:
+        return {}
+
+    stmt = select(
+        CorporateActionFlag.ticker,
+        CorporateActionFlag.flag_date,
+        CorporateActionFlag.reason,
+        CorporateActionFlag.status,
+    ).where(
+        CorporateActionFlag.market == market,
+        CorporateActionFlag.ticker.in_(tickers),
+    )
+    rows = session.execute(stmt).fetchall()
+
+    result = {}
+    for row in rows:
+        result[row.ticker] = {"flag_date": row.flag_date, "reason": row.reason, "status": row.status}
+    return result
+
+
 def get_corporate_action_flag_sync(session: Session, market: str, ticker: str) -> dict | None:
     """단일 종목의 corporate_action_flag 행을 status 무관하게 조회한다.
 
