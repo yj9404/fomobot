@@ -88,4 +88,16 @@ describe('apiFetch', () => {
       new ApiError(502, 'HTTP 502')
     );
   });
+
+  it('should throw ApiError with entire text body when response contains invalid JSON', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      text: () => Promise.resolve('{"bad": json'),
+    });
+
+    await expect(apiFetch('/test-path', {})).rejects.toThrowError(
+      new ApiError(500, '{"bad": json')
+    );
+  });
 });
