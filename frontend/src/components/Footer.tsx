@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useC } from '../ThemeContext'
+import { AD_SLOT_CLASS } from './AdFitUnit'
 import { FONT } from '../tokens'
 import type { Lang } from '../types'
 
@@ -108,6 +110,16 @@ function ContactFallback({ lang, onClose }: { lang: Lang; onClose: () => void })
     return () => document.removeEventListener('keydown', onKey)
   }, [onClose])
 
+  // AdFit 확장형 광고가 슬롯 밖으로 펼쳐지면서 이 패널을 덮는 사례가 실측됐다.
+  // 광고 쪽 z-index를 이길 수 없으므로(최대값을 쓴다) 패널이 열린 동안만
+  // 슬롯을 가린다. inline style 원복만 하므로 광고 스크립트 상태는 건드리지 않는다.
+  useEffect(() => {
+    const slots = Array.from(document.querySelectorAll<HTMLElement>(`.${AD_SLOT_CLASS}`))
+    const prev = slots.map((el) => el.style.visibility)
+    slots.forEach((el) => { el.style.visibility = 'hidden' })
+    return () => { slots.forEach((el, i) => { el.style.visibility = prev[i] }) }
+  }, [])
+
   const copyEmail = async () => {
     try {
       await navigator.clipboard.writeText(CONTACT_EMAIL)
@@ -131,11 +143,12 @@ function ContactFallback({ lang, onClose }: { lang: Lang; onClose: () => void })
     cursor: 'pointer', textDecoration: 'none', display: 'inline-block',
   }
 
-  return (
+  // document.body로 포털 — 조상 쪽 stacking context에 갇히지 않게 한다.
+  return createPortal(
     <div
       onClick={onClose}
       style={{
-        position: 'fixed', inset: 0, zIndex: 1000,
+        position: 'fixed', inset: 0, zIndex: 2147483647,
         background: 'rgba(0,0,0,0.45)',
         display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
       }}
@@ -180,6 +193,7 @@ function ContactFallback({ lang, onClose }: { lang: Lang; onClose: () => void })
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

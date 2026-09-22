@@ -3,6 +3,15 @@ import { useEffect, useRef } from 'react'
 // AdFit 관리자 페이지에서 발급받은 실제 스니펫과 대조 완료 (프로토콜 상대경로 포함, 그대로 사용).
 const ADFIT_SCRIPT_SRC = '//t1.kakaocdn.net/kas/static/ba.min.js'
 
+/**
+ * 광고 슬롯 wrapper에 붙는 클래스. 모달류 오버레이가 열릴 때 이 클래스로
+ * 슬롯을 찾아 visibility:hidden 처리한다 — AdFit 확장형 광고는 슬롯 밖으로
+ * 넘쳐 나오면서 매우 큰 z-index를 쓰기 때문에, z-index만으로는 오버레이가
+ * 광고에 가려지는 것을 막을 수 없다. visibility는 position:fixed인 자손까지
+ * 상속되므로 확장 영역도 함께 가려진다.
+ */
+export const AD_SLOT_CLASS = 'fb-ad-slot'
+
 interface Adfit {
   display(unit: string): void
   destroy(unit: string): void
@@ -73,6 +82,7 @@ export function AdFitUnit({ adUnit, width, height, style }: AdFitUnitProps) {
   return (
     <div
       ref={containerRef}
+      className={AD_SLOT_CLASS}
       style={{ width, height, overflow: 'hidden', ...style }}
     />
   )
