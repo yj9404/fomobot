@@ -14,7 +14,7 @@ export const FOOTER_LINKS = [
   { href: '/privacy', ko: '개인정보처리방침', en: 'Privacy' },
 ]
 
-const CONTACT_EMAIL = 'yjlee.k94@gmail.com'
+const CONTACT_EMAIL = 'contact@fomobot.net'
 
 const CONTACT = {
   ko: {
