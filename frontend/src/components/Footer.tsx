@@ -4,12 +4,12 @@ import { FONT } from '../tokens'
 import type { Lang } from '../types'
 
 export const FOOTER_LINKS = [
-  { href: '/about.html', ko: '소개', en: 'About' },
-  { href: '/articles.html', ko: '읽을거리', en: 'Articles' },
-  { href: '/methodology.html', ko: '방법론', en: 'Methodology' },
-  { href: '/survivorship-bias.html', ko: '생존 편향', en: 'Survivorship bias' },
-  { href: '/glossary.html', ko: '용어 해설', en: 'Glossary' },
-  { href: '/privacy.html', ko: '개인정보처리방침', en: 'Privacy' },
+  { href: '/about', ko: '소개', en: 'About' },
+  { href: '/articles', ko: '읽을거리', en: 'Articles' },
+  { href: '/methodology', ko: '방법론', en: 'Methodology' },
+  { href: '/survivorship-bias', ko: '생존 편향', en: 'Survivorship bias' },
+  { href: '/glossary', ko: '용어 해설', en: 'Glossary' },
+  { href: '/privacy', ko: '개인정보처리방침', en: 'Privacy' },
 ]
 
 const CONTACT_EMAIL = 'yjlee.k94@gmail.com'
