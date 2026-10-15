@@ -36,6 +36,26 @@ INDEX_CODE = "KOSPI"
 KOSPI_INDEX_TICKER = "1001"
 
 
+def _ensure_krx_auth() -> None:
+    """
+    pykrx의 KRX 로그인 성공 여부를 확인하고, 실패면 예외로 배치를 중단한다.
+
+    pykrx는 로그인 실패(비밀번호 만료 CD010, 자격 증명 오류 등)를 print()로만
+    알리고 비인증 상태로 계속 진행한다. 이 경우 조회가 빈 결과로 끝나 배치가
+    '정상 완료'처럼 보이고 Sentry에도 아무것도 가지 않으므로 여기서 명시적으로 막는다.
+    또한 세션이 None이면 pykrx가 매 요청마다 재로그인을 시도하므로, 계정 잠금을
+    피하기 위해서도 조기 중단이 필요하다.
+    """
+    from pykrx import stock  # noqa: F401 — import 시점에 pykrx가 로그인을 수행
+    from pykrx.website.comm.auth import get_auth_session
+
+    if get_auth_session() is None:
+        raise RuntimeError(
+            "KRX 로그인 실패 — KRX_ID/KRX_PW 확인 또는 krx.co.kr 비밀번호 변경 필요 "
+            "(상세 원인은 직전 pykrx stdout 로그 참고)"
+        )
+
+
 @retry(
     retry=retry_if_exception_type(Exception),
     stop=stop_after_attempt(3),
@@ -100,7 +120,7 @@ def _fetch_kospi_index(start: str, end: str) -> pd.DataFrame:
     return df
 
 
-def run_kospi_collection(target_date: date | None = None) -> None:
+def run_kospi_collection(target_date: date | None = None, lookback_days: int = 7) -> None:
     """
     KOSPI 전 종목 가격 데이터를 수집해 DB에 저장한다.
 
@@ -108,18 +128,21 @@ def run_kospi_collection(target_date: date | None = None) -> None:
     ----------
     target_date : date | None
         수집 기준일. None이면 오늘 날짜 사용.
+    lookback_days : int
+        target_date로부터 몇 캘린더일 전까지 재수집할지. 정기 cron은 기본값 7,
+        수집 장애로 생긴 다일 공백 복구 시에만 늘려서 호출한다
+        (scripts/backfill_kospi_gap.py).
     """
     today = target_date or date.today()
-    # 5년치 + α 확보를 위해 2000일 수집 (최초 실행 시)
-    # 이미 데이터가 있으면 최근 7일만 수집 (증분 업데이트)
-    # 여기서는 단순하게 target_date 기준 최근 2일 증분으로 설계
     # 초기 풀 수집은 별도 CLI 스크립트로 수행
-    start_date = today - timedelta(days=7)
+    start_date = today - timedelta(days=lookback_days)
 
     start_str = start_date.strftime("%Y%m%d")
     end_str = today.strftime("%Y%m%d")
 
     logger.info("KOSPI 수집 시작: %s ~ %s", start_str, end_str)
+
+    _ensure_krx_auth()
 
     try:
         tickers = _fetch_ticker_list(end_str)
@@ -247,6 +270,8 @@ def run_kospi_full_history(start_date: date, end_date: date) -> None:
     start_str = start_date.strftime("%Y%m%d")
     end_str = end_date.strftime("%Y%m%d")
     logger.info("KOSPI 풀 히스토리 수집: %s ~ %s", start_str, end_str)
+
+    _ensure_krx_auth()
 
     try:
         all_tickers = _fetch_ticker_list(end_str)
