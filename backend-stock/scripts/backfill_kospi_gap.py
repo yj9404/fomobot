@@ -11,6 +11,10 @@ KOSPI 다일 수집 공백 복구 스크립트 (1회성).
   2. 구간 내 실제 거래일마다 랭킹 스냅샷 + breadth 재계산 (둘 다 upsert라 재실행 안전).
   3. corporate action 후보 탐지를 공백 전체로 넓혀 1회 실행 — 정기 cron은
      lookback 7일이라 공백 기간의 액면분할·병합을 보지 못했다. 알림(출력)만, DB write 없음.
+     주의: 공백 중 병합·감자가 있었던 종목은 1단계 재수집이 --start 이후만 신기준으로
+     덮어쓰므로, 급변이 실제 이벤트일이 아니라 "--start 직전일 → --start" 경계에
+     나타난다. 이 경우 정정 범위는 --start 직전일 이하 전체 이력이다
+     (2026-10-15 복구 시 6종목 실례: corporate_action_flag note 참조).
 
 실행 전제:
   - 오늘자 cron-kospi / cron-kospi-gapfill 실행이 끝난 뒤 실행할 것.
