@@ -102,6 +102,20 @@ export function tabPeriodLabel(tab: { value: string; label: { ko: string } }): s
   return tab.value === '1d' ? '하루' : tab.label.ko
 }
 
+/**
+ * navigator.share에 넘길 데이터. 공유 대상이 쓰는 필드가 플랫폼마다 달라 분기한다(실측).
+ *  - Android: text와 url을 이어 붙여 본문으로 넘긴다 → text+url이면 "문구 링크"로 정상.
+ *  - Windows: 공유창 미리보기에는 title을 보여 주지만, 링크 복사·카카오톡 PC 등 실제
+ *    대상에는 url만 넘긴다 → url 필드를 빼고 링크를 text 끝에 붙여 하나로 보낸다.
+ *    (url이 없어도 카카오톡은 본문 속 링크로 미리보기 카드를 만든다)
+ */
+export function buildShareData(text: string, url: string, userAgent: string): WebShareData {
+  if (/Windows/.test(userAgent)) return { text: `${text}\n${url}` }
+  return { title: text.replace(/\n/g, ' '), text, url }
+}
+
+export type WebShareData = { title?: string; text: string; url?: string }
+
 /** 직접 입력 기간의 공유 문구용 표기 — from~to 달력일 수. */
 export function customPeriodLabel(from: string, to: string): string {
   return `${daysBetween(from, to)}일`

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   customPeriodLabel, daysBetween, fmtShareMoney, fmtSharePct, isFlatPct, parseShareParams, sharePath, shareText,
-  tabPeriodLabel,
+  tabPeriodLabel, buildShareData,
 } from './share'
 
 const q = (s: string) => new URLSearchParams(s)
@@ -113,5 +113,24 @@ describe('shareText — 공유 시트·클립보드 문구', () => {
   it('NASDAQ 영문명', () => {
     expect(shareText('Apple Inc. - Common Stock', 37.1621, '1년', '2025-10-15', '2026-10-15'))
       .toBe('Apple Inc. - Common Stock, 1년 만에 37.2% 올랐어요.\n(2025-10-15 ~ 2026-10-15)')
+  })
+})
+
+describe('buildShareData — 플랫폼별 navigator.share 필드', () => {
+  const text = 'HD현대, 30일 만에 30.5% 하락했어요.\n(2026-09-15 ~ 2026-10-15)'
+  const url = 'https://fomobot.net/s/kospi/267250?from=2026-09-15&to=2026-10-15'
+
+  it('Windows: url 필드 없이 링크를 text 끝에 붙인다', () => {
+    const ua = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36'
+    expect(buildShareData(text, url, ua)).toEqual({ text: `${text}\n${url}` })
+  })
+
+  it('Android: title·text·url 그대로', () => {
+    const ua = 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Mobile Safari/537.36'
+    expect(buildShareData(text, url, ua)).toEqual({
+      title: 'HD현대, 30일 만에 30.5% 하락했어요. (2026-09-15 ~ 2026-10-15)',
+      text,
+      url,
+    })
   })
 })

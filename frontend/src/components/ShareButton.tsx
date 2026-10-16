@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useC } from '../ThemeContext'
 import { FONT } from '../tokens'
+import { buildShareData } from '../../shared/share'
 import type { Lang } from '../types'
 
 interface Props {
@@ -35,10 +36,8 @@ export function ShareButton({ url, text, lang, label }: Props) {
   async function handleClick() {
     if (typeof navigator.share === 'function') {
       try {
-        // 공유 대상마다 쓰는 필드가 다르다. Android Chrome은 text+url을 본문으로 넘기지만,
-        // Windows 공유창을 거치는 일부 앱은 text를 버리고 title+url만 쓴다(실측: 문구가
-        // 사라지고 링크만 남음). 그래서 같은 문구를 title에도 한 줄로 넣는다.
-        await navigator.share({ title: text.replace(/\n/g, ' '), text, url })
+        // 플랫폼마다 공유 대상이 쓰는 필드가 달라 buildShareData가 나눈다(Windows는 url만 넘김).
+        await navigator.share(buildShareData(text, url, navigator.userAgent))
         return
       } catch (e) {
         // 사용자가 공유 시트를 닫은 것 — 아무것도 하지 않는다.
