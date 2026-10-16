@@ -6,7 +6,7 @@ import { useStockSearch } from '../hooks/useStockSearch'
 import { useStockQuote } from '../hooks/useStockQuote'
 import { fetchStockDateBounds } from '../api/stock'
 import { ShareButton } from './ShareButton'
-import { TICKER_RE, customPeriodLabel, sharePath, shareText } from '../../shared/share'
+import { TICKER_RE, customPeriodLabel, sharePath, shareText, tabPeriodLabel } from '../../shared/share'
 import type { Market, Lang, Period } from '../types'
 import type { Strings } from '../i18n/strings'
 
@@ -486,7 +486,7 @@ export function StockSearchArea({ market, lang, t }: Props) {
                         // 조회 당시 UI 상태 — 기간 탭이면 탭 라벨, 직접 입력이면 실제 구간의 달력일 수
                         customMode
                           ? customPeriodLabel(d.start_date, d.end_date)
-                          : PERIODS[fixedPeriodIdx]!.label.ko,
+                          : tabPeriodLabel(PERIODS[fixedPeriodIdx]!),
                         d.start_date,
                         d.end_date,
                       )}

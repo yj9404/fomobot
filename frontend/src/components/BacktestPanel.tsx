@@ -4,7 +4,7 @@ import { Sparkline } from './Sparkline'
 import { NewsSection } from './NewsSection'
 import { ShareButton } from './ShareButton'
 import { PERIODS } from '../types'
-import { sharePath, shareText } from '../../shared/share'
+import { sharePath, shareText, tabPeriodLabel } from '../../shared/share'
 import type { BacktestDetailResponse, Market, Lang, NewsArticle } from '../types'
 import type { Strings } from '../i18n/strings'
 
@@ -109,6 +109,7 @@ export function BacktestPanel({ status, detail, market, days, lang, t, hasNews, 
   // 공유 카드는 buy-and-hold 기준이다. 구간은 buy-and-hold equity curve의 첫/마지막 날짜 —
   // 시장 기준 시작일이 아니라 이 종목에 실제 가격이 있는 거래일이라 /api/share 검증을 통과한다.
   const bhCurve = bh?.equity_curve ?? []
+  const tab = PERIODS.find((p) => p.days === days)
   const share = bh != null && bhCurve.length >= 2
     ? { from: bhCurve[0]!.date, to: bhCurve[bhCurve.length - 1]!.date, ret: bh.final_return_pct }
     : null
@@ -174,7 +175,7 @@ export function BacktestPanel({ status, detail, market, days, lang, t, hasNews, 
               detail.name ?? detail.ticker,
               share.ret,
               // 지금 선택된 랭킹 기간 탭의 라벨(days는 그 탭의 값)
-              PERIODS.find((p) => p.days === days)?.label.ko ?? `${days}일`,
+              tab ? tabPeriodLabel(tab) : `${days}일`,
               share.from,
               share.to,
             )}

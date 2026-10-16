@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   customPeriodLabel, daysBetween, fmtShareMoney, fmtSharePct, isFlatPct, parseShareParams, sharePath, shareText,
+  tabPeriodLabel,
 } from './share'
 
 const q = (s: string) => new URLSearchParams(s)
@@ -89,6 +90,13 @@ describe('shareText — 공유 시트·클립보드 문구', () => {
   it('기간 탭 라벨은 받은 그대로 쓴다(날짜로 역추정하지 않음)', () => {
     // 1년 탭이지만 휴장일 때문에 실제 구간은 366일
     expect(shareText('삼성전자', 10, '1년', '2025-10-14', '2026-10-15')).toContain(', 1년 만에 ')
+  })
+
+  it('전일 탭은 공유 문구에서만 "하루"', () => {
+    expect(tabPeriodLabel({ value: '1d', label: { ko: '전일' } })).toBe('하루')
+    expect(tabPeriodLabel({ value: '365d', label: { ko: '1년' } })).toBe('1년')
+    expect(shareText('제주항공', 5.3, tabPeriodLabel({ value: '1d', label: { ko: '전일' } }), '2026-10-14', '2026-10-15'))
+      .toBe('제주항공, 하루 만에 5.3% 올랐어요.\n(2026-10-14 ~ 2026-10-15)')
   })
 
   it('직접 입력은 달력일 수', () => {

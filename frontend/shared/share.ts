@@ -94,6 +94,14 @@ export function daysBetween(from: string, to: string): number {
   return Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000)
 }
 
+/**
+ * 기간 탭의 공유 문구용 표기. 화면 탭 라벨을 그대로 쓰되, 1d 탭("전일")은
+ * "전일 만에"가 어색해 "하루"로 바꾼다. 화면의 탭 라벨 자체는 바꾸지 않는다.
+ */
+export function tabPeriodLabel(tab: { value: string; label: { ko: string } }): string {
+  return tab.value === '1d' ? '하루' : tab.label.ko
+}
+
 /** 직접 입력 기간의 공유 문구용 표기 — from~to 달력일 수. */
 export function customPeriodLabel(from: string, to: string): string {
   return `${daysBetween(from, to)}일`
