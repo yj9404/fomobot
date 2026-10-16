@@ -165,3 +165,50 @@ class TestDcaUnsupportedPeriods:
         price_rows = [(date(2026, 7, 6), 100.0)]  # 1행뿐 — 계산 불가
         dca = _compute_dca(price_rows, "30d", date(2026, 6, 6), date(2026, 7, 6))
         assert dca is None
+
+
+class TestDetailPrincipal:
+    """백테스트 상세 원금은 시장 통화 기준이어야 한다(NASDAQ이 "$1,000,000"으로 보이던 버그)."""
+
+    @pytest.mark.parametrize("market,ticker,principal", [("kospi", "005930", 1_000_000.0), ("nasdaq", "AAPL", 10_000.0)])
+    def test_시장별_원금(self, monkeypatch, market, ticker, principal):
+        from datetime import date
+
+        from fastapi.testclient import TestClient
+
+        from fomobot.db.session import get_async_session
+        from fomobot.main import app
+
+        async def _snapshot(session, m, period, as_of):
+            return date(2026, 10, 15)
+
+        async def _last(session, m, as_of=None):
+            return date(2026, 9, 15)
+
+        async def _series(session, m, t, start, end):
+            return [(date(2026, 9, 15), 100.0), (date(2026, 10, 15), 150.0)]
+
+        async def _name(session, m, t):
+            return "테스트"
+
+        async def _session():
+            yield object()
+
+        monkeypatch.setattr("fomobot.api.backtest.get_nearest_snapshot_date", _snapshot)
+        monkeypatch.setattr("fomobot.api.backtest.get_last_trading_day_async", _last)
+        monkeypatch.setattr("fomobot.api.backtest.get_price_series_async", _series)
+        monkeypatch.setattr("fomobot.api.backtest.get_security_name", _name)
+        app.dependency_overrides[get_async_session] = _session
+        try:
+            r = TestClient(app).get(
+                "/api/stock/backtest/detail",
+                params={"market": market, "ticker": ticker, "as_of": "2026-10-15", "period": "30d"},
+            )
+        finally:
+            app.dependency_overrides.pop(get_async_session, None)
+        assert r.status_code == 200
+        body = r.json()
+        assert body["principal"] == principal
+        curve = body["scenarios"]["buy_and_hold"]["equity_curve"]
+        assert curve[0]["value"] == pytest.approx(principal)
+        assert curve[-1]["value"] == pytest.approx(principal * 1.5)

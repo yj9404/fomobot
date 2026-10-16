@@ -21,7 +21,7 @@ class ScenarioResult(BaseModel):
 
 class EquityPoint(BaseModel):
     date: date
-    value: float = Field(description="원금(principal) 기준 평가액. 단위=원.")
+    value: float = Field(description="원금(principal) 기준 평가액. 단위는 principal과 같은 시장 통화(KRW/USD).")
 
 
 class ScenarioDetail(ScenarioResult):
@@ -88,7 +88,7 @@ class BacktestDetailResponse(BaseModel):
     period: PeriodLiteral
     as_of: date
     actual_as_of: date = Field(description="실제 사용된 스냅샷 날짜 (as_of 이하 가장 가까운 날짜)")
-    principal: float = Field(1_000_000.0, description="원금 (원 단위, 표시용 고정값)")
+    principal: float = Field(description="원금 — 시장 통화 기준 표시용 고정값 (KOSPI ₩1,000,000 / NASDAQ $10,000)")
     first_traded_date: date | None = Field(
         None,
         description=(

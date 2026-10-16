@@ -60,10 +60,10 @@ from fomobot.schemas.backtest import (
 )
 from fomobot.schemas.rankings import MarketLiteral, PeriodLiteral
 from fomobot.services.calculator import PERIOD_TO_DAYS, compute_mdd
+from fomobot.services.share import PRINCIPAL
 
 router = APIRouter(prefix="/api/stock", tags=["Backtest"])
 
-DETAIL_PRINCIPAL = 1_000_000.0
 
 
 @dataclass
@@ -193,6 +193,9 @@ async def backtest_detail_endpoint(
 
     bh = _compute_buy_and_hold(price_rows)
     dca = _compute_dca(price_rows, period, start_date, actual_date)
+    # 시장 통화 기준 원금(KOSPI ₩1,000,000 / NASDAQ $10,000) — 공유 카드와 같은 값.
+    # 예전에는 1,000,000을 공통으로 써서 NASDAQ이 "$1,000,000"으로 표시됐다.
+    principal = float(PRINCIPAL[market])
 
     return BacktestDetailResponse(
         market=market,
@@ -201,11 +204,11 @@ async def backtest_detail_endpoint(
         period=period,
         as_of=as_of,
         actual_as_of=actual_date,
-        principal=DETAIL_PRINCIPAL,
+        principal=principal,
         first_traded_date=price_rows[0][0] if price_rows else None,
         scenarios=BacktestDetailScenarios(
-            buy_and_hold=_to_scenario_detail_buy_and_hold(bh, DETAIL_PRINCIPAL),
-            dca=_to_scenario_detail_dca(dca, DETAIL_PRINCIPAL),
+            buy_and_hold=_to_scenario_detail_buy_and_hold(bh, principal),
+            dca=_to_scenario_detail_dca(dca, principal),
         ),
     )
 
