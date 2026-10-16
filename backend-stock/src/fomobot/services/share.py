@@ -42,6 +42,10 @@ BLOCKED_FLAG_STATUSES = ("excluded", "pending")
 
 _DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
+# 필드명 뒤 조사 — from은 받침으로 끝나고(프롬) to는 모음으로 끝난다(투).
+_TOPIC = {"from": "from은", "to": "to는"}
+_SUBJECT = {"from": "from이", "to": "to가"}
+
 
 class ShareError(Exception):
     def __init__(self, status_code: int, detail: str):
@@ -70,11 +74,11 @@ def parse_share_date(value: str | None, field: str) -> date:
     """YYYY-MM-DD만 허용한다. 다른 표기(20251015 등)를 받아주면 같은 내용에
     URL이 여러 개 생긴다."""
     if value is None or not _DATE_RE.match(value):
-        raise ShareError(400, f"{field}는 YYYY-MM-DD 형식이어야 합니다.")
+        raise ShareError(400, f"{_TOPIC[field]} YYYY-MM-DD 형식이어야 합니다.")
     try:
         return date.fromisoformat(value)
     except ValueError:
-        raise ShareError(400, f"{field}가 올바른 날짜가 아닙니다.")
+        raise ShareError(400, f"{_SUBJECT[field]} 올바른 날짜가 아닙니다.")
 
 
 async def build_share_snapshot(

@@ -156,6 +156,22 @@ class TestShareJson:
         assert r.headers["cache-control"] == "no-store"
 
 
+class TestErrorMessage:
+    @pytest.mark.parametrize(
+        "params,detail",
+        [
+            ({"from": "20261001", "to": "2026-10-15"}, "from은 YYYY-MM-DD 형식이어야 합니다."),
+            ({"from": "2026-10-01", "to": "20261015"}, "to는 YYYY-MM-DD 형식이어야 합니다."),
+            ({"from": "2026-02-30", "to": "2026-10-15"}, "from이 올바른 날짜가 아닙니다."),
+            ({"from": "2026-10-01", "to": "2026-02-30"}, "to가 올바른 날짜가 아닙니다."),
+        ],
+    )
+    def test_필드별_조사(self, client, params, detail):
+        r = client.get("/api/share/kospi/005930", params=params)
+        assert r.status_code == 400
+        assert r.json()["detail"] == detail
+
+
 class TestOgImage:
     def test_png_1200x630(self, client):
         r = client.get("/api/og/kospi/005930.png", params={"from": "2026-10-01", "to": "2026-10-15"})
