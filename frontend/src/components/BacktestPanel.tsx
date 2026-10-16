@@ -3,7 +3,8 @@ import { FONT } from '../tokens'
 import { Sparkline } from './Sparkline'
 import { NewsSection } from './NewsSection'
 import { ShareButton } from './ShareButton'
-import { fmtSharePct, sharePath } from '../../shared/share'
+import { PERIODS } from '../types'
+import { sharePath, shareText } from '../../shared/share'
 import type { BacktestDetailResponse, Market, Lang, NewsArticle } from '../types'
 import type { Strings } from '../i18n/strings'
 
@@ -169,7 +170,14 @@ export function BacktestPanel({ status, detail, market, days, lang, t, hasNews, 
           <ShareButton
             lang={lang}
             label={isDcaMain ? (lang === 'ko' ? '일시 매수 기준 공유' : 'Share (lump sum)') : undefined}
-            title={`${detail.name ?? detail.ticker} ${fmtSharePct(share.ret)} (${share.from}~${share.to})`}
+            text={shareText(
+              detail.name ?? detail.ticker,
+              share.ret,
+              // 지금 선택된 랭킹 기간 탭의 라벨(days는 그 탭의 값)
+              PERIODS.find((p) => p.days === days)?.label.ko ?? `${days}일`,
+              share.from,
+              share.to,
+            )}
             url={`${window.location.origin}${sharePath({ market, ticker: detail.ticker, from: share.from, to: share.to })}`}
           />
         </div>

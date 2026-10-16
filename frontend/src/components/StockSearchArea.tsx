@@ -6,7 +6,7 @@ import { useStockSearch } from '../hooks/useStockSearch'
 import { useStockQuote } from '../hooks/useStockQuote'
 import { fetchStockDateBounds } from '../api/stock'
 import { ShareButton } from './ShareButton'
-import { TICKER_RE, fmtSharePct, sharePath } from '../../shared/share'
+import { TICKER_RE, customPeriodLabel, sharePath, shareText } from '../../shared/share'
 import type { Market, Lang, Period } from '../types'
 import type { Strings } from '../i18n/strings'
 
@@ -480,7 +480,16 @@ export function StockSearchArea({ market, lang, t }: Props) {
                   <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                     <ShareButton
                       lang={lang}
-                      title={`${d.name ?? d.ticker} ${fmtSharePct(ret)} (${d.start_date}~${d.end_date})`}
+                      text={shareText(
+                        d.name ?? d.ticker,
+                        ret,
+                        // 조회 당시 UI 상태 — 기간 탭이면 탭 라벨, 직접 입력이면 실제 구간의 달력일 수
+                        customMode
+                          ? customPeriodLabel(d.start_date, d.end_date)
+                          : PERIODS[fixedPeriodIdx]!.label.ko,
+                        d.start_date,
+                        d.end_date,
+                      )}
                       url={`${window.location.origin}${sharePath({ market, ticker: d.ticker, from: d.start_date, to: d.end_date })}`}
                     />
                   </div>

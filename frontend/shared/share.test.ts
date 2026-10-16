@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { daysBetween, fmtShareMoney, fmtSharePct, isFlatPct, parseShareParams, sharePath } from './share'
+import {
+  customPeriodLabel, daysBetween, fmtShareMoney, fmtSharePct, isFlatPct, parseShareParams, sharePath, shareText,
+} from './share'
 
 const q = (s: string) => new URLSearchParams(s)
 
@@ -63,5 +65,45 @@ describe('daysBetween', () => {
   it('캘린더 일수', () => {
     expect(daysBetween('2025-10-15', '2026-10-15')).toBe(365)
     expect(daysBetween('2026-10-01', '2026-10-15')).toBe(14)
+  })
+})
+
+describe('shareText — 공유 시트·클립보드 문구', () => {
+  it('상승', () => {
+    expect(shareText('삼성전자', 121.5789, '1년', '2025-10-15', '2026-10-15'))
+      .toBe('삼성전자, 1년 만에 121.6% 올랐어요.\n(2025-10-15 ~ 2026-10-15)')
+  })
+
+  it('하락은 부호 없이 "하락했어요"', () => {
+    expect(shareText('SK하이닉스', -25.43, '7일', '2026-10-08', '2026-10-15'))
+      .toBe('SK하이닉스, 7일 만에 25.4% 하락했어요.\n(2026-10-08 ~ 2026-10-15)')
+  })
+
+  it('반올림 0.0%는 변동 없음 문구', () => {
+    expect(shareText('KT&G', -0.04, '30일', '2026-09-15', '2026-10-15'))
+      .toBe('KT&G, 30일 동안 거의 변동이 없었어요.\n(2026-09-15 ~ 2026-10-15)')
+    expect(shareText('KT&G', 0.05, '30일', '2026-09-15', '2026-10-15'))
+      .toBe('KT&G, 30일 만에 0.1% 올랐어요.\n(2026-09-15 ~ 2026-10-15)')
+  })
+
+  it('기간 탭 라벨은 받은 그대로 쓴다(날짜로 역추정하지 않음)', () => {
+    // 1년 탭이지만 휴장일 때문에 실제 구간은 366일
+    expect(shareText('삼성전자', 10, '1년', '2025-10-14', '2026-10-15')).toContain(', 1년 만에 ')
+  })
+
+  it('직접 입력은 달력일 수', () => {
+    expect(customPeriodLabel('2026-07-08', '2026-10-14')).toBe('98일')
+    expect(shareText('삼성전자', 10, customPeriodLabel('2026-07-08', '2026-10-14'), '2026-07-08', '2026-10-14'))
+      .toBe('삼성전자, 98일 만에 10.0% 올랐어요.\n(2026-07-08 ~ 2026-10-14)')
+  })
+
+  it('천 단위 콤마', () => {
+    expect(shareText('Moonshot Therapeutics Inc.', 2441.67, '5년', '2021-10-14', '2026-10-14'))
+      .toBe('Moonshot Therapeutics Inc., 5년 만에 2,441.7% 올랐어요.\n(2021-10-14 ~ 2026-10-14)')
+  })
+
+  it('NASDAQ 영문명', () => {
+    expect(shareText('Apple Inc. - Common Stock', 37.1621, '1년', '2025-10-15', '2026-10-15'))
+      .toBe('Apple Inc. - Common Stock, 1년 만에 37.2% 올랐어요.\n(2025-10-15 ~ 2026-10-15)')
   })
 })

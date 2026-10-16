@@ -5,7 +5,8 @@ import type { Lang } from '../types'
 
 interface Props {
   url: string
-  title: string
+  /** 공유 문구(URL 제외) — shared/share.shareText로 만든다 */
+  text: string
   lang: Lang
   /** 기본 "공유" 대신 쓸 버튼 문구 */
   label?: string
@@ -20,7 +21,7 @@ const STR = {
  * 공유 링크는 클릭한 시점에만 만든다(목록에서 /s/ 링크를 미리 노출하지 않음).
  * navigator.share → 미지원이거나 공유 시트 이외의 이유로 실패하면 클립보드 복사.
  */
-export function ShareButton({ url, title, lang, label }: Props) {
+export function ShareButton({ url, text, lang, label }: Props) {
   const C = useC()
   const t = STR[lang]
   const [toast, setToast] = useState<string | null>(null)
@@ -34,7 +35,8 @@ export function ShareButton({ url, title, lang, label }: Props) {
   async function handleClick() {
     if (typeof navigator.share === 'function') {
       try {
-        await navigator.share({ title, url })
+        // 문구는 text, 링크는 url에만 싣는다. title은 앱마다 무시되거나 다르게 쓰여 넣지 않는다.
+        await navigator.share({ text, url })
         return
       } catch (e) {
         // 사용자가 공유 시트를 닫은 것 — 아무것도 하지 않는다.
@@ -43,7 +45,7 @@ export function ShareButton({ url, title, lang, label }: Props) {
       }
     }
     try {
-      await navigator.clipboard.writeText(url)
+      await navigator.clipboard.writeText(`${text}\n${url}`)
       setToast(t.copied)
     } catch {
       setToast(t.failed)
