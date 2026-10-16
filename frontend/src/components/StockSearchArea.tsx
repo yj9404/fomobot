@@ -5,6 +5,8 @@ import { PERIODS } from '../types'
 import { useStockSearch } from '../hooks/useStockSearch'
 import { useStockQuote } from '../hooks/useStockQuote'
 import { fetchStockDateBounds } from '../api/stock'
+import { ShareButton } from './ShareButton'
+import { TICKER_RE, fmtSharePct, sharePath } from '../../shared/share'
 import type { Market, Lang, Period } from '../types'
 import type { Strings } from '../i18n/strings'
 
@@ -25,19 +27,50 @@ function fmtPrice(v: number | null, market: Market): string {
   return '$' + v.toFixed(2)
 }
 
+function isoDaysAgo(days: number): string {
+  const d = new Date()
+  d.setUTCDate(d.getUTCDate() - days)
+  return d.toISOString().slice(0, 10)
+}
+
+interface DeepLink {
+  ticker: string
+  presetIdx: number            // PERIODS 중 days가 일치하는 기간. 없으면 -1 → 직접 입력
+  custom: { start: string; end: string } | null
+}
+
+/**
+ * 딥링크 /?market=&ticker=&days=N — 공유 랜딩의 "오늘 기준으로 다시 보기".
+ * 같은 기간 길이(N일)를 오늘 기준으로 조회한다. market은 App이 URL에서 읽는다.
+ */
+function readDeepLink(): DeepLink | null {
+  const p = new URLSearchParams(window.location.search)
+  const ticker = p.get('ticker')
+  const days = Number(p.get('days'))
+  if (!ticker || !TICKER_RE.test(ticker) || !Number.isInteger(days) || days < 1 || days > 3650) return null
+  const presetIdx = PERIODS.findIndex((x) => x.days === days)
+  return {
+    ticker: ticker.toUpperCase(),
+    presetIdx,
+    custom: presetIdx >= 0 ? null : { start: isoDaysAgo(days), end: isoDaysAgo(0) },
+  }
+}
+
 export function StockSearchArea({ market, lang, t }: Props) {
   const C = useC()
-  const [q, setQ] = useState('')
+  const [deepLink] = useState(readDeepLink)
+  const [q, setQ] = useState(deepLink?.ticker ?? '')
   const [open, setOpen] = useState(false)
-  const [ticker, setTicker] = useState<string | null>(null)
+  const [ticker, setTicker] = useState<string | null>(deepLink?.ticker ?? null)
   const [selectedName, setSelectedName] = useState<string | null>(null)
-  const [fixedPeriodIdx, setFixedPeriodIdx] = useState(2) // 30d
-  const [customMode, setCustomMode] = useState(false)
-  const [startInput, setStartInput] = useState('')
-  const [endInput, setEndInput] = useState('')
-  const [applied, setApplied] = useState<{ start: string; end: string } | null>(null)
+  const [fixedPeriodIdx, setFixedPeriodIdx] = useState(deepLink && deepLink.presetIdx >= 0 ? deepLink.presetIdx : 2) // 기본 30d
+  const [customMode, setCustomMode] = useState(!!deepLink?.custom)
+  const [startInput, setStartInput] = useState(deepLink?.custom?.start ?? '')
+  const [endInput, setEndInput] = useState(deepLink?.custom?.end ?? '')
+  const [applied, setApplied] = useState<{ start: string; end: string } | null>(deepLink?.custom ?? null)
   const [minDate, setMinDate] = useState<string | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  const prevMarket = useRef(market)
 
   const today = new Date().toISOString().slice(0, 10)
 
@@ -46,7 +79,21 @@ export function StockSearchArea({ market, lang, t }: Props) {
   const period: Period | null = customMode ? null : (PERIODS[fixedPeriodIdx]!.value as Period)
   const quoteState = useStockQuote(market, ticker, period, applied?.start, applied?.end)
 
+  // 딥링크 파라미터는 한 번 읽고 URL에서 지운다 — 다른 종목을 고른 뒤 새로고침했을 때
+  // 옛 티커가 다시 열리지 않게.
   useEffect(() => {
+    if (!deepLink) return
+    const url = new URL(window.location.href)
+    url.searchParams.delete('ticker')
+    url.searchParams.delete('days')
+    history.replaceState(null, '', url.toString())
+  }, [deepLink])
+
+  // 시장이 바뀌면 선택을 초기화한다. 마운트 시점에는 건너뛴다 — 딥링크로 받은 티커가
+  // 지워지지 않게(StrictMode의 effect 이중 실행에도 안전하도록 이전 값과 비교).
+  useEffect(() => {
+    if (prevMarket.current === market) return
+    prevMarket.current = market
     setQ('')
     setTicker(null)
     setSelectedName(null)
@@ -95,6 +142,8 @@ export function StockSearchArea({ market, lang, t }: Props) {
   }, [startInput, endInput])
 
   const isCustomValid = !!startInput && !!endInput && startInput <= endInput
+  // 딥링크로 열린 경우 검색 목록을 거치지 않아 이름을 모르므로 quote 응답의 이름을 쓴다.
+  const displayName = selectedName ?? (quoteState.status === 'ok' ? quoteState.data.name : null)
 
   return (
     <div
@@ -241,9 +290,9 @@ export function StockSearchArea({ market, lang, t }: Props) {
           {/* 종목 헤더 */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
             <span style={{ fontSize: 14, fontWeight: 700, color: C.textPrimary }}>
-              {selectedName ?? ticker}
+              {displayName ?? ticker}
             </span>
-            {selectedName && (
+            {displayName && (
               <span style={{ fontSize: 11, color: C.textDim, fontFamily: FONT.mono }}>{ticker}</span>
             )}
           </div>
@@ -423,6 +472,17 @@ export function StockSearchArea({ market, lang, t }: Props) {
                     {dateRange && (
                       <span style={{ fontSize: 10, color: C.textDim, marginLeft: 4 }}>{dateRange}</span>
                     )}
+                  </div>
+                )}
+
+                {/* 공유 — 실제 거래일(start_date/end_date)로 확정된 구간만 공유한다 */}
+                {d.start_date && d.end_date && ret != null && (
+                  <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                    <ShareButton
+                      lang={lang}
+                      title={`${d.name ?? d.ticker} ${fmtSharePct(ret)} (${d.start_date}~${d.end_date})`}
+                      url={`${window.location.origin}${sharePath({ market, ticker: d.ticker, from: d.start_date, to: d.end_date })}`}
+                    />
                   </div>
                 )}
 
