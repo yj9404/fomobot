@@ -60,6 +60,16 @@ export function sharePath(p: ShareParams): string {
   return `/s/${p.market}/${p.ticker}${shareQuery(p)}`
 }
 
+/** 카드 PNG 경로(Worker /og/*). */
+export function cardImagePath(p: ShareParams): string {
+  return `/og/${p.market}/${p.ticker}.png${shareQuery(p)}`
+}
+
+/** "이미지로 공유"로 넘기는 파일 이름. */
+export function cardFileName(p: ShareParams): string {
+  return `fomobot-${p.ticker}-${p.from}_${p.to}.png`
+}
+
 function withCommas(intPart: string): string {
   return intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
 }

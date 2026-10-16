@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   customPeriodLabel, daysBetween, fmtShareMoney, fmtSharePct, isFlatPct, parseShareParams, sharePath, shareText,
-  tabPeriodLabel, buildShareData,
+  tabPeriodLabel, buildShareData, cardImagePath, cardFileName,
 } from './share'
 
 const q = (s: string) => new URLSearchParams(s)
@@ -132,5 +132,15 @@ describe('buildShareData — 플랫폼별 navigator.share 필드', () => {
       text,
       url,
     })
+  })
+})
+
+describe('카드 이미지 경로·파일명', () => {
+  const p = { market: 'kospi', ticker: '005930', from: '2025-10-15', to: '2026-10-15' } as const
+  it('cardImagePath', () => {
+    expect(cardImagePath(p)).toBe('/og/kospi/005930.png?from=2025-10-15&to=2026-10-15')
+  })
+  it('cardFileName', () => {
+    expect(cardFileName(p)).toBe('fomobot-005930-2025-10-15_2026-10-15.png')
   })
 })

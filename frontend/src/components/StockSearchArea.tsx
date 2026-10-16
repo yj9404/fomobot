@@ -5,8 +5,8 @@ import { PERIODS } from '../types'
 import { useStockSearch } from '../hooks/useStockSearch'
 import { useStockQuote } from '../hooks/useStockQuote'
 import { fetchStockDateBounds } from '../api/stock'
-import { ShareButton } from './ShareButton'
-import { TICKER_RE, customPeriodLabel, sharePath, shareText, tabPeriodLabel } from '../../shared/share'
+import { ShareButton, ShareImageButton } from './ShareButton'
+import { TICKER_RE, cardFileName, cardImagePath, customPeriodLabel, sharePath, shareText, tabPeriodLabel } from '../../shared/share'
 import type { Market, Lang, Period } from '../types'
 import type { Strings } from '../i18n/strings'
 
@@ -477,7 +477,7 @@ export function StockSearchArea({ market, lang, t }: Props) {
 
                 {/* 공유 — 실제 거래일(start_date/end_date)로 확정된 구간만 공유한다 */}
                 {d.start_date && d.end_date && ret != null && (
-                  <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
                     <ShareButton
                       lang={lang}
                       text={shareText(
@@ -491,6 +491,11 @@ export function StockSearchArea({ market, lang, t }: Props) {
                         d.end_date,
                       )}
                       url={`${window.location.origin}${sharePath({ market, ticker: d.ticker, from: d.start_date, to: d.end_date })}`}
+                    />
+                    <ShareImageButton
+                      lang={lang}
+                      imageUrl={cardImagePath({ market, ticker: d.ticker, from: d.start_date, to: d.end_date })}
+                      fileName={cardFileName({ market, ticker: d.ticker, from: d.start_date, to: d.end_date })}
                     />
                   </div>
                 )}

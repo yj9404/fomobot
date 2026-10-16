@@ -2,9 +2,9 @@ import { useC } from '../ThemeContext'
 import { FONT } from '../tokens'
 import { Sparkline } from './Sparkline'
 import { NewsSection } from './NewsSection'
-import { ShareButton } from './ShareButton'
+import { ShareButton, ShareImageButton } from './ShareButton'
 import { PERIODS } from '../types'
-import { sharePath, shareText, tabPeriodLabel } from '../../shared/share'
+import { cardFileName, cardImagePath, sharePath, shareText, tabPeriodLabel } from '../../shared/share'
 import type { BacktestDetailResponse, Market, Lang, NewsArticle } from '../types'
 import type { Strings } from '../i18n/strings'
 
@@ -167,7 +167,7 @@ export function BacktestPanel({ status, detail, market, days, lang, t, hasNews, 
 
       {/* 공유 — DCA가 메인일 때는 화면의 큰 숫자와 카드 숫자가 다르므로 기준을 버튼에 밝힌다 */}
       {share && (
-        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
           <ShareButton
             lang={lang}
             label={isDcaMain ? (lang === 'ko' ? '일시 매수 기준 공유' : 'Share (lump sum)') : undefined}
@@ -180,6 +180,11 @@ export function BacktestPanel({ status, detail, market, days, lang, t, hasNews, 
               share.to,
             )}
             url={`${window.location.origin}${sharePath({ market, ticker: detail.ticker, from: share.from, to: share.to })}`}
+          />
+          <ShareImageButton
+            lang={lang}
+            imageUrl={cardImagePath({ market, ticker: detail.ticker, from: share.from, to: share.to })}
+            fileName={cardFileName({ market, ticker: detail.ticker, from: share.from, to: share.to })}
           />
         </div>
       )}
