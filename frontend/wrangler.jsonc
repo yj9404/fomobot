@@ -1,12 +1,26 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "fomobot",
+  "main": "./worker/index.ts",
   "compatibility_date": "2026-07-21",
   "observability": {
     "enabled": true
   },
   "assets": {
-    "not_found_handling": "404-page"
+    "binding": "ASSETS",
+    "not_found_handling": "404-page",
+    // 공유 카드 경로만 Worker가 먼저 처리한다(worker/index.ts).
+    // 나머지 경로는 지금처럼 정적 자산이 직접 서빙되고 Worker를 거치지 않는다.
+    "run_worker_first": ["/s/*", "/og/*"]
+  },
+  "r2_buckets": [
+    // 공유 카드 PNG/JSON 영구 캐시. 키: og/{버전}/{market}/{ticker}/{from}_{to}.{png|json}
+    // 종목 단위 삭제는 docs/runbook-og-cache.md 참고.
+    { "binding": "OG_BUCKET", "bucket_name": "fomobot-og" }
+  ],
+  "vars": {
+    // backend-stock(Railway). 프론트 빌드의 VITE_API_BASE_URL과 같은 서비스다.
+    "API_BASE": "https://fomobot-production-64fd.up.railway.app"
   },
   "compatibility_flags": [
     "nodejs_compat"
