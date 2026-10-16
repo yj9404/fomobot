@@ -18,6 +18,9 @@ dependencies = [
     # Data
     "pandas>=2.2.0",
     "numpy>=1.26.0",
+    # 공유 카드 PNG 렌더링 (services/og_card.py). matplotlib 경유로 이미 설치되지만
+    # 직접 쓰므로 명시한다.
+    "pillow>=12.2.0",
     "pykrx>=1.2.8",
     "yfinance>=0.2.40",
     # Scheduler

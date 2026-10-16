@@ -326,6 +326,34 @@ async def get_security_name(
     return result.scalar_one_or_none()
 
 
+async def get_security_async(
+    session: AsyncSession,
+    market: str,
+    ticker: str,
+) -> SecuritiesMaster | None:
+    """securities_master 행 조회. get_security_name은 '행 없음'과 'name NULL'을
+    구분하지 못하므로, 종목 존재 여부 판정이 필요한 곳(공유 카드 검증)은 이걸 쓴다."""
+    stmt = select(SecuritiesMaster).where(
+        SecuritiesMaster.market == market, SecuritiesMaster.ticker == ticker
+    )
+    result = await session.execute(stmt)
+    return result.scalar_one_or_none()
+
+
+async def get_corporate_action_flag_status_async(
+    session: AsyncSession,
+    market: str,
+    ticker: str,
+) -> str | None:
+    """get_corporate_action_flag_sync의 API용 async 버전 — status만 반환(없으면 None)."""
+    stmt = select(CorporateActionFlag.status).where(
+        CorporateActionFlag.market == market,
+        CorporateActionFlag.ticker == ticker,
+    )
+    result = await session.execute(stmt)
+    return result.scalar_one_or_none()
+
+
 async def get_price_series_async(
     session: AsyncSession,
     market: str,
