@@ -165,6 +165,7 @@ function SaveImage({ p, imageUrl }: { p: ShareParams; imageUrl: string }) {
   const mode = decideSaveMode({
     hasBlob: file != null,
     userAgent: navigator.userAgent,
+    maxTouchPoints: navigator.maxTouchPoints,
     canShareFiles: file != null && navigator.canShare?.({ files: [file] }) === true,
   })
 
