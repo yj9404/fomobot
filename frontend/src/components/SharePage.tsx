@@ -5,7 +5,7 @@ import { useAdGate } from '../hooks/useAdGate'
 import { Footer } from './Footer'
 import { fetchShareCard, type ShareCardResult } from '../api/share'
 import {
-  daysBetween, fmtShareMoney, fmtSharePct, isFlatPct, parseShareParams, shareQuery,
+  daysBetween, fmtSharePct, parseShareParams, shareQuery,
   type ShareData, type ShareParams,
 } from '../../shared/share'
 
@@ -78,13 +78,12 @@ export function SharePage() {
 
 function ShareCard({ d, p }: { d: ShareData; p: ShareParams }) {
   const C = useC()
-  const color = isFlatPct(d.return_pct) ? C.textMuted : d.return_pct > 0 ? C.green : C.red
   const pct = fmtSharePct(d.return_pct)
   // 같은 기간 길이를 오늘(최신 거래일) 기준으로 다시 본다 — StockSearchArea 딥링크.
   const replayHref = `/?market=${p.market}&ticker=${encodeURIComponent(p.ticker)}&days=${daysBetween(p.from, p.to)}`
 
   return (
-    <article style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <article style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       <img
         src={`/og/${p.market}/${p.ticker}.png${shareQuery(p)}`}
         alt={`${d.name} ${pct} (${d.from}~${d.to}) 공유 카드`}
@@ -93,33 +92,11 @@ function ShareCard({ d, p }: { d: ShareData; p: ShareParams }) {
         style={{ width: '100%', height: 'auto', borderRadius: 14, border: `1px solid ${C.border}`, display: 'block' }}
       />
 
-      <section style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 14, padding: '18px 18px 16px' }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
-          <h1 style={{ fontSize: 20, fontWeight: 800, color: C.textPrimary, letterSpacing: '-0.02em' }}>{d.name}</h1>
-          <span style={{ fontFamily: FONT.mono, fontSize: 12, color: C.textDim }}>
-            {d.ticker} · {d.market.toUpperCase()}
-          </span>
-        </div>
-        <div style={{ fontFamily: FONT.mono, fontSize: 12, color: C.textMuted, marginTop: 4 }}>
-          {d.from} ~ {d.to}
-        </div>
-
-        <div style={{ fontFamily: FONT.mono, fontSize: 40, fontWeight: 800, color, letterSpacing: '-0.02em', lineHeight: 1.1, marginTop: 14 }}>
-          {pct}
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontFamily: FONT.mono, fontSize: 14, marginTop: 8 }}>
-          <span style={{ color: C.textSub }}>{fmtShareMoney(d.principal, d.currency)}</span>
-          <span style={{ color: C.textDim }}>→</span>
-          <span style={{ color, fontWeight: 700 }}>{fmtShareMoney(d.end_value, d.currency)}</span>
-        </div>
-        <div style={{ fontSize: 13, color: C.orange, marginTop: 8 }}>
-          기간 중 최대 하락 <span style={{ fontFamily: FONT.mono, fontWeight: 600 }}>{fmtSharePct(d.mdd_pct)}</span>
-        </div>
-
-        <div style={{ fontSize: 12.5, color: C.textMuted, marginTop: 14, paddingTop: 12, borderTop: `1px solid ${C.borderSub}` }}>
-          {d.to} 종가 기준 스냅샷입니다. 이후 가격 변동은 반영되지 않습니다.
-        </div>
-      </section>
+      {/* 숫자는 카드 이미지에 이미 있으므로 텍스트로 반복하지 않는다. 화면 낭독기용 제목만 둔다. */}
+      <h1 style={visuallyHidden}>{`${d.name} ${pct} (${d.from}~${d.to})`}</h1>
+      <p style={{ fontSize: 12.5, color: C.textMuted, textAlign: 'center' }}>
+        {d.to} 종가 기준 스냅샷입니다. 이후 가격 변동은 반영되지 않습니다.
+      </p>
 
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
         <a href={replayHref} style={ctaStyle(C.blue, '#fff', 'transparent')}>오늘 기준으로 다시 보기</a>
@@ -152,6 +129,11 @@ function ShareCard({ d, p }: { d: ShareData; p: ShareParams }) {
       </section>
     </article>
   )
+}
+
+const visuallyHidden: React.CSSProperties = {
+  position: 'absolute', width: 1, height: 1, padding: 0, margin: -1,
+  overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap', border: 0,
 }
 
 function ctaStyle(bg: string, fg: string, border: string): React.CSSProperties {
