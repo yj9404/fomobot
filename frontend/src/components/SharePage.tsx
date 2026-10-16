@@ -4,7 +4,6 @@ import { FONT } from '../tokens'
 import { useAdGate } from '../hooks/useAdGate'
 import { Footer } from './Footer'
 import { fetchShareCard, type ShareCardResult } from '../api/share'
-import { cardFileName, decideSaveMode } from '../utils/cardImage'
 import {
   daysBetween, fmtSharePct, parseShareParams, shareQuery,
   type ShareData, type ShareParams,
@@ -82,20 +81,16 @@ function ShareCard({ d, p }: { d: ShareData; p: ShareParams }) {
   const pct = fmtSharePct(d.return_pct)
   // 같은 기간 길이를 오늘(최신 거래일) 기준으로 다시 본다 — StockSearchArea 딥링크.
   const replayHref = `/?market=${p.market}&ticker=${encodeURIComponent(p.ticker)}&days=${daysBetween(p.from, p.to)}`
-  const imageUrl = `/og/${p.market}/${p.ticker}.png${shareQuery(p)}`
 
   return (
     <article style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      {/* 길게 눌러 저장할 수 있어야 하므로 이미지 위에 오버레이나 pointer-events 차단을 두지 않는다 */}
       <img
-        src={imageUrl}
+        src={`/og/${p.market}/${p.ticker}.png${shareQuery(p)}`}
         alt={`${d.name} ${pct} (${d.from}~${d.to}) 공유 카드`}
         width={1200}
         height={630}
         style={{ width: '100%', height: 'auto', borderRadius: 14, border: `1px solid ${C.border}`, display: 'block' }}
       />
-
-      <SaveImage p={p} imageUrl={imageUrl} />
 
       {/* 숫자는 카드 이미지에 이미 있으므로 텍스트로 반복하지 않는다. 화면 낭독기용 제목만 둔다. */}
       <h1 style={visuallyHidden}>{`${d.name} ${pct} (${d.from}~${d.to})`}</h1>
@@ -133,90 +128,6 @@ function ShareCard({ d, p }: { d: ShareData; p: ShareParams }) {
         </p>
       </section>
     </article>
-  )
-}
-
-/**
- * 카드 이미지 저장. PNG는 페이지 로드 때 미리 blob으로 받아 둔다 — 클릭 후에 fetch하면
- * Safari가 사용자 제스처가 끝났다고 보고 navigator.share를 막는다.
- */
-function SaveImage({ p, imageUrl }: { p: ShareParams; imageUrl: string }) {
-  const C = useC()
-  const [file, setFile] = useState<File | null>(null)
-  const [settled, setSettled] = useState(false)
-
-  useEffect(() => {
-    const ctrl = new AbortController()
-    fetch(imageUrl, { signal: ctrl.signal })
-      .then((r) => (r.ok && (r.headers.get('content-type') ?? '').startsWith('image/png') ? r.blob() : null))
-      .then((blob) => {
-        setFile(blob ? new File([blob], cardFileName(p), { type: 'image/png' }) : null)
-        setSettled(true)
-      })
-      .catch((e: unknown) => {
-        if (e instanceof DOMException && e.name === 'AbortError') return
-        setSettled(true)
-      })
-    return () => ctrl.abort()
-  }, [imageUrl, p])
-
-  if (!settled) return null
-
-  const mode = decideSaveMode({
-    hasBlob: file != null,
-    userAgent: navigator.userAgent,
-    maxTouchPoints: navigator.maxTouchPoints,
-    canShareFiles: file != null && navigator.canShare?.({ files: [file] }) === true,
-  })
-
-  if (mode === 'long-press' || file == null) {
-    return (
-      <p style={{ fontSize: 12.5, color: C.textSub, textAlign: 'center' }}>
-        이미지를 길게 눌러 저장하세요
-      </p>
-    )
-  }
-
-  async function save(f: File) {
-    if (mode === 'share-file') {
-      try {
-        await navigator.share({ files: [f] })
-        return
-      } catch (e) {
-        if (e instanceof DOMException && e.name === 'AbortError') return
-        // NotAllowedError 등은 다운로드로 폴백
-      }
-    }
-    const href = URL.createObjectURL(f)
-    const a = document.createElement('a')
-    a.href = href
-    a.download = f.name
-    document.body.appendChild(a)
-    a.click()
-    a.remove()
-    setTimeout(() => URL.revokeObjectURL(href), 1000)
-  }
-
-  return (
-    <div style={{ display: 'flex', justifyContent: 'center' }}>
-      <button
-        onClick={() => save(file)}
-        style={{
-          display: 'flex', alignItems: 'center', gap: 6,
-          padding: '8px 16px', borderRadius: 10, fontSize: 13, fontWeight: 700,
-          fontFamily: 'inherit', cursor: 'pointer',
-          background: 'rgba(62,123,250,0.12)', color: C.blueSoft,
-          border: '1px solid rgba(62,123,250,0.35)',
-        }}
-      >
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M8 2v8" />
-          <path d="M5 7l3 3 3-3" />
-          <path d="M3 11v2a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-2" />
-        </svg>
-        이미지 저장
-      </button>
-    </div>
   )
 }
 
