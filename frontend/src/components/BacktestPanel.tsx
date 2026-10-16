@@ -2,6 +2,8 @@ import { useC } from '../ThemeContext'
 import { FONT } from '../tokens'
 import { Sparkline } from './Sparkline'
 import { NewsSection } from './NewsSection'
+import { ShareButton } from './ShareButton'
+import { fmtSharePct, sharePath } from '../../shared/share'
 import type { BacktestDetailResponse, Market, Lang, NewsArticle } from '../types'
 import type { Strings } from '../i18n/strings'
 
@@ -103,6 +105,13 @@ export function BacktestPanel({ status, detail, market, days, lang, t, hasNews, 
 
   const quip = profit ? t.profitQuip : t.lossQuip
 
+  // 공유 카드는 buy-and-hold 기준이다. 구간은 buy-and-hold equity curve의 첫/마지막 날짜 —
+  // 시장 기준 시작일이 아니라 이 종목에 실제 가격이 있는 거래일이라 /api/share 검증을 통과한다.
+  const bhCurve = bh?.equity_curve ?? []
+  const share = bh != null && bhCurve.length >= 2
+    ? { from: bhCurve[0]!.date, to: bhCurve[bhCurve.length - 1]!.date, ret: bh.final_return_pct }
+    : null
+
   return (
     <div style={panelStyle}>
       {/* Title + badge */}
@@ -151,6 +160,18 @@ export function BacktestPanel({ status, detail, market, days, lang, t, hasNews, 
       {compareRet != null && (
         <div style={{ fontSize: 12, color: C.textMuted, fontFamily: FONT.mono }}>
           {t.btCompareLumpSum} {fmtPct(compareRet)}
+        </div>
+      )}
+
+      {/* 공유 — DCA가 메인일 때는 화면의 큰 숫자와 카드 숫자가 다르므로 기준을 버튼에 밝힌다 */}
+      {share && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <ShareButton
+            lang={lang}
+            label={isDcaMain ? (lang === 'ko' ? '일시 매수 기준 공유' : 'Share (lump sum)') : undefined}
+            title={`${detail.name ?? detail.ticker} ${fmtSharePct(share.ret)} (${share.from}~${share.to})`}
+            url={`${window.location.origin}${sharePath({ market, ticker: detail.ticker, from: share.from, to: share.to })}`}
+          />
         </div>
       )}
 

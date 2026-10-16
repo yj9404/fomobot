@@ -7,6 +7,8 @@ interface Props {
   url: string
   title: string
   lang: Lang
+  /** 기본 "공유" 대신 쓸 버튼 문구 */
+  label?: string
 }
 
 const STR = {
@@ -18,7 +20,7 @@ const STR = {
  * 공유 링크는 클릭한 시점에만 만든다(목록에서 /s/ 링크를 미리 노출하지 않음).
  * navigator.share → 미지원이거나 공유 시트 이외의 이유로 실패하면 클립보드 복사.
  */
-export function ShareButton({ url, title, lang }: Props) {
+export function ShareButton({ url, title, lang, label }: Props) {
   const C = useC()
   const t = STR[lang]
   const [toast, setToast] = useState<string | null>(null)
@@ -65,7 +67,7 @@ export function ShareButton({ url, title, lang }: Props) {
           <path d="M5 5l3-3 3 3" />
           <path d="M3 9v4a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V9" />
         </svg>
-        {t.label}
+        {label ?? t.label}
       </button>
       {toast && (
         <div
