@@ -1,6 +1,6 @@
 import { useC } from '../ThemeContext'
 import { FONT } from '../tokens'
-import type { Strings } from '../i18n/strings'
+import type { CommonStrings } from '../i18n/strings'
 
 function SkeletonRow({ w1, w2 }: { w1: string; w2: string }) {
   const C = useC()
@@ -22,7 +22,7 @@ function SkeletonRow({ w1, w2 }: { w1: string; w2: string }) {
   )
 }
 
-export function SkeletonList({ t }: { t: Strings }) {
+export function SkeletonList({ t }: { t: CommonStrings }) {
   const C = useC()
   return (
     <div style={{ borderTop: `1px solid ${C.borderSub}` }}>

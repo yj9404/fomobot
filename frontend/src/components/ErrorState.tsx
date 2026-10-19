@@ -1,8 +1,8 @@
 import { useC } from '../ThemeContext'
 import { FONT } from '../tokens'
-import type { Strings } from '../i18n/strings'
+import type { CommonStrings } from '../i18n/strings'
 
-export function ErrorState({ t, onRetry }: { t: Strings; onRetry: () => void }) {
+export function ErrorState({ t, onRetry }: { t: CommonStrings; onRetry: () => void }) {
   const C = useC()
   return (
     <div style={{ borderTop: `1px solid ${C.borderSub}`, padding: '56px 28px 60px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 13, fontFamily: FONT.sans }}>

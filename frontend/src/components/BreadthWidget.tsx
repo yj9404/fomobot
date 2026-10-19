@@ -2,11 +2,11 @@ import { useC } from '../ThemeContext'
 import { FONT } from '../tokens'
 import { useBreadth } from '../hooks/useBreadth'
 import type { Market } from '../types'
-import type { Strings } from '../i18n/strings'
+import type { CommonStrings } from '../i18n/strings'
 
 interface Props {
   market: Market
-  t: Strings
+  t: CommonStrings
 }
 
 /**

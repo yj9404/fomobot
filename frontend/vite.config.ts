@@ -29,6 +29,8 @@ export default defineConfig(({ mode }) => {
       ? { outDir: 'dist-toss', emptyOutDir: true, rollupOptions: { input: 'index.toss.html' } }
       : undefined,
     publicDir: isToss ? false : 'public',
+    // .ait 안에서 정적 자산을 상대 경로로 읽도록 toss 빌드에만 적용
+    ...(isToss && { base: './' }),
     server: {
       proxy: {
         // 부동산 백엔드 (8001) — 주식보다 먼저 매칭되어야 함

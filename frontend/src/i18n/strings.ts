@@ -1,17 +1,13 @@
-import type { Lang, RankingItem } from '../types'
+import type { RankingItem } from '../types'
+import type { WebStrings } from './strings.web'
 
-export interface Strings {
-  tagline: string
+/**
+ * 웹과 토스 빌드가 함께 쓰는 문구. 토스 번들은 이 파일만 import하고
+ * strings.web.ts(백테스트·매수·공유·글 문구)는 import하지 않는다 — 가드 스크립트가 그걸 확인한다.
+ */
+export interface CommonStrings {
   disclaimer: string
   moveLabel: string
-  volatilityLabel: string
-  btTitle: string
-  btReturn: string
-  btPath: string
-  buyPre: string
-  buySuf: string
-  profitQuip: string
-  lossQuip: string
   loading: string
   loadingSub: string
   empty: string
@@ -20,18 +16,9 @@ export interface Strings {
   errorTitle: string
   errorSub: string
   retry: string
-  noBacktest: string
-  btLoading: string
   orderRise: string
   orderFall: string
-  orderFallCopy: string
   asOfLabel: string
-  btDcaBadge: string
-  btCompareLumpSum: string
-  btDeficitWarning: string
-  newsTitle: string
-  newsLoading: string
-  newsDotTitle: string
   haltResumptionTitle: string
   startValidityGapTitle: (date: string) => string
   startValidityHaltedTitle: (date: string) => string
@@ -43,96 +30,26 @@ export interface Strings {
   breadthNeutral: string
 }
 
-const STR: Record<Lang, Strings> = {
-  ko: {
-    tagline: '이미 오른 것들의 명예의 전당',
-    disclaimer: '투자 조언이 아닙니다. FomoBot은 지나간 걸 보여줄 뿐이에요',
-    moveLabel: '기간 등락',
-    volatilityLabel: '변동성 σ',
-    btTitle: '그때 샀다면?',
-    btReturn: '지금 수익률',
-    btPath: '가는 길 최저점',
-    buyPre: '',
-    buySuf: '일 전 매수',
-    profitQuip: '안 샀죠? 그럴 줄 알았어요.',
-    lossQuip: '안 사길 잘했네요, 이번만큼은.',
-    loading: '급등 항목 줄 세우는 중…',
-    loadingSub: 'FomoBot이 후회 거리를 계산하고 있어요',
-    empty: '조건에 맞는 항목이 없어요',
-    emptySub: '시장이 평화롭네요. (지루하다는 뜻이에요)',
-    emptyBtn: '필터 초기화',
-    errorTitle: '데이터를 못 불러왔어요',
-    errorSub: 'FomoBot이 잠깐 한눈팔았나 봐요.',
-    retry: '다시 시도',
-    noBacktest: '백테스트 데이터 없음',
-    btLoading: '계산 중…',
-    orderRise: '상승률 상위 ▲',
-    orderFall: '하락률 상위 ▼',
-    orderFallCopy: '안 물려서 다행',
-    asOfLabel: '기준일',
-    btDcaBadge: '나눠 담기',
-    btCompareLumpSum: '한 번에 샀다면',
-    btDeficitWarning: '상장이 늦어서 그때는 살 수도 없었어요. 살 수 있었던 날부터 계산했습니다.',
-    newsTitle: '관련 뉴스',
-    newsLoading: '뉴스 불러오는 중…',
-    newsDotTitle: '관련 뉴스 있음',
-    haltResumptionTitle: '이 종목은 장기 거래정지 후 재개된 첫날입니다. 재개 첫날은 가격제한폭(±30%)이 적용되지 않아 하루 등락이 클 수 있습니다.',
-    startValidityGapTitle: (d) => `이 기간 시작 시점에는 거래 데이터가 없습니다. 실제 비교 시작일: ${d}`,
-    startValidityHaltedTitle: (d) => `이 기간 시작 시점에 거래가 정지 상태였습니다. 실제 비교 시작일: ${d}`,
-    breadthUp: '상승',
-    breadthDown: '하락',
-    breadthFlat: '보합',
-    breadthPanic: '다들 도망가는 중입니다',
-    breadthFomo: '다들 올라타는 중입니다. 당신 빼고.',
-    breadthNeutral: '시장도 갈피를 못 잡는 중',
-  },
-  en: {
-    tagline: 'Hall of fame for things that already mooned',
-    disclaimer: 'Not financial advice · FomoBot just shows what you missed',
-    moveLabel: 'period chg',
-    volatilityLabel: 'vol σ',
-    btTitle: 'If you had bought back then?',
-    btReturn: 'Return now',
-    btPath: 'Worst dip on the way',
-    buyPre: 'Bought ',
-    buySuf: 'd ago',
-    profitQuip: "Didn't buy, did you? Figures.",
-    lossQuip: 'Good thing you skipped it — this once.',
-    loading: 'Lining up the movers…',
-    loadingSub: 'FomoBot is calculating your regrets',
-    empty: 'No movers match your filter',
-    emptySub: 'Market is calm. (read: boring)',
-    emptyBtn: 'Reset filters',
-    errorTitle: "Couldn't load the data",
-    errorSub: 'FomoBot looked away for a second.',
-    retry: 'Retry',
-    noBacktest: 'No backtest data',
-    btLoading: 'Calculating…',
-    orderRise: 'Top Gainers ▲',
-    orderFall: 'Top Losers ▼',
-    orderFallCopy: 'Glad you skipped these',
-    asOfLabel: 'As of',
-    btDcaBadge: 'DCA',
-    btCompareLumpSum: 'If bought all at once',
-    btDeficitWarning: "It wasn't even listed yet back then — calculated from the first day you could actually buy it.",
-    newsTitle: 'Related news',
-    newsLoading: 'Loading news…',
-    newsDotTitle: 'Related news available',
-    haltResumptionTitle: 'This stock just resumed trading after a long halt. The daily price limit (±30%) doesn\'t apply on the first day back, so a large move here is expected — not a data error.',
-    startValidityGapTitle: (d) => `No trading data existed yet at the start of this period. Actual comparison start date: ${d}`,
-    startValidityHaltedTitle: (d) => `Trading was suspended at the start of this period. Actual comparison start date: ${d}`,
-    breadthUp: 'Up',
-    breadthDown: 'Down',
-    breadthFlat: 'Flat',
-    breadthPanic: "Everyone's running for the exits",
-    breadthFomo: "Everyone's piling in. Except you.",
-    breadthNeutral: "Even the market can't make up its mind",
-  },
-}
+/** 웹 컴포넌트가 받는 전체 문구 = 공통 + 웹 전용. */
+export type Strings = CommonStrings & WebStrings
 
-export function useStrings(lang: Lang): Strings {
-  return STR[lang]
-}
+/** 웹(ko)과 토스가 글자까지 똑같은 한국어 문구. 어긋나지 않게 한 곳에 둔다. */
+export const SHARED_KO = {
+  moveLabel: '기간 등락',
+  empty: '조건에 맞는 항목이 없어요',
+  emptyBtn: '필터 초기화',
+  errorTitle: '데이터를 못 불러왔어요',
+  retry: '다시 시도',
+  orderRise: '상승률 상위 ▲',
+  orderFall: '하락률 상위 ▼',
+  asOfLabel: '기준일',
+  haltResumptionTitle: '이 종목은 장기 거래정지 후 재개된 첫날입니다. 재개 첫날은 가격제한폭(±30%)이 적용되지 않아 하루 등락이 클 수 있습니다.',
+  startValidityGapTitle: (d: string) => `이 기간 시작 시점에는 거래 데이터가 없습니다. 실제 비교 시작일: ${d}`,
+  startValidityHaltedTitle: (d: string) => `이 기간 시작 시점에 거래가 정지 상태였습니다. 실제 비교 시작일: ${d}`,
+  breadthUp: '상승',
+  breadthDown: '하락',
+  breadthFlat: '보합',
+} as const
 
 /**
  * 랭킹 카드/행에 ⓘ 아이콘으로 보여줄 문구를 결정한다. halt_resumption과
@@ -141,7 +58,7 @@ export function useStrings(lang: Lang): Strings {
  * 우선한다 — 이미 더 구체적인 설명이므로. 어느 것도 해당 없으면 null
  * (호출부가 아이콘 자체를 렌더링하지 않아야 함).
  */
-export function getInfoBadgeText(item: RankingItem, t: Strings): string | null {
+export function getInfoBadgeText(item: RankingItem, t: CommonStrings): string | null {
   if (item.halt_resumption === true) return t.haltResumptionTitle
   if (item.start_validity === 'halted' && item.first_valid_date) {
     return t.startValidityHaltedTitle(item.first_valid_date)
