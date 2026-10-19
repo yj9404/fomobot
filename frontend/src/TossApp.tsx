@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react'
 import { TossHeader } from './components/TossHeader'
 import { RankingRow } from './components/RankingRow'
+import { TossBanner } from './components/TossBanner'
 import { BreadthWidget } from './components/BreadthWidget'
 import { SkeletonList } from './components/SkeletonList'
 import { EmptyState } from './components/EmptyState'
@@ -71,9 +72,10 @@ export default function TossApp() {
             </div>
           )}
           {rankings.map((item) => <RankingRow key={item.ticker} item={item} market={market} t={t} />)}
+          {/* 광고는 스크롤되는 목록이 있을 때만, 목록 아래에 한 개만 둔다. */}
+          <TossBanner />
         </div>
       )}
-      {/* TODO(toss-ads): 앱인토스 광고 SDK 슬롯을 여기(목록 아래)에 둔다. 웹의 AdSense/AdFit은 쓰지 않는다. */}
     </div>
   )
 }

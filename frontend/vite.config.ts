@@ -1,4 +1,5 @@
 import { defineConfig, type Plugin } from 'vite'
+import aitDevtools from '@apps-in-toss/devtools/unplugin'
 import react from '@vitejs/plugin-react'
 
 import { cloudflare } from "@cloudflare/vite-plugin";
@@ -19,11 +20,31 @@ const renameTossEntry = (): Plugin => ({
   },
 })
 
+// toss 모드 dev 서버에서 /를 진입 html로 연결한다. 토스 SDK/devtools와 샌드박스는 루트 경로를 전제하기 쉽다.
+const serveTossRoot = (): Plugin => ({
+  name: 'serve-toss-root',
+  configureServer(server) {
+    server.middlewares.use((req, _res, next) => {
+      if (req.url === '/' || req.url?.startsWith('/?')) req.url = '/index.toss.html' + req.url.slice(1)
+      next()
+    })
+  },
+})
+
 // mode === 'toss' 는 앱인토스 미니앱 빌드. Worker(공유 카드)와 정적 글(public/)은 웹 전용이라 뺀다.
-export default defineConfig(({ mode }) => {
+export default defineConfig(({ mode, command }) => {
   const isToss = mode === 'toss'
   return {
-    plugins: isToss ? [react(), renameTossEntry()] : [react(), cloudflare()],
+    plugins: isToss
+      ? [
+          // devtools(mock SDK + 패널)는 toss dev 서버에서만. 프로덕션 빌드와 웹에는 넣지 않는다.
+          // 진입점 이름(main.toss.tsx)이 기본 패턴과 달라 패널 주입 대상을 직접 지정한다.
+          ...(command === 'serve' ? [aitDevtools.vite({ entryPattern: /\/main\.toss\.tsx$/ })] : []),
+          react(),
+          renameTossEntry(),
+          serveTossRoot(),
+        ]
+      : [react(), cloudflare()],
     build: isToss
       ? { outDir: 'dist-toss', emptyOutDir: true, rollupOptions: { input: 'index.toss.html' } }
       : undefined,
