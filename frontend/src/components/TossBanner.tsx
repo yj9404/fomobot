@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { TossAds } from '@apps-in-toss/web-framework'
 
-// 광고 그룹 ID는 콘솔에서 발급받은 값을 VITE_TOSS_BANNER_AD_GROUP_ID로 주입한다.
-// 값이 없으면 문서의 테스트 ID(리스트형 배너)를 쓴다 — 개발 중 실제 ID로 테스트하면 정책 위반이다.
-// 출시 전에는 반드시 실제 ID를 넣어야 한다(검수는 테스트 광고가 아닌 실제 광고 노출을 요구).
+// 광고 그룹 ID는 toss 빌드(vite build --mode toss)에서 vite.config.ts가 실제 ID를 주입한다.
+// dev 서버처럼 주입되지 않은 환경에서는 문서의 테스트 ID(리스트형 배너)를 쓴다 —
+// 개발 중 실제 ID로 테스트하면 정책 위반이다.
 const AD_GROUP_ID = import.meta.env.VITE_TOSS_BANNER_AD_GROUP_ID || 'ait-ad-test-banner-id'
 
 // SDK 초기화는 앱 전체에서 한 번만 한다.
