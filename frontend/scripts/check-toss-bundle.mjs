@@ -1,5 +1,5 @@
 // 토스 빌드(dist-toss)에 들어가면 안 되는 토큰을 찾아 개수와 위치를 출력한다.
-// 지금은 리포트 전용이라 발견돼도 실패(exit 1)시키지 않는다. --strict 를 주면 실패시킨다.
+// 기본은 리포트 전용(발견돼도 exit 0). --strict 를 주면 토큰이 하나라도 있을 때 exit 1.
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, relative, extname } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -12,7 +12,7 @@ const strict = process.argv.includes('--strict')
 // 웹 도메인은 코드에서 확인한 값(https://fomobot.net). Gmail 작성창 링크(mail.google.com)와
 // AdSense 호스트(googlesyndication)도 같은 이유로 포함.
 const TOKENS = [
-  '백테스트', '샀다', '샀죠', '매수',
+  '백테스트', '샀다', '샀죠', '매수', '급등',
   'adsbygoogle', 'pagead', 'googlesyndication', 'adfit', 'kakaocdn',
   'fomobot.net', 'mail.google.com', '_blank', 'mailto',
 ]
