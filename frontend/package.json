@@ -9,6 +9,8 @@
     "build": "tsc -b && vite build",
     "preview": "npm run build && wrangler dev",
     "deploy": "npm run build && wrangler deploy",
+    "dev:toss": "vite --mode toss --open /index.toss.html",
+    "build:toss": "tsc -b && vite build --mode toss && node scripts/check-toss-bundle.mjs",
     "test": "vitest run",
     "gen:articles": "node scripts/gen-index-articles.mjs"
   },

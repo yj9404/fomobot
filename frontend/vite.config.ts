@@ -1,14 +1,33 @@
-import { defineConfig } from 'vite'
+import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 
 import { cloudflare } from "@cloudflare/vite-plugin";
+
+// ait build는 webBundleDir 안의 index.html을 찾는다. 진입 html 이름(index.toss.html)을 맞춰준다.
+const renameTossEntry = (): Plugin => ({
+  name: 'rename-toss-entry',
+  enforce: 'post',
+  generateBundle: {
+    order: 'post',
+    handler(_, bundle) {
+      const entry = bundle['index.toss.html']
+      if (!entry) return
+      entry.fileName = 'index.html'
+      bundle['index.html'] = entry
+      delete bundle['index.toss.html']
+    },
+  },
+})
 
 // mode === 'toss' 는 앱인토스 미니앱 빌드. Worker(공유 카드)와 정적 글(public/)은 웹 전용이라 뺀다.
 export default defineConfig(({ mode }) => {
   const isToss = mode === 'toss'
   return {
     define: { __TOSS__: JSON.stringify(isToss) },
-    plugins: isToss ? [react()] : [react(), cloudflare()],
+    plugins: isToss ? [react(), renameTossEntry()] : [react(), cloudflare()],
+    build: isToss
+      ? { outDir: 'dist-toss', emptyOutDir: true, rollupOptions: { input: 'index.toss.html' } }
+      : undefined,
     publicDir: isToss ? false : 'public',
     server: {
       proxy: {

@@ -1,24 +1,13 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App'
+import { injectGlobalStyle } from './bootstrapStyle'
 import { NotFoundPage } from './components/NotFoundPage'
 import { ServerErrorPage } from './components/ServerErrorPage'
 import { SharePage } from './components/SharePage'
 import { ThemeProvider } from './ThemeContext'
 
-const style = document.createElement('style')
-style.textContent = `
-  @keyframes fb-shimmer { 0%{background-position:-200px 0} 100%{background-position:240px 0} }
-  @keyframes fb-spin { to{transform:rotate(360deg)} }
-  @keyframes fb-pulse { 0%,100%{opacity:.45} 50%{opacity:.9} }
-  @keyframes fb-draw { from{stroke-dashoffset:640} to{stroke-dashoffset:0} }
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: #0B0D12; }
-  ::-webkit-scrollbar { height: 8px; width: 8px; }
-  ::-webkit-scrollbar-thumb { background: rgba(128,128,128,.25); border-radius: 8px; }
-  input::placeholder { color: #9AA5B8; }
-`
-document.head.appendChild(style)
+injectGlobalStyle()
 
 // 콘텐츠가 확인되기 전까지 AdSense 광고 요청을 중단한다 (데드엔드 화면 광고 노출 방지).
 // https://support.google.com/adsense/answer/9183363

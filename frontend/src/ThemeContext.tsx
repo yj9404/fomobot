@@ -20,10 +20,13 @@ const Ctx = createContext<ThemeCtx>({
   setAtmosphereMode: () => {},
 })
 
-export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<Theme>(() => {
+/** fixedTheme을 주면 저장값과 토글을 무시하고 그 테마로 고정한다(토스 미니앱은 라이트 전용). */
+export function ThemeProvider({ children, fixedTheme }: { children: ReactNode; fixedTheme?: Theme }) {
+  const [storedTheme, setTheme] = useState<Theme>(() => {
+    if (fixedTheme) return fixedTheme
     try { return (localStorage.getItem('fomobot-theme') as Theme) ?? 'light' } catch { return 'light' }
   })
+  const theme = fixedTheme ?? storedTheme
   const [atmosphereMode, setAtmosphereMode] = useState<AtmosphereMode>('rise')
 
   const C = useMemo<Colors>(() => {
@@ -39,10 +42,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, [C.bg])
 
   const toggle = useCallback(() => {
+    if (fixedTheme) return
     const next: Theme = theme === 'dark' ? 'light' : 'dark'
     try { localStorage.setItem('fomobot-theme', next) } catch {}
     setTheme(next)
-  }, [theme])
+  }, [theme, fixedTheme])
 
   return (
     <Ctx.Provider value={{ theme, C, toggle, atmosphereMode, setAtmosphereMode }}>
