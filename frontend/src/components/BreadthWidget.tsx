@@ -7,6 +7,9 @@ import type { CommonStrings } from '../i18n/strings'
 interface Props {
   market: Market
   t: CommonStrings
+  /** 상승/하락 글자색. 생략하면 테마의 green/red(웹 기본). 토스는 국내 관례(상승 빨강, 하락 파랑)를 넘긴다. */
+  upColor?: string
+  downColor?: string
 }
 
 /**
@@ -15,7 +18,7 @@ interface Props {
  * 배포 순서상 백필이 끝나기 전에 프론트가 먼저 뜨는 시간대가 있을 수 있어서,
  * 그 구간에는 위젯 자체가 없는 것처럼 보이는 편이 낫다고 판단했다.
  */
-export function BreadthWidget({ market, t }: Props) {
+export function BreadthWidget({ market, t, upColor, downColor }: Props) {
   const C = useC()
   const data = useBreadth(market)
 
@@ -40,8 +43,8 @@ export function BreadthWidget({ market, t }: Props) {
       }}
     >
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, fontFamily: FONT.mono, fontSize: 12 }}>
-        <span style={{ color: C.green, fontWeight: 700 }}>{t.breadthUp} {advancers}</span>
-        <span style={{ color: C.red, fontWeight: 700 }}>{t.breadthDown} {decliners}</span>
+        <span style={{ color: upColor ?? C.green, fontWeight: 700 }}>{t.breadthUp} {advancers}</span>
+        <span style={{ color: downColor ?? C.red, fontWeight: 700 }}>{t.breadthDown} {decliners}</span>
         <span style={{ color: C.textDim, fontWeight: 600 }}>{t.breadthFlat} {unchanged}</span>
         <span style={{ color: C.textDim }}>{date}</span>
       </div>

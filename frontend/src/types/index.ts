@@ -12,6 +12,8 @@ export interface RankingItem {
   ticker: string
   name: string | null
   return_pct: number
+  /** 기준일 종가(KOSPI 원, NASDAQ 달러). 저장되지 않은 옛 스냅샷은 null/없음. */
+  close_price?: number | null
   mdd_pct: number | null
   volatility_annualized_pct: number | null
   excess_return_vs_index_pct: number | null

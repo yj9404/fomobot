@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { TossHeader } from './components/TossHeader'
 import { RankingRow } from './components/RankingRow'
 import { BreadthWidget } from './components/BreadthWidget'
@@ -6,8 +6,9 @@ import { SkeletonList } from './components/SkeletonList'
 import { EmptyState } from './components/EmptyState'
 import { ErrorState } from './components/ErrorState'
 import { useRankings } from './hooks/useRankings'
-import { TOSS_STR } from './i18n/strings.toss'
-import { useC, useTheme } from './ThemeContext'
+import { TOSS_COPY, TOSS_STR } from './i18n/strings.toss'
+import { useC } from './ThemeContext'
+import { KR_DOWN, KR_UP } from './tossColors'
 import { PERIODS } from './types'
 import { FONT } from './tokens'
 import type { CapTier, Market, OrderDir } from './types'
@@ -20,7 +21,6 @@ const DEFAULT_PERIOD_IDX = 2 // 30d
  */
 export default function TossApp() {
   const C = useC()
-  const { setAtmosphereMode } = useTheme()
   const t = TOSS_STR
 
   const [market, setMarket] = useState<Market>('kospi')
@@ -31,10 +31,6 @@ export default function TossApp() {
 
   const period = PERIODS[periodIdx]!
   const { status, rankings, asOf } = useRankings(market, period.value, capTier, retryKey, order)
-
-  useEffect(() => {
-    setAtmosphereMode(order === 'asc' ? 'fall' : 'rise')
-  }, [order, setAtmosphereMode])
 
   const handleMarket = useCallback((m: Market) => {
     setCapTier('all')
@@ -58,7 +54,7 @@ export default function TossApp() {
         onCapTier={setCapTier}
         onOrder={setOrder}
       />
-      <BreadthWidget market={market} t={t} />
+      <BreadthWidget market={market} t={t} upColor={KR_UP} downColor={KR_DOWN} />
       {status === 'loading' && <SkeletonList t={t} />}
       {status === 'empty' && <EmptyState t={t} onRetry={() => { setPeriodIdx(DEFAULT_PERIOD_IDX); setCapTier('all') }} />}
       {status === 'error' && <ErrorState t={t} onRetry={() => setRetryKey((k) => k + 1)} />}
@@ -71,9 +67,10 @@ export default function TossApp() {
             }}>
               <span>{t.asOfLabel}</span>
               <span style={{ color: C.textSub, fontWeight: 600 }}>{asOf}</span>
+              <span>{TOSS_COPY.closeNote}</span>
             </div>
           )}
-          {rankings.map((item) => <RankingRow key={item.ticker} item={item} t={t} />)}
+          {rankings.map((item) => <RankingRow key={item.ticker} item={item} market={market} t={t} />)}
         </div>
       )}
       {/* TODO(toss-ads): 앱인토스 광고 SDK 슬롯을 여기(목록 아래)에 둔다. 웹의 AdSense/AdFit은 쓰지 않는다. */}

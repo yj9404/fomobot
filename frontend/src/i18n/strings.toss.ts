@@ -15,3 +15,8 @@ export const TOSS_STR: CommonStrings = {
   breadthFomo: '상승 종목이 더 많아요',
   breadthNeutral: '상승과 하락이 비슷해요',
 }
+
+/** 토스 화면에서만 쓰는 문구 — 웹과 공유하는 CommonStrings에는 넣지 않는다. */
+export const TOSS_COPY = {
+  closeNote: '종가 기준',
+}

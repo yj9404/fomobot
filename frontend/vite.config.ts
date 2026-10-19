@@ -23,7 +23,6 @@ const renameTossEntry = (): Plugin => ({
 export default defineConfig(({ mode }) => {
   const isToss = mode === 'toss'
   return {
-    define: { __TOSS__: JSON.stringify(isToss) },
     plugins: isToss ? [react(), renameTossEntry()] : [react(), cloudflare()],
     build: isToss
       ? { outDir: 'dist-toss', emptyOutDir: true, rollupOptions: { input: 'index.toss.html' } }
