@@ -64,5 +64,15 @@ try {
 // 번들은 minify되어 출처를 알 수 없으므로 소스 파일별 분포를 참고용으로 같이 낸다.
 scan(srcDir, '소스 src — 출처 참고용(웹 전용 코드 포함)')
 
+// 필수 조건: 번들에 API 절대 주소(https)가 있어야 한다. 없으면 토스 안에서 API 요청이 토스 호스팅으로 가서 403이 난다.
+// TOSS_API_BASE_URL로 다른 주소를 지정해 빌드한 경우에는 그 주소를 찾는다.
+const apiBase = process.env.TOSS_API_BASE_URL
+const bundleJs = [...walk(distDir)].filter((f) => f.endsWith('.js')).map((f) => readFileSync(f, 'utf8')).join('\n')
+const hasApiBase = apiBase ? bundleJs.includes(apiBase) : /https:\/\/[a-z0-9.-]+\.up\.railway\.app/.test(bundleJs)
+if (!hasApiBase) {
+  console.error('\n[실패] 번들에 API 절대 주소가 없습니다(vite.config.ts의 TOSS_API_BASE_URL 주입 확인).')
+  process.exit(1)
+}
+
 console.log(`\n번들 내 금지 토큰 합계: ${bundleTotal}${strict ? '' : ' (리포트 모드: 실패시키지 않음)'}`)
 if (strict && bundleTotal > 0) process.exit(1)
