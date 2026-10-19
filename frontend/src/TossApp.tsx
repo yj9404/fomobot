@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { Fragment, useCallback, useState } from 'react'
 import { TossHeader } from './components/TossHeader'
 import { RankingRow } from './components/RankingRow'
 import { TossBanner } from './components/TossBanner'
@@ -15,6 +15,7 @@ import { FONT } from './tokens'
 import type { CapTier, Market, OrderDir } from './types'
 
 const DEFAULT_PERIOD_IDX = 2 // 30d
+const BANNER_AFTER_INDEX = 4 // 5번째 행 아래
 
 /**
  * 앱인토스 미니앱 화면. 웹의 App.tsx와 별도 셸이라 백테스트·공유·부동산·뉴스·광고·글 등
@@ -71,9 +72,13 @@ export default function TossApp() {
               <span>{TOSS_COPY.closeNote}</span>
             </div>
           )}
-          {rankings.map((item) => <RankingRow key={item.ticker} item={item} market={market} t={t} />)}
-          {/* 광고는 스크롤되는 목록이 있을 때만, 목록 아래에 한 개만 둔다. */}
-          <TossBanner />
+          {rankings.map((item, i) => (
+            <Fragment key={item.ticker}>
+              <RankingRow item={item} market={market} t={t} />
+              {/* 광고는 한 화면에 한 개만. 목록 중간(5위 아래)에 두고, 이후 행이 더 있어 스크롤되는 경우에만 넣는다. */}
+              {i === BANNER_AFTER_INDEX && rankings.length > BANNER_AFTER_INDEX + 1 && <TossBanner />}
+            </Fragment>
+          ))}
         </div>
       )}
     </div>
