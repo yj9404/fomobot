@@ -16,6 +16,14 @@ class RankingItem(BaseModel):
     ticker: str
     name: str | None = None
     return_pct: float = Field(description="기간 수익률 (%)")
+    close_price: float | None = Field(
+        None,
+        description=(
+            "기준일(as_of) 종가. KOSPI는 원, NASDAQ은 달러. 랭킹 배치가 스냅샷을 만들 때 "
+            "저장한 값이라 이후 액면분할·배당으로 과거 가격이 재조정돼도 그날 값 그대로다. "
+            "저장되지 않은 옛 스냅샷은 null — 프론트는 null이면 가격을 표시하지 않는다."
+        ),
+    )
     mdd_pct: float | None = Field(None, description="최대낙폭 MDD (%, ≤ 0)")
     volatility_annualized_pct: float | None = Field(None, description="연율화 변동성 (%)")
     excess_return_vs_index_pct: float | None = Field(None, description="지수 대비 초과수익률 (%)")

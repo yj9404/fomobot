@@ -102,6 +102,7 @@ async def get_rankings_endpoint(
             ticker=r.ticker,
             name=r.name,
             return_pct=r.return_pct,
+            close_price=r.close_price_at_snapshot,
             mdd_pct=r.mdd_pct,
             volatility_annualized_pct=r.volatility_annualized_pct,
             excess_return_vs_index_pct=r.excess_return_pct,
