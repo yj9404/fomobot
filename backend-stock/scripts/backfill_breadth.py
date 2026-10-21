@@ -49,7 +49,10 @@ check_rankings.py와 동일한 패턴이다.
 옵션:
   --market {kospi,nasdaq,both}  기본 both
   --days N                       기본 30 (최근 N 거래일)
-  --dry-run                      실제 저장 없이 계산 결과만 출력
+  --dates D1,D2,...              최근 N일 대신 지정 날짜만 재계산 (YYYY-MM-DD, 쉼표 구분).
+                                 오염 데이터 정리 후 영향받은 과거 날짜만 다시 집계할 때 사용.
+                                 price_daily에 행이 없는 날짜는 0건 집계로 덮어쓰지 않도록 실패 처리.
+  --dry-run                     실제 저장 없이 계산 결과만 출력
 """
 
 import argparse
@@ -107,6 +110,18 @@ async def _get_recent_trading_days(conn: asyncpg.Connection, market: str, n: int
         market, n,
     )
     return sorted(r["date"] for r in rows)
+
+
+async def _split_trading_days(
+    conn: asyncpg.Connection, market: str, dates: list[date],
+) -> tuple[list[date], list[date]]:
+    """지정 날짜를 (price_daily에 행이 있는 날짜, 없는 날짜)로 나눈다."""
+    rows = await conn.fetch(
+        "SELECT DISTINCT date FROM price_daily WHERE market = $1 AND date = ANY($2::date[])",
+        market, dates,
+    )
+    present = {r["date"] for r in rows}
+    return sorted(d for d in dates if d in present), sorted(d for d in dates if d not in present)
 
 
 async def _get_prev_trading_day(conn: asyncpg.Connection, market: str, before: date) -> date | None:
@@ -205,7 +220,9 @@ async def _compute_and_upsert_one_day(
     return record
 
 
-async def main_async(markets: list[str], days: int, dry_run: bool) -> None:
+async def main_async(
+    markets: list[str], days: int, dry_run: bool, dates: list[date] | None = None,
+) -> None:
     conn = await asyncpg.connect(DB_URL, ssl=False)
     try:
         if not await _table_exists(conn, "market_breadth_daily"):
@@ -219,9 +236,15 @@ async def main_async(markets: list[str], days: int, dry_run: bool) -> None:
         failed: list[tuple[str, date, str]] = []
 
         for market in markets:  # 시장별 순차 실행
-            trading_days = await _get_recent_trading_days(conn, market, days)
+            if dates:
+                trading_days, missing = await _split_trading_days(conn, market, dates)
+                for d in missing:
+                    logger.error("실패: %s %s — price_daily에 행 없음(비거래일?), 건너뜀", market, d)
+                    failed.append((market, d, "price_daily에 행 없음"))
+            else:
+                trading_days = await _get_recent_trading_days(conn, market, days)
             logger.info(
-                "%s: 최근 %d거래일 백필 시작 (%s ~ %s)",
+                "%s: %d거래일 백필 시작 (%s ~ %s)",
                 market.upper(), len(trading_days),
                 trading_days[0] if trading_days else "-",
                 trading_days[-1] if trading_days else "-",
@@ -254,11 +277,22 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="market_breadth_daily 1회성 백필 (최근 N거래일)")
     parser.add_argument("--market", choices=["kospi", "nasdaq", "both"], default="both")
     parser.add_argument("--days", type=int, default=30, help="백필할 최근 거래일 수 (기본 30)")
+    parser.add_argument(
+        "--dates", type=_parse_dates, default=None,
+        help="지정 날짜만 재계산 (YYYY-MM-DD 쉼표 구분, 지정 시 --days 무시)",
+    )
     parser.add_argument("--dry-run", action="store_true", help="계산만 하고 저장하지 않음")
     args = parser.parse_args()
 
     markets = ["kospi", "nasdaq"] if args.market == "both" else [args.market]
-    asyncio.run(main_async(markets, args.days, args.dry_run))
+    asyncio.run(main_async(markets, args.days, args.dry_run, args.dates))
+
+
+def _parse_dates(value: str) -> list[date]:
+    try:
+        return sorted({date.fromisoformat(s.strip()) for s in value.split(",") if s.strip()})
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError(f"날짜 형식 오류(YYYY-MM-DD): {exc}") from exc
 
 
 if __name__ == "__main__":

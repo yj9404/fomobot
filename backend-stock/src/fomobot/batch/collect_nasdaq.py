@@ -34,6 +34,7 @@ from fomobot.db.crud import (
     upsert_securities_master_sync,
 )
 from fomobot.db.session import SyncSessionLocal
+from fomobot.services.nasdaq_listing import is_when_issued_symbol, normalize_security_name
 
 logger = logging.getLogger(__name__)
 
@@ -59,6 +60,12 @@ def fetch_nasdaq_tickers() -> list[str]:
         tickers = df["Symbol"].str.strip().tolist()
         # 특수문자 포함 티커 제거 (클래스 주식 등 yfinance가 처리 못하는 경우)
         tickers = [t for t in tickers if t.isalpha() and len(t) <= 5]
+        # when-issued 티커는 정식 티커와 별도 심볼로 상장되므로 그대로 두면 같은
+        # 회사가 이중 집계된다(2026-10 확인: MMEDV/MMED 등). 조용히 빼지 않고 로그로 남긴다.
+        when_issued = [t for t in tickers if is_when_issued_symbol(t)]
+        if when_issued:
+            logger.info("NASDAQ when-issued 티커 %d개 제외: %s", len(when_issued), when_issued)
+            tickers = [t for t in tickers if not is_when_issued_symbol(t)]
         logger.info("NASDAQ 티커 %d개 로드", len(tickers))
         return tickers
     except Exception:
@@ -82,7 +89,10 @@ def _fetch_nasdaq_name_map() -> dict[str, str]:
         df = df[df["Symbol"].str.isalpha() & (df["Symbol"].str.len() <= 5)]
         if "Security Name" not in df.columns:
             return {}
-        return dict(zip(df["Symbol"].str.strip(), df["Security Name"].str.strip().str[:200]))
+        names = df["Security Name"].map(
+            lambda s: normalize_security_name(s)[:200] if isinstance(s, str) else s
+        )
+        return dict(zip(df["Symbol"].str.strip(), names))
     except Exception:
         logger.warning("NASDAQ 종목명 매핑 조회 실패")
         return {}

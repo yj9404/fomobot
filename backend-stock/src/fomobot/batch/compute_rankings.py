@@ -23,6 +23,7 @@ from fomobot.db.crud import (
     upsert_ranking_snapshots_sync,
 )
 from fomobot.db.session import SyncSessionLocal
+from fomobot.services.nasdaq_listing import normalize_security_name
 from fomobot.services.calculator import (
     PERIOD_TO_DAYS,
     build_ranking_df,
@@ -96,7 +97,7 @@ def _fetch_name_map(market: str, tickers: list[str]) -> dict[str, str]:
             for _, row in df.iterrows():
                 sym = str(row["Symbol"]).strip()
                 if sym in ticker_set:
-                    name_map[sym] = str(row[name_col]).strip()[:200]
+                    name_map[sym] = normalize_security_name(str(row[name_col]))[:200]
         except Exception:
             logger.warning("NASDAQ 종목명 조회 실패")
     return name_map
