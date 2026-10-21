@@ -81,6 +81,7 @@ const WEB_STR: Record<Lang, Strings> = {
     orderFall: 'Top Losers ▼',
     orderFallCopy: 'Glad you skipped these',
     asOfLabel: 'As of',
+    closeNote: 'close',
     btDcaBadge: 'DCA',
     btCompareLumpSum: 'If bought all at once',
     btDeficitWarning: "It wasn't even listed yet back then — calculated from the first day you could actually buy it.",

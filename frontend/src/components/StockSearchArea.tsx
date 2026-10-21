@@ -5,6 +5,7 @@ import { PERIODS } from '../types'
 import { useStockSearch } from '../hooks/useStockSearch'
 import { useStockQuote } from '../hooks/useStockQuote'
 import { fetchStockDateBounds } from '../api/stock'
+import { fmtPrice } from '../format'
 import { ShareButton, ShareImageButton } from './ShareButton'
 import { TICKER_RE, cardFileName, cardImagePath, customPeriodLabel, sharePath, shareText, tabPeriodLabel } from '../../shared/share'
 import type { Market, Lang, Period } from '../types'
@@ -19,12 +20,6 @@ interface Props {
 function fmtPct(n: number | null | undefined): string {
   if (n == null) return '—'
   return (n >= 0 ? '+' : '') + n.toFixed(2) + '%'
-}
-
-function fmtPrice(v: number | null, market: Market): string {
-  if (v == null) return '—'
-  if (market === 'kospi') return '₩' + Math.round(v).toLocaleString('ko-KR')
-  return '$' + v.toFixed(2)
 }
 
 function isoDaysAgo(days: number): string {

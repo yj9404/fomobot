@@ -382,6 +382,9 @@ export default function App() {
                   }}>
                     <span>{t.asOfLabel}</span>
                     <span style={{ color: C.textSub, fontWeight: 600 }}>{asOf}</span>
+                    <span>{t.closeNote}</span>
+                    {/* 카드 우측 열(등락률/종가)의 열 머리 — 카드마다 반복하던 "기간 등락" 라벨을 여기 한 번만 둔다. */}
+                    <span style={{ marginLeft: 'auto', paddingRight: 14 }}>{t.moveLabel}</span>
                   </div>
                 )}
                 {rankings.map((item) => (

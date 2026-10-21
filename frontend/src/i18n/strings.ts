@@ -19,6 +19,8 @@ export interface CommonStrings {
   orderRise: string
   orderFall: string
   asOfLabel: string
+  /** 기준일 라벨 뒤에 붙는 "종가 기준" — 행의 가격이 기준일 종가임을 알린다. */
+  closeNote: string
   haltResumptionTitle: string
   startValidityGapTitle: (date: string) => string
   startValidityHaltedTitle: (date: string) => string
@@ -43,6 +45,7 @@ export const SHARED_KO = {
   orderRise: '상승률 상위 ▲',
   orderFall: '하락률 상위 ▼',
   asOfLabel: '기준일',
+  closeNote: '종가 기준',
   haltResumptionTitle: '이 종목은 장기 거래정지 후 재개된 첫날입니다. 재개 첫날은 가격제한폭(±30%)이 적용되지 않아 하루 등락이 클 수 있습니다.',
   startValidityGapTitle: (d: string) => `이 기간 시작 시점에는 거래 데이터가 없습니다. 실제 비교 시작일: ${d}`,
   startValidityHaltedTitle: (d: string) => `이 기간 시작 시점에 거래가 정지 상태였습니다. 실제 비교 시작일: ${d}`,

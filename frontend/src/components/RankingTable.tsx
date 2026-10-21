@@ -2,6 +2,7 @@ import { useC, useTheme } from '../ThemeContext'
 import { FONT, DECLINE_ACCENT_DARK, DECLINE_ACCENT_LIGHT } from '../tokens'
 import { NewsDot } from './NewsDot'
 import { InfoTooltip } from './InfoTooltip'
+import { fmtPrice } from '../format'
 import type { RankingItem, Market, Lang, Period } from '../types'
 import { getInfoBadgeText, type Strings } from '../i18n/strings'
 
@@ -21,7 +22,7 @@ function fmtPct(n: number | null): string {
   return (n >= 0 ? '+' : '') + n.toFixed(1) + '%'
 }
 
-export function RankingTable({ rankings, selectedRank, lang, t, period, asOf, onSelect }: Props) {
+export function RankingTable({ rankings, selectedRank, market, lang, t, period, asOf, onSelect }: Props) {
   const C = useC()
   const { theme, atmosphereMode } = useTheme()
   const da = theme === 'dark' ? DECLINE_ACCENT_DARK : DECLINE_ACCENT_LIGHT
@@ -58,6 +59,7 @@ export function RankingTable({ rankings, selectedRank, lang, t, period, asOf, on
         }}>
           <span>{t.asOfLabel}</span>
           <span style={{ color: C.textSub, fontWeight: 600 }}>{asOf}</span>
+          <span>{t.closeNote}</span>
         </div>
       )}
       <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0 5px' }}>
@@ -119,7 +121,7 @@ export function RankingTable({ rankings, selectedRank, lang, t, period, asOf, on
                   <div style={{ fontFamily: FONT.mono, fontSize: 11, color: C.textDim, marginTop: 2 }}>{item.ticker}</div>
                 </td>
 
-                {/* Return */}
+                {/* Return / 기준일 종가 — 새 열 대신 한 셀에 두 줄 */}
                 <td style={{ ...td, textAlign: 'right' }}>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                     {infoBadgeText && <InfoTooltip text={infoBadgeText} />}
@@ -127,6 +129,14 @@ export function RankingTable({ rankings, selectedRank, lang, t, period, asOf, on
                       {fmtPct(item.return_pct)}
                     </span>
                   </span>
+                  {/* 열 폭 계산에서 빠지게 해(width:0 + minWidth:100%) 1,892,000원 같은 긴 가격이
+                      등락 열을 넓히지 않는다. 넘치는 만큼은 왼쪽(종목 열의 티커 줄 옆 빈 공간)으로 나간다. */}
+                  <div style={{
+                    width: 0, minWidth: '100%', display: 'flex', justifyContent: 'flex-end', whiteSpace: 'nowrap',
+                    fontFamily: FONT.mono, fontSize: 12, fontWeight: 600, color: C.textMuted, marginTop: 2,
+                  }}>
+                    {fmtPrice(item.close_price, market)}
+                  </div>
                 </td>
 
                 {/* MDD — 전일(1d)은 2포인트뿐이라 의미 없어 컬럼 자체를 숨김 */}

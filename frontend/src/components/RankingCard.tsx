@@ -3,6 +3,7 @@ import { useC, useTheme } from '../ThemeContext'
 import { FONT, DECLINE_ACCENT_DARK, DECLINE_ACCENT_LIGHT } from '../tokens'
 import { BacktestPanel } from './BacktestPanel'
 import { NewsDot } from './NewsDot'
+import { fmtPrice } from '../format'
 import type { RankingItem, Market, Period, Lang, NewsArticle } from '../types'
 import { getInfoBadgeText, type Strings } from '../i18n/strings'
 
@@ -126,7 +127,15 @@ export function RankingCard({ item, open, market, days, period, btDetail, newsDe
                 {fmtPct(item.return_pct)}
               </div>
             </div>
-            <div style={{ fontSize: 9.5, color: C.textDim, marginTop: 4 }}>{t.moveLabel}</div>
+            {/* 기준일 종가 — 수익률보다 약하게. "기간 등락" 라벨은 목록 머리(App)로 옮겼다.
+                width:0 + minWidth:100%로 열 폭 계산에서 빠지고, 수익률보다 길면(1,892,000원 등)
+                왼쪽(티커 줄 옆 빈 공간)으로 넘친다 — 우측 열이 넓어져 종목명이 더 잘리는 걸 막는다. */}
+            <div style={{
+              width: 0, minWidth: '100%', display: 'flex', justifyContent: 'flex-end', whiteSpace: 'nowrap',
+              fontFamily: FONT.mono, fontSize: 13, fontWeight: 600, color: C.textMuted, marginTop: 5,
+            }}>
+              {fmtPrice(item.close_price, market)}
+            </div>
           </div>
         </div>
 

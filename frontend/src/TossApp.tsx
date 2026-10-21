@@ -7,7 +7,7 @@ import { SkeletonList } from './components/SkeletonList'
 import { EmptyState } from './components/EmptyState'
 import { ErrorState } from './components/ErrorState'
 import { useRankings } from './hooks/useRankings'
-import { TOSS_COPY, TOSS_STR } from './i18n/strings.toss'
+import { TOSS_STR } from './i18n/strings.toss'
 import { useC } from './ThemeContext'
 import { KR_DOWN, KR_UP } from './tossColors'
 import { PERIODS } from './types'
@@ -69,7 +69,7 @@ export default function TossApp() {
             }}>
               <span>{t.asOfLabel}</span>
               <span style={{ color: C.textSub, fontWeight: 600 }}>{asOf}</span>
-              <span>{TOSS_COPY.closeNote}</span>
+              <span>{t.closeNote}</span>
             </div>
           )}
           {rankings.map((item, i) => (

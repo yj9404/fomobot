@@ -1,6 +1,7 @@
 import { useC } from '../ThemeContext'
 import { FONT } from '../tokens'
 import { changeColor } from '../tossColors'
+import { fmtPrice } from '../format'
 import type { Market, RankingItem } from '../types'
 import { getInfoBadgeText, type CommonStrings } from '../i18n/strings'
 
@@ -12,13 +13,6 @@ interface Props {
 
 function fmtPct(n: number): string {
   return (n >= 0 ? '+' : '') + n.toFixed(1) + '%'
-}
-
-/** KOSPI는 원(정수), NASDAQ은 달러(소수 2자리). */
-function fmtPrice(price: number, market: Market): string {
-  return market === 'kospi'
-    ? `${Math.round(price).toLocaleString('ko-KR')}원`
-    : `$${price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
 /** 토스용 단순 행 — 펼침 없이 순위, 종목명, 기준일 종가, 기간 등락률만 보여준다. */
@@ -46,7 +40,7 @@ export function RankingRow({ item, market, t }: Props) {
         </div>
         <div style={{ textAlign: 'right', flexShrink: 0 }}>
           <div style={{ fontFamily: FONT.mono, fontSize: 16, fontWeight: 700, color: C.textPrimary }}>
-            {item.close_price != null ? fmtPrice(item.close_price, market) : '—'}
+            {fmtPrice(item.close_price, market)}
           </div>
           <div style={{ fontFamily: FONT.mono, fontSize: 13, fontWeight: 700, marginTop: 3, color: changeColor(item.return_pct, C.textMuted) }}>
             {fmtPct(item.return_pct)}
