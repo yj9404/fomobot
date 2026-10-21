@@ -1,20 +1,22 @@
 """
 KOSPI 다일 수집 공백 복구 스크립트 (1회성).
 
-정기 cron(fomobot.jobs.collect)은 최근 7일만 재수집하고, gap-fill cron은
-"고립된 단일 거래일 랭킹 구멍"만 채운다. KRX 로그인 장애처럼 수집 자체가
-여러 날 실패한 경우는 둘 다 복구하지 못하므로 이 스크립트로 한 번에 메운다.
+정기 cron(fomobot.jobs.collect)은 DB 최신일 이후 거래일을 모두 수집하므로 가격 공백은
+다음 cron이 스스로 메운다. 다만 랭킹·breadth는 최신일 하루만 계산하고, gap-fill cron은
+"고립된 단일 거래일 랭킹 구멍"만 채운다. 수집이 여러 날 실패한 뒤에는 이 스크립트로
+중간 날짜들의 랭킹·breadth를 한 번에 메운다.
 
 순서:
-  1. price_daily / index_daily 재수집 — start ~ end를 단일 pykrx 호출 구간으로
-     수집한다(adjusted=True가 구간 내에서 일관된 기준으로 맞춰지도록 쪼개지 않음).
-  2. 구간 내 실제 거래일마다 랭킹 스냅샷 + breadth 재계산 (둘 다 upsert라 재실행 안전).
-  3. corporate action 후보 탐지를 공백 전체로 넓혀 1회 실행 — 정기 cron은
-     lookback 7일이라 공백 기간의 액면분할·병합을 보지 못했다. 알림(출력)만, DB write 없음.
-     주의: 공백 중 병합·감자가 있었던 종목은 1단계 재수집이 --start 이후만 신기준으로
-     덮어쓰므로, 급변이 실제 이벤트일이 아니라 "--start 직전일 → --start" 경계에
-     나타난다. 이 경우 정정 범위는 --start 직전일 이하 전체 이력이다
-     (2026-10-15 복구 시 6종목 실례: corporate_action_flag note 참조).
+  1. 가격 수집 — run_kospi_collection(target_date=--end). DB 최신일 다음 거래일부터
+     --end까지 날짜 오름차순으로 하루씩 "KRX 원값 수집 → 기준가 소급 보정"을 한다.
+     DB 최신일 이전 날짜는 다시 쓰지 않는다(--start와 무관).
+  2. --start ~ --end 실제 거래일마다 랭킹 스냅샷 + breadth 재계산 (둘 다 upsert라 재실행 안전).
+  3. corporate action 후보 탐지를 공백 전체로 넓혀 1회 실행. 알림(출력)만, DB write 없음.
+
+2026-10 이전(네이버 수정주가 + 구간 재수집) 방식에서는 공백 중 병합·감자 종목의 급변이
+"--start 직전일 → --start" 경계에 나타나는 아티팩트가 있었다(2026-10-15 복구 시 6종목,
+corporate_action_flag note 참조). 지금은 거래일마다 KRX 기준가로 이벤트일에 정확히 보정하므로
+이 경계 아티팩트가 생기지 않는다.
 
 실행 전제:
   - 오늘자 cron-kospi / cron-kospi-gapfill 실행이 끝난 뒤 실행할 것.
@@ -27,7 +29,7 @@ KOSPI 다일 수집 공백 복구 스크립트 (1회성).
     python scripts/backfill_kospi_gap.py --start 2026-09-22 --end 2026-10-14 --skip-collect   # 2~3단계만
 
   장중(09:00~15:30 KST)에 실행할 때는 --end를 전 거래일로 지정할 것 —
-  오늘을 포함하면 미확정 장중 가격이 저장된다(당일 18:00 cron이 덮어쓰긴 함).
+  오늘을 포함하면 미확정 장중 가격이 저장되고, 재수집을 하지 않으므로 그 값이 그대로 남는다.
 """
 
 import argparse
@@ -76,14 +78,13 @@ def main() -> None:
     if args.start > args.end:
         parser.error("--start가 --end보다 늦습니다")
 
-    span_days = (args.end - args.start).days
-
     # 1. 가격 재수집
     if not args.skip_collect:
         from fomobot.batch.collect_kospi import run_kospi_collection
 
-        logger.info("[1/3] 가격 재수집: %s ~ %s (%d일)", args.start, args.end, span_days)
-        run_kospi_collection(target_date=args.end, lookback_days=span_days)
+        logger.info("[1/3] 가격 수집: DB 최신일 다음 거래일 ~ %s", args.end)
+        collected = run_kospi_collection(target_date=args.end)
+        logger.info("수집한 거래일 %d개: %s", len(collected), [d.isoformat() for d in collected])
 
     # 2. 거래일별 랭킹 + breadth
     from fomobot.batch.compute_breadth import compute_market_breadth

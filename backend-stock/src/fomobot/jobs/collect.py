@@ -32,13 +32,16 @@ init_sentry()
 
 
 def _collect_kospi() -> int:
-    """KOSPI 수집 후 저장된 레코드 수를 반환한다."""
+    """
+    KOSPI 수집 + 기준가 소급 보정. 저장한 거래일 수를 반환한다.
+
+    보정은 수집 안에서 거래일마다 수행된다(수집 → 보정을 하루씩 반복) — 여러 날을
+    메울 때 D일 보정이 D-1일까지 보정된 데이터를 전제로 하기 때문이다. 그래서 이
+    job의 순서는 "수집(+보정) → 랭킹 → breadth"이고, 랭킹은 보정이 끝난 데이터를 읽는다.
+    """
     from fomobot.batch.collect_kospi import run_kospi_collection
     logger.info("=== KOSPI 수집 시작 ===")
-    run_kospi_collection()
-    # run_kospi_collection 은 내부에서 저장까지 완료 후 반환
-    # 반환값이 없으므로 0 반환 (로그로 건수 확인)
-    return 0
+    return len(run_kospi_collection())
 
 
 def _collect_nasdaq() -> int:

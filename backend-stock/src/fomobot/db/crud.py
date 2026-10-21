@@ -110,7 +110,8 @@ async def get_latest_snapshot_date(
 
 # ── PriceDaily (배치에서 사용, sync) ─────────────────────────────────────────
 
-def upsert_price_daily_sync(session: Session, records: list[dict]) -> None:
+def upsert_price_daily_sync(session: Session, records: list[dict], commit: bool = True) -> None:
+    """commit=False면 호출자가 같은 트랜잭션에서 다른 쓰기(KOSPI 소급 보정)와 함께 커밋한다."""
     from sqlalchemy.dialects.postgresql import insert as pg_insert
     if not records:
         return
@@ -127,7 +128,17 @@ def upsert_price_daily_sync(session: Session, records: list[dict]) -> None:
         },
     )
     session.execute(stmt)
-    session.commit()
+    if commit:
+        session.commit()
+
+
+def get_close_on_date_sync(session: Session, market: str, on_date: date) -> dict[str, float]:
+    """특정 거래일 하루의 {ticker: close_adj}. KOSPI 소급 보정의 D-1 종가 조회용(명시적 날짜 조회)."""
+    stmt = select(PriceDaily.ticker, PriceDaily.close_adj).where(
+        PriceDaily.market == market,
+        PriceDaily.date == on_date,
+    )
+    return {r.ticker: r.close_adj for r in session.execute(stmt).fetchall()}
 
 
 def upsert_index_daily_sync(session: Session, records: list[dict]) -> None:

@@ -326,8 +326,9 @@ def compute_rankings_for_market(
 
                 # snapshot_date 당일 종가 맵 (ticker → close_adj).
                 # price_matrix의 마지막 행(= snapshot_date)에서 추출.
-                # as_of 시점 주가를 스냅샷에 저장해 두면, 백테스트가
-                # price_daily 과거분 없이도 기준 주가를 참조할 수 있다.
+                # 랭킹 응답의 close_price(기준일 종가 표시)로 쓰인다. 원래는 백테스트를
+                # price_daily에서 떼어내려고 만든 컬럼인데 그 구조는 폐기됐다
+                # (백테스트는 price_daily를 직접 읽음, tests/test_backtest.py 참조).
                 last_row = price_matrix.iloc[-1]  # snapshot_date 행
 
                 # halt_resumption 판별 — 1d period에서 |return_pct|>30%인 종목만
