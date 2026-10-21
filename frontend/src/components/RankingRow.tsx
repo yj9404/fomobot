@@ -1,7 +1,7 @@
 import { useC } from '../ThemeContext'
 import { FONT } from '../tokens'
 import { changeColor } from '../tossColors'
-import { fmtPrice } from '../format'
+import { displayStockName, fmtPrice } from '../format'
 import type { Market, RankingItem } from '../types'
 import { getInfoBadgeText, type CommonStrings } from '../i18n/strings'
 
@@ -33,8 +33,8 @@ export function RankingRow({ item, market, t }: Props) {
           {String(item.rank).padStart(2, '0')}
         </span>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 15.5, fontWeight: 700, color: C.textPrimary, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {item.name ?? item.ticker}
+          <div title={item.name ?? undefined} style={{ fontSize: 15.5, fontWeight: 700, color: C.textPrimary, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {item.name ? displayStockName(item.name) : item.ticker}
           </div>
           <div style={{ fontFamily: FONT.mono, fontSize: 11, color: C.textDim, marginTop: 2 }}>{item.ticker}</div>
         </div>

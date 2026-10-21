@@ -2,7 +2,7 @@ import { useC, useTheme } from '../ThemeContext'
 import { FONT, DECLINE_ACCENT_DARK, DECLINE_ACCENT_LIGHT } from '../tokens'
 import { NewsDot } from './NewsDot'
 import { InfoTooltip } from './InfoTooltip'
-import { fmtPrice } from '../format'
+import { displayStockName, fmtPrice } from '../format'
 import type { RankingItem, Market, Lang, Period } from '../types'
 import { getInfoBadgeText, type Strings } from '../i18n/strings'
 
@@ -66,12 +66,14 @@ export function RankingTable({ rankings, selectedRank, market, lang, t, period, 
         <thead>
           <tr>
             <th style={{ ...th, textAlign: 'center', width: 44 }}>#</th>
-            <th style={{ ...th, textAlign: 'left', paddingLeft: 12 }}>
+            {/* 이름 셀 내용이 열 폭 계산에서 빠지므로 폭 힌트를 %로 준다. 공간이 모자라면 숫자 열이
+                우선이고 이 열이 줄어든다(말줄임). */}
+            <th style={{ ...th, textAlign: 'left', paddingLeft: 12, width: '36%' }}>
               {lang === 'ko' ? '종목' : 'Stock'}
             </th>
             <th style={th}>{t.moveLabel}</th>
             {showRiskMetrics && <th style={th}>MDD</th>}
-            {showRiskMetrics && <th style={th}>{t.volatilityLabel}</th>}
+            {showRiskMetrics && <th className="fb-hide-narrow-desktop" style={th}>{t.volatilityLabel}</th>}
             <th style={{ ...th, textAlign: 'center' }}>{vsLabel}</th>
           </tr>
         </thead>
@@ -112,10 +114,13 @@ export function RankingTable({ rankings, selectedRank, market, lang, t, period, 
 
                 {/* Name / ticker */}
                 <td style={{ ...td, paddingLeft: 12 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  {/* width:0 + minWidth:100%로 열 폭 계산에서 빠진다 — 이름 길이가 표의 최소 폭을 늘리지 않아
+                      1024px처럼 좁을 때도 오른쪽 열이 잘리지 않는다. 열 폭은 th의 % 폭과 남는 공간이 정하고,
+                      이름 텍스트는 그 안에서 최대 200px로 말줄임된다. */}
+                  <div style={{ width: 0, minWidth: '100%', display: 'flex', alignItems: 'center', gap: 6 }}>
                     <NewsDot show={item.has_news === true} t={t} />
-                    <span style={{ fontSize: 14.5, fontWeight: 700, color: C.textPrimary, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 200 }}>
-                      {item.name ?? item.ticker}
+                    <span title={item.name ?? undefined} style={{ fontSize: 14.5, fontWeight: 700, color: C.textPrimary, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 200 }}>
+                      {item.name ? displayStockName(item.name) : item.ticker}
                     </span>
                   </div>
                   <div style={{ fontFamily: FONT.mono, fontSize: 11, color: C.textDim, marginTop: 2 }}>{item.ticker}</div>
@@ -148,9 +153,9 @@ export function RankingTable({ rankings, selectedRank, market, lang, t, period, 
                   </td>
                 )}
 
-                {/* Volatility — 전일(1d)은 표본 1개라 정의 자체가 안 됨 */}
+                {/* Volatility — 전일(1d)은 표본 1개라 정의 자체가 안 됨. 1024~1279px에선 종목명 자리를 위해 숨김(bootstrapStyle) */}
                 {showRiskMetrics && (
-                  <td style={{ ...td, textAlign: 'right' }}>
+                  <td className="fb-hide-narrow-desktop" style={{ ...td, textAlign: 'right' }}>
                     <span style={{ fontFamily: FONT.mono, fontSize: 13, fontWeight: 600, color: C.orange }}>
                       {fmtPct(item.volatility_annualized_pct)}
                     </span>

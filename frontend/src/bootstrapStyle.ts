@@ -11,6 +11,8 @@ export function injectGlobalStyle(): void {
   ::-webkit-scrollbar { height: 8px; width: 8px; }
   ::-webkit-scrollbar-thumb { background: rgba(128,128,128,.25); border-radius: 8px; }
   input::placeholder { color: #9AA5B8; }
+  /* 1024~1279px 데스크톱은 양옆 레일·사이드바 때문에 랭킹 표 폭이 ~435px뿐이라 덜 중요한 열을 숨겨 종목명 자리를 만든다. */
+  @media (min-width: 1024px) and (max-width: 1279px) { .fb-hide-narrow-desktop { display: none; } }
 `
   document.head.appendChild(style)
 }

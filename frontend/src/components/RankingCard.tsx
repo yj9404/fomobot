@@ -3,7 +3,7 @@ import { useC, useTheme } from '../ThemeContext'
 import { FONT, DECLINE_ACCENT_DARK, DECLINE_ACCENT_LIGHT } from '../tokens'
 import { BacktestPanel } from './BacktestPanel'
 import { NewsDot } from './NewsDot'
-import { fmtPrice } from '../format'
+import { displayStockName, fmtPrice } from '../format'
 import type { RankingItem, Market, Period, Lang, NewsArticle } from '../types'
 import { getInfoBadgeText, type Strings } from '../i18n/strings'
 
@@ -100,8 +100,8 @@ export function RankingCard({ item, open, market, days, period, btDetail, newsDe
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <NewsDot show={item.has_news === true} t={t} />
-              <span style={{ fontSize: 15.5, fontWeight: 700, color: C.textPrimary, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {item.name ?? item.ticker}
+              <span title={item.name ?? undefined} style={{ fontSize: 15.5, fontWeight: 700, color: C.textPrimary, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {item.name ? displayStockName(item.name) : item.ticker}
               </span>
             </div>
             <div style={{ fontFamily: FONT.mono, fontSize: 11, color: C.textDim, marginTop: 2 }}>{item.ticker}</div>
