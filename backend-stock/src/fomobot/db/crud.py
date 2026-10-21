@@ -253,6 +253,20 @@ def get_recent_trading_days_sync(
     return sorted(rows)
 
 
+def get_trading_days_since_sync(
+    session: Session,
+    market: str,
+    start_date: date,
+) -> list[date]:
+    """market 기준 start_date 이후(포함) price_daily에 존재하는 거래일을 오름차순으로 반환한다."""
+    stmt = (
+        select(PriceDaily.date)
+        .where(PriceDaily.market == market, PriceDaily.date >= start_date)
+        .distinct()
+    )
+    return sorted(session.execute(stmt).scalars().all())
+
+
 def get_snapshot_dates_in_range_sync(
     session: Session,
     market: str,

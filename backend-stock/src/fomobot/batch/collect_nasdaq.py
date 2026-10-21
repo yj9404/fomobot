@@ -194,7 +194,7 @@ def _append_ticker_records(
         })
 
 
-def run_nasdaq_collection(target_date: date | None = None) -> None:
+def run_nasdaq_collection(target_date: date | None = None) -> date:
     """
     NASDAQ 전 종목 가격 데이터를 수집해 DB에 저장한다.
 
@@ -202,6 +202,11 @@ def run_nasdaq_collection(target_date: date | None = None) -> None:
     ----------
     target_date : date | None
         수집 기준일. None이면 오늘 날짜 사용.
+
+    Returns
+    -------
+    date : 이번 실행이 다시 조회한 구간의 시작일. 이 날짜 이후 행은 늦게 도착한
+        데이터로 새로 채워졌을 수 있으므로, breadth는 이 날짜부터 다시 계산한다.
     """
     today = target_date or date.today()
     start_date = today - timedelta(days=7)
@@ -285,6 +290,7 @@ def run_nasdaq_collection(target_date: date | None = None) -> None:
             logger.info("NASDAQ securities_master %d건 저장 완료", len(master_records))
 
     logger.info("NASDAQ 수집 완료")
+    return start_date
 
 
 def _get_covered_tickers(market: str, start_date: date, end_date: date, min_rows: int = 100) -> set[str]:

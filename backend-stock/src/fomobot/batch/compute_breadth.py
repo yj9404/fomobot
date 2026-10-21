@@ -13,6 +13,7 @@ from fomobot.db.crud import (
     get_breadth_price_pairs_sync,
     get_last_trading_day_sync,
     get_security_names_sync,
+    get_trading_days_since_sync,
     upsert_market_breadth_daily_sync,
 )
 from fomobot.db.session import SyncSessionLocal
@@ -84,3 +85,49 @@ def compute_market_breadth(market: str, target_date: date | None = None) -> dict
             counts["excluded"], halted, total,
         )
         return record
+
+
+def recompute_market_breadth(market: str, dates: list[date]) -> list[dict]:
+    """
+    dates 각 날짜의 breadth를 다시 계산해 upsert한다 (오름차순, 날짜별 실패 격리).
+
+    수집이 이번 실행에서 쓴 날짜를 그대로 받아 쓴다 — 최신일 하루만 계산하면
+    여러 날을 따라잡은 날(KOSPI 장애 복구)의 중간 날짜가 비고, 수집이 과거 날짜를
+    다시 채운 경우(NASDAQ 재조회 구간)에는 저장값이 부분 데이터 기준으로 남는다.
+    dates가 비면(수집할 거래일이 없던 날) 기존처럼 최신 거래일만 계산한다.
+    한 날짜가 실패해도 나머지는 계산하고, 끝에 실패 날짜를 모아 예외로 올린다.
+    """
+    if not dates:
+        result = compute_market_breadth(market)
+        return [result] if result else []
+
+    results: list[dict] = []
+    failed: list[date] = []
+    for d in sorted(set(dates)):
+        try:
+            result = compute_market_breadth(market, d)
+        except Exception:
+            logger.exception("%s breadth %s 계산 실패 — 다음 날짜로 진행", market.upper(), d)
+            failed.append(d)
+            continue
+        if result:
+            results.append(result)
+
+    if failed:
+        raise RuntimeError(
+            f"{market.upper()} breadth 재계산 실패 {len(failed)}일: {[d.isoformat() for d in failed]}"
+        )
+    return results
+
+
+def recompute_market_breadth_since(market: str, start_date: date) -> list[dict]:
+    """
+    start_date 이후 price_daily에 있는 모든 거래일의 breadth를 다시 계산한다.
+
+    NASDAQ 수집은 매 실행마다 start_date부터 다시 받아 늦게 도착한 행을 채우므로,
+    수집이 실제로 쓴 start_date를 넘겨받아 같은 구간을 재계산한다(구간을 여기서
+    따로 정하면 수집 구간이 바뀔 때 어긋난다).
+    """
+    with SyncSessionLocal() as session:
+        dates = get_trading_days_since_sync(session, market, start_date)
+    return recompute_market_breadth(market, dates)

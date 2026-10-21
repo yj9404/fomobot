@@ -19,6 +19,7 @@ Railway Cron 설정 (UTC 기준):
 
 import logging
 import sys
+from datetime import date
 
 logging.basicConfig(
     level="INFO",
@@ -31,9 +32,9 @@ from fomobot.sentry_init import init_sentry
 init_sentry()
 
 
-def _collect_kospi() -> int:
+def _collect_kospi() -> list[date]:
     """
-    KOSPI 수집 + 기준가 소급 보정. 저장한 거래일 수를 반환한다.
+    KOSPI 수집 + 기준가 소급 보정. 저장한 거래일 목록을 반환한다(breadth 재계산 대상).
 
     보정은 수집 안에서 거래일마다 수행된다(수집 → 보정을 하루씩 반복) — 여러 날을
     메울 때 D일 보정이 D-1일까지 보정된 데이터를 전제로 하기 때문이다. 그래서 이
@@ -41,15 +42,14 @@ def _collect_kospi() -> int:
     """
     from fomobot.batch.collect_kospi import run_kospi_collection
     logger.info("=== KOSPI 수집 시작 ===")
-    return len(run_kospi_collection())
+    return run_kospi_collection()
 
 
-def _collect_nasdaq() -> int:
-    """NASDAQ 수집 후 저장된 레코드 수를 반환한다."""
+def _collect_nasdaq() -> date:
+    """NASDAQ 수집 후 이번 실행이 다시 조회한 구간의 시작일을 반환한다(breadth 재계산 시작일)."""
     from fomobot.batch.collect_nasdaq import run_nasdaq_collection
     logger.info("=== NASDAQ 수집 시작 ===")
-    run_nasdaq_collection()
-    return 0
+    return run_nasdaq_collection()
 
 
 def _compute_rankings(market: str) -> int:
@@ -60,9 +60,17 @@ def _compute_rankings(market: str) -> int:
     return count or 0
 
 
-def _compute_breadth(market: str) -> None:
+def _compute_breadth(
+    market: str,
+    *,
+    dates: list[date] | None = None,
+    since: date | None = None,
+) -> None:
     """
-    breadth(상승/하락/보합 종목 수) 집계.
+    breadth(상승/하락/보합 종목 수) 집계 — 수집이 이번 실행에서 건드린 날짜를 재계산한다.
+
+    KOSPI는 수집한 거래일 목록(dates), NASDAQ은 수집이 다시 조회한 구간의
+    시작일(since)을 넘긴다. 둘 다 없거나 비어 있으면 최신 거래일만 계산한다.
 
     실패해도 본 수집·랭킹 작업을 실패시키지 않는다 — 예외를 여기서 흡수한다.
     (예: market_breadth_daily 마이그레이션이 아직 적용되지 않은 DB를 만나는
@@ -72,14 +80,19 @@ def _compute_breadth(market: str) -> None:
     돌면 테이블이 없는 상태로 이 함수가 호출될 수 있다.)
     """
     try:
-        from fomobot.batch.compute_breadth import compute_market_breadth
+        from fomobot.batch.compute_breadth import (
+            recompute_market_breadth,
+            recompute_market_breadth_since,
+        )
         logger.info("=== %s breadth 계산 시작 ===", market.upper())
-        result = compute_market_breadth(market)
-        if result:
-            logger.info(
-                "%s breadth 저장 완료: 상승 %d / 하락 %d / 보합 %d",
-                market.upper(), result["advancers"], result["decliners"], result["unchanged"],
-            )
+        if since is not None:
+            results = recompute_market_breadth_since(market, since)
+        else:
+            results = recompute_market_breadth(market, dates or [])
+        logger.info(
+            "%s breadth %d일 저장 완료: %s",
+            market.upper(), len(results), [r["date"].isoformat() for r in results],
+        )
     except Exception:
         logger.exception(
             "%s breadth 계산 실패 — 본 수집/랭킹 작업에는 영향 없음(격리됨)", market.upper()
@@ -220,9 +233,9 @@ def run(market: str) -> None:
     for mkt in markets:
         try:
             if mkt == "kospi":
-                _collect_kospi()
+                breadth_target = {"dates": _collect_kospi()}
             else:
-                _collect_nasdaq()
+                breadth_target = {"since": _collect_nasdaq()}
         except Exception:
             logger.exception("%s 수집 중 예외 발생", mkt.upper())
             # Sentry 가 자동 캡처하지만 명시적으로도 전송
@@ -252,7 +265,7 @@ def run(market: str) -> None:
             logger.info("%s 랭킹 %d건 저장 완료", mkt.upper(), count)
 
         # breadth 계산은 내부에서 예외를 흡수하므로 여기서는 별도 try/except 불필요.
-        _compute_breadth(mkt)
+        _compute_breadth(mkt, **breadth_target)
 
         # corporate action 감지/halt 재개 체크도 내부에서 예외를 흡수한다(알림만, insert 없음).
         _run_corporate_action_checks(mkt)
