@@ -468,3 +468,64 @@ def test_KRX_만료된_세션은_refresh를_1회만_시도한다(monkeypatch):
         with pytest.raises(RuntimeError):
             collect_kospi._ensure_krx_auth()
     assert calls == [1]
+
+
+# ── 재적재 스크립트의 종목 분류 (scripts/reload_kospi_since_0914.py) ─────────
+
+@pytest.fixture(scope="module")
+def reload_mod():
+    import runpy
+    return runpy.run_path(str(Path(__file__).parent.parent / "scripts" / "reload_kospi_since_0914.py"), run_name="reload_mod")
+
+
+@pytest.mark.parametrize("r, F, has_auto, has_hold, expected", [
+    (1.0, 1.0, False, False, "ok"),
+    (1.003, 1.0, False, False, "hold"),        # 이벤트 없는데 9/11 연속성 깨짐
+    (None, 1.0, False, False, "new"),          # 앵커일 DB 행 없음(신규상장)
+    (5.0, 5.0, True, False, "corrected"),      # 9/21 수동 ×5 정정
+    (5.0, 5.0032, True, False, "corrected"),   # 수동 정수배 vs 호가 반올림된 f
+    (1.0, 0.5, True, False, "uncorrected"),    # 009140: 아직 정정 안 됨 → 앵커 이하에도 F
+    (2.0, 3.0, True, False, "hold"),           # r이 1도 F도 아님
+    (1.0, 0.995, True, False, "uncorrected"),  # F가 1에 가까워도 r이 정확히 1이면 미정정
+    (0.995, 0.995, True, False, "corrected"),  # F가 1에 가까우면 정확 일치만 인정
+    (0.996, 0.995, True, False, "hold"),       # 1에 가까운 F와 근사 일치는 구분 불가 → 보류
+    (1.0, 5.0, True, True, "hold"),            # 보류 이벤트가 있으면 무조건 보류
+])
+def test_재적재_종목_분류(reload_mod, r, F, has_auto, has_hold, expected):
+    assert reload_mod["classify_ticker"](r, F, has_auto, has_hold) == expected
+
+
+def test_수동_지정_계수_플래그는_랭킹_제외가_아니다(sqlite_session_factory):
+    from fomobot.batch.kospi_price_adjust import KIND_OVERRIDE
+
+    s = sqlite_session_factory()
+    s.execute(text("INSERT INTO corporate_action_flag (ticker, market, flag_date, reason, status, detected_signal) "
+                   "VALUES ('E', 'kospi', '2026-09-21', 'merge', 'resolved', 'old')"))
+    s.commit()
+    adj.apply_price_basis_events(s, "kospi", D, [
+        _event("N", D, kind=KIND_OVERRIDE, factor=2.0),   # 기존 플래그 없음
+        _event("E", D, kind=KIND_OVERRIDE, factor=2.0),   # 기존 resolved 플래그
+    ])
+    s.commit()
+    assert _flag(s, "N")[:2] == ("manual", "resolved")
+    assert _flag(s, "E")[:2] == ("merge", "resolved")
+    assert "kind=override" in _flag(s, "E").detected_signal
+
+
+def test_재적재_수동_지정은_보류를_corrected로_바꾼다(reload_mod):
+    d0, d1, d2 = date(2026, 9, 11), date(2026, 9, 21), date(2026, 9, 22)
+    snap = lambda close, cmp, shrs: pd.DataFrame(  # noqa: E731
+        {"name": ["x"], "open": [close], "high": [close], "low": [close], "close": [float(close)],
+         "volume": [10], "cmpprevdd": [float(cmp)], "market_cap": [1], "list_shrs": [shrs]},
+        index=["002630"])
+    krx = {"anchor": d0, "window": [d1, d2], "snapshots": {
+        d0: snap(913, 0, 100), d1: snap(913, 0, 100), d2: snap(2000, 64, 50)}}  # 9/22 기준가 1936 ≠ 913×2
+
+    held = reload_mod["build_plan"](krx, {"002630": 1826.0})["tickers"]["002630"]
+    assert held["category"] == "hold"
+
+    plan = reload_mod["build_plan"](krx, {"002630": 1826.0}, {"002630": 2.0})["tickers"]["002630"]
+    assert plan["category"] == "corrected"
+    assert plan["r"] == pytest.approx(2.0)
+    assert [r["close_adj"] for r in plan["rows"]] == [1826.0, 2000.0]  # 9/21 원값 ×2, 9/22 원값
+    assert plan["retro_factor"] is None  # 9/11 이하는 이미 ×2 정정돼 있어 건드리지 않음

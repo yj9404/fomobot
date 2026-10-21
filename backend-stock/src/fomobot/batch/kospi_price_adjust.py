@@ -52,6 +52,7 @@ RIGHTS_MIN_F = 0.1    # 권리락 계수 하한 — 이보다 작으면 단일 �
 KIND_SHARE_BASIS = "share_basis"   # 분할·병합·감자
 KIND_RIGHTS = "rights"             # 무상·유상증자 권리락
 KIND_HOLD = "hold"
+KIND_OVERRIDE = "override"         # 사람이 계수를 지정(재적재 스크립트 --override). 자동 분류가 보류한 종목용
 
 
 @dataclass(frozen=True)
@@ -195,6 +196,10 @@ def _record_flag(session: Session, market: str, ev: PriceBasisEvent) -> None:
     elif ev.kind == KIND_RIGHTS:
         reason = "new_issuance"
         note = "KRX 기준가 자동 소급 보정(무상·유상증자 권리락). 되돌리기: date < flag_date 가격 ÷ factor, 거래량 × factor"
+        status = "resolved"
+    elif ev.kind == KIND_OVERRIDE:
+        reason = "manual"
+        note = "수동 지정 계수로 소급 보정(자동 분류 보류 건). 되돌리기: date < flag_date 가격 ÷ factor, 거래량 × factor"
         status = "resolved"
     else:
         reason = "manual"
