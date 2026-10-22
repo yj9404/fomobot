@@ -5,8 +5,8 @@ Railway Cron 진입점 — KOSPI 종목 뉴스 배치.
     python -m fomobot.jobs.collect_news
 
 Railway Cron 설정 (UTC 기준):
-    Schedule : 20 9 * * 1-6
-    (09:20 UTC = 18:20 KST. cron-kospi(09:00 UTC = 18:00 KST) 20분 뒤 실행 —
+    Schedule : 20 1 * * 2-6
+    (01:20 UTC = 10:20 KST. cron-kospi(01:00 UTC = 10:00 KST) 20분 뒤 실행 —
      랭킹 배치가 끝난 뒤 뉴스 배치가 돌도록 버퍼를 둠.)
 """
 

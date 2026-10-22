@@ -7,8 +7,8 @@ Railway Cron 진입점 — 웹 서버 import 없이 단독 실행 가능.
     python -m fomobot.jobs.collect all   # kospi → nasdaq 순서로 실행
 
 Railway Cron 설정 (UTC 기준):
-    KOSPI:   0 9 * * 1-6   → 09:00 UTC = 18:00 KST
-             (KOSPI 장 마감 15:30 KST = 06:30 UTC 기준 +2.5h.
+    KOSPI:   0 1 * * 2-6   → 01:00 UTC = 10:00 KST 화~토, KST 전날(월~금) 수집
+             (당일 저녁 KRX 값은 확정 전이라 다음 날 오전에 받는다 — railway.toml 참조.
               한국은 서머타임 없으므로 고정 오프셋.)
     NASDAQ: 30 21 * * 1-5  → 21:30 UTC = 다음날 06:30 KST
              (NASDAQ 정규장 마감 16:00 EST = 21:00 UTC 기준 +30분,

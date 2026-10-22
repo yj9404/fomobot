@@ -9,7 +9,8 @@ KOSPI 가격 데이터 수집 배치.
   감자·증자 권리락을 찾아 그 이전 이력을 조정한다. 같은 날 저장과 한 트랜잭션.
 - 재수집 없음: 과거 날짜에 KRX 원값을 다시 쓰면 그사이 적용된 보정이 원값으로 덮인다.
   그래서 DB 최신일 이후 거래일만, 날짜 오름차순으로 하루씩 "수집 → 보정"한다.
-- 스케줄:     매일 18:00 KST (장 마감 15:30 + 여유 2.5h)
+- 스케줄:     화~토 10:00 KST에 KST 전날 거래일을 수집. KST 당일은 절대 수집하지 않는다
+  (collection_upper_bound — 당일 KRX 값은 확정 전).
 - 재시도:     tenacity exponential backoff (max 3회)
 
 2026-10 이전에는 pykrx get_market_ohlcv_by_date(adjusted=True)로 받았는데, 이 함수는
@@ -21,7 +22,8 @@ _fetch_ohlcv/_fetch_market_cap(scripts/init_history.py, restore_history.py가 �
 
 import logging
 import time
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 
 import pandas as pd
 from tenacity import (
@@ -50,6 +52,26 @@ KOSPI_INDEX_TICKER = "1001"
 
 # KRX 로그인이 이 프로세스에서 한 번이라도 실패했는지 — _ensure_krx_auth 참고
 _krx_login_failed = False
+
+KST = ZoneInfo("Asia/Seoul")
+
+
+def _utc_now() -> datetime:
+    """현재 시각(UTC, aware). 테스트에서 바꿔 끼운다."""
+    return datetime.now(timezone.utc)
+
+
+def collection_upper_bound(target_date: date | None = None) -> date:
+    """
+    수집 대상의 마지막 날짜 = min(target_date, KST 기준 어제).
+
+    KRX 전종목시세는 당일 값이 확정되기 전(장중·당일 저녁)에도 응답하므로 KST 당일은
+    절대 수집하지 않는다. 2026-10-21 18:31 KST에 받은 당일 종가가 공식 종가와 62/69종목
+    달랐고, 다음 날 오전 10시 전후에 받은 값은 공식 종가와 일치했다. 컨테이너 로컬 날짜나
+    UTC 날짜를 쓰면 KST 오전 실행(UTC로는 같은 날)에서 장중 가격을 종가로 저장한다.
+    """
+    kst_yesterday = _utc_now().astimezone(KST).date() - timedelta(days=1)
+    return min(target_date, kst_yesterday) if target_date else kst_yesterday
 
 
 def _ensure_krx_auth() -> None:
@@ -268,6 +290,7 @@ def _store_day(d: date, d_prev: date, snapshot: pd.DataFrame, prev_shares: dict[
 def run_kospi_collection(target_date: date | None = None) -> list[date]:
     """
     DB 최신일 이후 target_date까지의 KOSPI 거래일을 하루씩 "수집 → 보정"한다.
+    상한은 KST 기준 어제다(collection_upper_bound) — target_date가 더 늦어도 KST 당일은 수집하지 않는다.
 
     여러 날이 비어 있으면(수집 장애 등) 반드시 날짜 오름차순으로 처리한다. D일 보정은
     DB의 D-1 종가를 기준으로 하므로, D-1이 먼저 저장·보정돼 있어야 한다. DB 최신일
@@ -276,13 +299,17 @@ def run_kospi_collection(target_date: date | None = None) -> list[date]:
 
     Returns: 이번 실행에서 저장한 거래일 목록
     """
-    today = target_date or date.today()
-    _ensure_krx_auth()
+    today = collection_upper_bound(target_date)
 
     with SyncSessionLocal() as session:
         db_last = get_last_trading_day_sync(session, MARKET, as_of=today)
     if db_last is None:
         raise RuntimeError("price_daily에 KOSPI 데이터가 없음 — 초기 적재(scripts/init_history.py)를 먼저 실행")
+    if db_last >= today:
+        logger.info("KOSPI 수집할 거래일 없음 (DB 최신일 %s, 수집 상한 %s = KST 어제)", db_last, today)
+        return []
+
+    _ensure_krx_auth()
 
     # 지수 일봉 = 거래일 달력. 달력 없이는 휴장일과 장애를 구분할 수 없으므로 실패하면 중단한다.
     idx_df = _fetch_kospi_index(db_last.strftime("%Y%m%d"), today.strftime("%Y%m%d"))

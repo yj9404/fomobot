@@ -529,3 +529,64 @@ def test_재적재_수동_지정은_보류를_corrected로_바꾼다(reload_mod)
     assert plan["r"] == pytest.approx(2.0)
     assert [r["close_adj"] for r in plan["rows"]] == [1826.0, 2000.0]  # 9/21 원값 ×2, 9/22 원값
     assert plan["retro_factor"] is None  # 9/11 이하는 이미 ×2 정정돼 있어 건드리지 않음
+
+
+# ── 수집 상한: KST 기준 어제까지만 (collection_upper_bound) ──────────────────
+
+def _utc(y, m, d, hh, mm):
+    from datetime import datetime, timezone
+    return datetime(y, m, d, hh, mm, tzinfo=timezone.utc)
+
+
+@pytest.mark.parametrize("utc_now, target, expected", [
+    (_utc(2026, 10, 22, 1, 0), None, date(2026, 10, 21)),             # KST 10-22 10:00(장중) → 10-21
+    (_utc(2026, 10, 22, 15, 5), None, date(2026, 10, 22)),            # KST 10-23 00:05 → 10-22 (UTC 날짜로는 10-22)
+    (_utc(2026, 10, 22, 14, 59), None, date(2026, 10, 21)),           # KST 10-22 23:59 → 아직 10-21
+    (_utc(2026, 10, 22, 1, 0), date(2026, 10, 25), date(2026, 10, 21)),  # target이 미래여도 KST 어제로 자름
+    (_utc(2026, 10, 22, 1, 0), date(2026, 10, 15), date(2026, 10, 15)),  # target이 더 이르면 target
+])
+def test_수집_상한은_KST_어제(monkeypatch, utc_now, target, expected):
+    monkeypatch.setattr(collect_kospi, "_utc_now", lambda: utc_now)
+    assert collect_kospi.collection_upper_bound(target) == expected
+
+
+def test_KST_당일_장중_실행은_전날까지만_수집(fake_collector, monkeypatch):
+    factory, fetched = fake_collector
+    monkeypatch.setattr(collect_kospi, "_utc_now", lambda: _utc(2026, 8, 18, 1, 0))  # KST 8/18(D3) 10:00
+
+    assert collect_kospi.run_kospi_collection() == [D1, D2]
+    assert D3 not in fetched
+    assert [d for d, _, _ in _closes(factory(), "005930")] == [D0, D1, D2]
+
+
+def test_KST_자정_직후_실행은_전날까지_수집(fake_collector, monkeypatch):
+    factory, fetched = fake_collector
+    monkeypatch.setattr(collect_kospi, "_utc_now", lambda: _utc(2026, 8, 18, 15, 5))  # KST 8/19 00:05, UTC는 8/18
+
+    assert collect_kospi.run_kospi_collection() == [D1, D2, D3]
+
+
+def test_휴장일_다음_실행은_마지막_거래일까지만(fake_collector, monkeypatch):
+    factory, fetched = fake_collector
+    # KST 8/17(월, 대체공휴일) 10:00 — 달력상 마지막 거래일은 8/14(금, D2)
+    monkeypatch.setattr(collect_kospi, "_utc_now", lambda: _utc(2026, 8, 17, 1, 0))
+    assert collect_kospi.run_kospi_collection() == [D1, D2]
+
+    # 같은 날 다시 돌면 달력상 새 거래일이 없어 전종목 조회를 하지 않는다
+    fetched.clear()
+    assert collect_kospi.run_kospi_collection() == []
+    assert fetched == []
+
+
+def test_DB_최신일이_이미_KST_어제면_KRX_로그인_없이_끝난다(fake_collector, monkeypatch):
+    factory, fetched = fake_collector
+    monkeypatch.setattr(collect_kospi, "_utc_now", lambda: _utc(2026, 8, 18, 1, 0))  # KST 8/18 10:00
+    collect_kospi.run_kospi_collection()                                            # D1, D2 수집
+    monkeypatch.setattr(collect_kospi, "_utc_now", lambda: _utc(2026, 8, 15, 1, 0))  # KST 8/15 → 상한 8/14 = DB 최신일
+
+    def no_login():
+        raise AssertionError("DB 최신일이 상한과 같으면 KRX 로그인을 하면 안 된다")
+    monkeypatch.setattr(collect_kospi, "_ensure_krx_auth", no_login)
+    fetched.clear()
+    assert collect_kospi.run_kospi_collection() == []
+    assert fetched == []

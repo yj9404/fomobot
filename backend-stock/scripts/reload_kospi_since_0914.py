@@ -333,6 +333,10 @@ def main() -> None:
         with SyncSessionLocal() as s:
             end = get_last_trading_day_sync(s, MARKET)
 
+    from fomobot.batch.collect_kospi import collection_upper_bound
+    if end > collection_upper_bound():
+        p.error(f"--end {end}는 KST 기준 어제({collection_upper_bound()}) 이후 — 당일 KRX 값은 확정 전이라 쓸 수 없다")
+
     if args.krx_cache and args.krx_cache.exists():
         krx = pickle.load(open(args.krx_cache, "rb"))
         logger.info("KRX 캐시 사용: %s", args.krx_cache)

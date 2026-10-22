@@ -15,7 +15,7 @@ gap-fill이 무겁거나 실패해도 당일 정상 랭킹 계산 흐름에 영�
     python -m fomobot.jobs.gap_fill all --dry-run   # 계산/저장 없이 "무엇을 채울지"만 로깅
 
 Railway Cron 설정 (UTC 기준, 정기 cron보다 45분 뒤로 여유):
-    cron-kospi-gapfill  : 45 9 * * 1-6   (정기 cron-kospi 09:00 UTC + 45분)
+    cron-kospi-gapfill  : 45 1 * * 2-6   (정기 cron-kospi 01:00 UTC + 45분)
     cron-nasdaq-gapfill : 15 22 * * 1-5  (정기 cron-nasdaq 21:30 UTC + 45분)
 """
 
