@@ -50,6 +50,7 @@ def subtract_months(ym: str, months: int) -> str:
 def get_end_ym() -> str:
     """랭킹 기준 완성월 = 전전월 (신고 시차 2개월 여유)."""
     from datetime import date
+
     today = date.today()
     month = today.month - 2
     year = today.year
@@ -61,6 +62,90 @@ def get_end_ym() -> str:
 
 def _build_region_key(sigungu_code: str, eupmyeondong: str | None) -> str:
     return f"{sigungu_code}|{eupmyeondong or ''}"
+
+
+def _build_snapshot_record(
+    key: str,
+    start_df: pd.DataFrame,
+    end_df: pd.DataFrame,
+    sigungu_name_map: dict[str, str],
+    snapshot_ym: str,
+    region_level: str,
+    period_key: str,
+    start_ym: str,
+    end_ym: str,
+) -> dict[str, Any]:
+    parts = key.split("|", 1)
+    sigungu_code = parts[0]
+    eupmyeondong = parts[1] if parts[1] else None
+
+    sg_info = SIGUNGU_MAP.get(sigungu_code, {})
+    sigungu_name = sigungu_name_map.get(sigungu_code) or sg_info.get(
+        "name", sigungu_code
+    )
+    display_name = get_display_name(sigungu_code, sigungu_name, eupmyeondong)
+
+    has_start = key in start_df.index
+    has_end = key in end_df.index
+
+    start_price = start_df.loc[key, "price"] if has_start else None
+    end_price = end_df.loc[key, "price"] if has_end else None
+    start_tx = int(start_df.loc[key, "tx_count"]) if has_start else None
+    end_tx = int(end_df.loc[key, "tx_count"]) if has_end else None
+
+    # 데이터 상태 결정
+    if not has_start or pd.isna(start_price):
+        data_status = "no_start"
+        reason = f"시작 시점({start_ym}) 거래 데이터 없음"
+        change_pct = None
+    elif not has_end or pd.isna(end_price):
+        data_status = "no_end"
+        reason = f"종료 시점({end_ym}) 거래 데이터 없음"
+        change_pct = None
+    elif (end_tx or 0) < settings.re_min_transaction_count:
+        data_status = "insufficient"
+        reason = (
+            f"거래 건수 부족 ({end_tx}건, 최소 {settings.re_min_transaction_count}건)"
+        )
+        change_pct = None
+    elif (start_tx or 0) < settings.re_min_transaction_count:
+        data_status = "insufficient"
+        reason = f"시작 시점 거래 건수 부족 ({start_tx}건, 최소 {settings.re_min_transaction_count}건)"
+        change_pct = None
+    elif start_price <= 0:
+        data_status = "insufficient"
+        reason = "시작 시점 평단가 0 이하"
+        change_pct = None
+    else:
+        data_status = "ok"
+        reason = None
+        change_pct = round(
+            Decimal(str((end_price - start_price) / start_price * 100)), 2
+        )
+
+    return {
+        "snapshot_ym": snapshot_ym,
+        "region_level": region_level,
+        "period": period_key,
+        "rank": None,  # 아래서 채움
+        "sigungu_code": sigungu_code,
+        "sigungu_name": sigungu_name,
+        "eupmyeondong": eupmyeondong,
+        "display_name": display_name,
+        "start_ym": start_ym,
+        "end_ym": end_ym,
+        "start_price": round(Decimal(str(start_price)), 2)
+        if start_price is not None and not pd.isna(start_price)
+        else None,
+        "end_price": round(Decimal(str(end_price)), 2)
+        if end_price is not None and not pd.isna(end_price)
+        else None,
+        "change_pct": change_pct,
+        "start_tx_count": start_tx,
+        "end_tx_count": end_tx,
+        "data_status": data_status,
+        "insufficient_reason": reason,
+    }
 
 
 def compute_rankings(
@@ -91,7 +176,9 @@ def compute_rankings(
 
     # re_monthly_stat 로드
     with SyncSessionLocal() as session:
-        rows = get_monthly_stats_for_ranking_sync(session, region_level, sorted(all_yms))
+        rows = get_monthly_stats_for_ranking_sync(
+            session, region_level, sorted(all_yms)
+        )
         sigungu_name_map = get_sigungu_names_sync(session)
 
     if not rows:
@@ -122,69 +209,18 @@ def compute_rankings(
             snapshot_records: list[dict[str, Any]] = []
 
             for key in all_keys:
-                parts = key.split("|", 1)
-                sigungu_code = parts[0]
-                eupmyeondong = parts[1] if parts[1] else None
-
-                sg_info = SIGUNGU_MAP.get(sigungu_code, {})
-                sigungu_name = sigungu_name_map.get(sigungu_code) or sg_info.get("name", sigungu_code)
-                display_name = get_display_name(sigungu_code, sigungu_name, eupmyeondong)
-
-                has_start = key in start_df.index
-                has_end = key in end_df.index
-
-                start_price = start_df.loc[key, "price"] if has_start else None
-                end_price = end_df.loc[key, "price"] if has_end else None
-                start_tx = int(start_df.loc[key, "tx_count"]) if has_start else None
-                end_tx = int(end_df.loc[key, "tx_count"]) if has_end else None
-
-                # 데이터 상태 결정
-                if not has_start or pd.isna(start_price):
-                    data_status = "no_start"
-                    reason = f"시작 시점({start_ym}) 거래 데이터 없음"
-                    change_pct = None
-                elif not has_end or pd.isna(end_price):
-                    data_status = "no_end"
-                    reason = f"종료 시점({end_ym}) 거래 데이터 없음"
-                    change_pct = None
-                elif (end_tx or 0) < settings.re_min_transaction_count:
-                    data_status = "insufficient"
-                    reason = f"거래 건수 부족 ({end_tx}건, 최소 {settings.re_min_transaction_count}건)"
-                    change_pct = None
-                elif (start_tx or 0) < settings.re_min_transaction_count:
-                    data_status = "insufficient"
-                    reason = f"시작 시점 거래 건수 부족 ({start_tx}건, 최소 {settings.re_min_transaction_count}건)"
-                    change_pct = None
-                elif start_price <= 0:
-                    data_status = "insufficient"
-                    reason = "시작 시점 평단가 0 이하"
-                    change_pct = None
-                else:
-                    data_status = "ok"
-                    reason = None
-                    change_pct = round(
-                        Decimal(str((end_price - start_price) / start_price * 100)), 2
-                    )
-
-                snapshot_records.append({
-                    "snapshot_ym": snapshot_ym,
-                    "region_level": region_level,
-                    "period": period_key,
-                    "rank": None,  # 아래서 채움
-                    "sigungu_code": sigungu_code,
-                    "sigungu_name": sigungu_name,
-                    "eupmyeondong": eupmyeondong,
-                    "display_name": display_name,
-                    "start_ym": start_ym,
-                    "end_ym": end_ym,
-                    "start_price": round(Decimal(str(start_price)), 2) if start_price is not None and not pd.isna(start_price) else None,
-                    "end_price": round(Decimal(str(end_price)), 2) if end_price is not None and not pd.isna(end_price) else None,
-                    "change_pct": change_pct,
-                    "start_tx_count": start_tx,
-                    "end_tx_count": end_tx,
-                    "data_status": data_status,
-                    "insufficient_reason": reason,
-                })
+                record = _build_snapshot_record(
+                    key=key,
+                    start_df=start_df,
+                    end_df=end_df,
+                    sigungu_name_map=sigungu_name_map,
+                    snapshot_ym=snapshot_ym,
+                    region_level=region_level,
+                    period_key=period_key,
+                    start_ym=start_ym,
+                    end_ym=end_ym,
+                )
+                snapshot_records.append(record)
 
             # ok 항목만 change_pct 내림차순으로 rank 부여
             ok_records = [r for r in snapshot_records if r["data_status"] == "ok"]
@@ -199,7 +235,10 @@ def compute_rankings(
             excl_count = len(snapshot_records) - ok_count
             logger.info(
                 "level=%s period=%s: ok=%d 지역, excluded=%d 지역 저장",
-                region_level, period_key, ok_count, excl_count,
+                region_level,
+                period_key,
+                ok_count,
+                excl_count,
             )
 
     logger.info("랭킹 계산 완료: level=%s, 총 %d건 저장", region_level, total_saved)
