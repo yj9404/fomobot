@@ -161,94 +161,162 @@ def detect_corporate_actions(
         rows = get_price_range_sync(session, market, query_start, today)
         resolved_flags = get_resolved_flags_sync(session, market) if suppress_resolved else {}
 
-    by_ticker: dict[str, list[dict]] = {}
-    for r in rows:
-        by_ticker.setdefault(r["ticker"], []).append(r)
-
     candidates: list[dict] = []
     suppressed_count = 0
     checked_tickers: set[str] = set()
     market_cap_null_tickers: set[str] = set()
     close_adj_null_tickers: set[str] = set()
 
-    for ticker, series in by_ticker.items():
-        series.sort(key=lambda r: r["date"])
-        for i in range(1, len(series)):
-            prev, cur = series[i - 1], series[i]
-            if cur["date"] < cutoff_start:
-                continue
+    if not rows:
+        return {
+            "candidates": candidates,
+            "checked_ticker_count": 0,
+            "market_cap_null_ticker_count": 0,
+            "close_adj_null_ticker_count": 0,
+            "suppressed_count": 0,
+            "market_cap_coverage_alert": False,
+        }
 
-            checked_tickers.add(ticker)
+    # 정렬을 명시적으로 ticker와 date로 수행하여 강건하게 만든다.
+    rows.sort(key=lambda r: (r["ticker"], r["date"]))
 
-            if not prev["close_adj"] or not cur["close_adj"]:
-                close_adj_null_tickers.add(ticker)
-                continue
+    candidates_append = candidates.append
+    checked_tickers_add = checked_tickers.add
+    close_adj_null_tickers_add = close_adj_null_tickers.add
+    market_cap_null_tickers_add = market_cap_null_tickers.add
 
-            market_cap_missing = not (prev["market_cap"] and cur["market_cap"])
-            if market_cap_missing:
-                market_cap_null_tickers.add(ticker)
+    def process_candidate(ticker: str, cur: dict, cur_date: date, cur_close: float, cur_cap: float, cur_vol: int, price_ratio: float, idx: int, market_cap_missing: bool):
+        nonlocal suppressed_count
 
-            price_ratio = cur["close_adj"] / prev["close_adj"]
+        shares_ratio_value = None
+        shares_match = None
+        if not market_cap_missing:
+            shares_ratio_value = (prev_cap / prev_close) / (cur_cap / cur_close)
+            shares_match = _nearest_int_candidate(shares_ratio_value)
 
-            # 상/하한가 오탐 방지 — 진짜 급변은 여기서 걸러진다.
-            if LIMIT_LO <= price_ratio <= LIMIT_HI:
-                continue
+        is_jump = price_ratio < JUMP_LO or price_ratio > JUMP_HI
+        halt_adjacent = not prev_vol or not cur_vol
 
-            shares_ratio_value = None
-            shares_match = None
-            if not market_cap_missing:
-                shares_prev = prev["market_cap"] / prev["close_adj"]
-                shares_cur = cur["market_cap"] / cur["close_adj"]
-                shares_ratio_value = shares_prev / shares_cur
-                shares_match = _nearest_int_candidate(shares_ratio_value)
+        fired_by_shares = shares_match is not None
+        fired_by_halt_fallback = is_jump and halt_adjacent
+        # market_cap이 없어 shares_ratio를 아예 못 쓰는 경우의 임시 안전망.
+        # halt_adjacent면 이미 위 2차 신호가 잡으므로 여기선 제외(중복 방지).
+        fired_by_price_fallback = is_jump and market_cap_missing and not halt_adjacent
 
-            is_jump = price_ratio < JUMP_LO or price_ratio > JUMP_HI
-            halt_adjacent = (not prev["volume"]) or (not cur["volume"])
+        if not fired_by_shares and not fired_by_halt_fallback and not fired_by_price_fallback:
+            return
 
-            fired_by_shares = shares_match is not None
-            fired_by_halt_fallback = is_jump and halt_adjacent
-            # market_cap이 없어 shares_ratio를 아예 못 쓰는 경우의 임시 안전망.
-            # halt_adjacent면 이미 위 2차 신호가 잡으므로 여기선 제외(중복 방지).
-            fired_by_price_fallback = is_jump and market_cap_missing and not halt_adjacent
+        flag_date = resolved_flags.get(ticker)
+        if flag_date is not None:
+            # We need the full series for this ticker for _resolved_suppresses
+            start_j = idx
+            while start_j > 0 and rows[start_j - 1]["ticker"] == ticker:
+                start_j -= 1
 
-            if not (fired_by_shares or fired_by_halt_fallback or fired_by_price_fallback):
-                continue
+            end_j = idx
+            n = len(rows)
+            while end_j < n - 1 and rows[end_j + 1]["ticker"] == ticker:
+                end_j += 1
 
-            # resolved 억제: 이미 정정 완료된 이벤트면 스킵 (신호 종류 무관 동일 적용)
-            flag_date = resolved_flags.get(ticker)
-            if flag_date is not None and _resolved_suppresses(series, i - 1, flag_date):
+            full_series = rows[start_j:end_j + 1]
+            # In full_series, 'cur' is at index (idx - start_j)
+            # So 'prev' is at index (idx - start_j - 1)
+
+            if _resolved_suppresses(full_series, idx - start_j - 1, flag_date):
                 suppressed_count += 1
-                continue
+                return
 
-            if fired_by_shares:
-                factor, err = shares_match
-                signal_type = "shares_ratio"
-                detected_signal = f"shares_ratio={shares_ratio_value:.4f} candidate={factor:.4f} (오차 {err*100:.2f}%)"
-                reason_guess = "merge" if price_ratio > 1 else "split"
-            elif fired_by_halt_fallback:
-                signal_type = "halt_fallback"
-                detected_signal = f"price_ratio={price_ratio:.4f} (halt-adjacent, shares 신호 없음/불일치)"
-                reason_guess = "manual"
-            else:
-                signal_type = "price_ratio_no_mktcap"
-                detected_signal = (
-                    f"price_ratio={price_ratio:.4f} (market_cap 결측으로 shares_ratio 계산 불가, "
-                    f"halt 비인접 — 임시 안전망, 3배 미만 병합/분할은 놓칠 수 있음)"
-                )
-                reason_guess = "manual"
+        if fired_by_shares:
+            factor, err = shares_match
+            signal_type = "shares_ratio"
+            detected_signal = f"shares_ratio={shares_ratio_value:.4f} candidate={factor:.4f} (오차 {err*100:.2f}%)"
+            reason_guess = "merge" if price_ratio > 1 else "split"
+        elif fired_by_halt_fallback:
+            signal_type = "halt_fallback"
+            detected_signal = f"price_ratio={price_ratio:.4f} (halt-adjacent, shares 신호 없음/불일치)"
+            reason_guess = "manual"
+        else:
+            signal_type = "price_ratio_no_mktcap"
+            detected_signal = (
+                f"price_ratio={price_ratio:.4f} (market_cap 결측으로 shares_ratio 계산 불가, "
+                f"halt 비인접 — 임시 안전망, 3배 미만 병합/분할은 놓칠 수 있음)"
+            )
+            reason_guess = "manual"
 
-            candidates.append({
-                "ticker": ticker,
-                "market": market,
-                "prev_date": prev["date"],
-                "cur_date": cur["date"],
-                "price_ratio": price_ratio,
-                "shares_ratio": shares_ratio_value,
-                "signal_type": signal_type,
-                "detected_signal": detected_signal,
-                "reason_guess": reason_guess,
-                "halt_adjacent": halt_adjacent,
-            })
+        candidates_append({
+            "ticker": ticker,
+            "market": market,
+            "prev_date": prev["date"],
+            "cur_date": cur_date,
+            "price_ratio": price_ratio,
+            "shares_ratio": shares_ratio_value,
+            "signal_type": signal_type,
+            "detected_signal": detected_signal,
+            "reason_guess": reason_guess,
+            "halt_adjacent": halt_adjacent,
+        })
+
+    n = len(rows)
+    prev = rows[0]
+    prev_ticker = prev["ticker"]
+    prev_close = prev["close_adj"]
+    prev_cap = prev["market_cap"]
+    prev_vol = prev["volume"]
+
+    for i in range(1, n):
+        cur = rows[i]
+        ticker = cur["ticker"]
+
+        # 새 티커가 나타나면 이전 행 정보를 갱신하고 계속
+        if prev_ticker != ticker:
+            prev = cur
+            prev_ticker = ticker
+            prev_close = cur["close_adj"]
+            prev_cap = cur["market_cap"]
+            prev_vol = cur["volume"]
+            continue
+
+        cur_date = cur["date"]
+
+        # cutoff_start 전의 데이터는 스킵하되 prev는 갱신해야 함
+        if cur_date < cutoff_start:
+            prev = cur
+            prev_close = cur["close_adj"]
+            prev_cap = cur["market_cap"]
+            prev_vol = cur["volume"]
+            continue
+
+        # cutoff 이후 데이터만 측정 대상에 포함
+        checked_tickers_add(ticker)
+
+        cur_close = cur["close_adj"]
+        cur_cap = cur["market_cap"]
+        cur_vol = cur["volume"]
+
+        if not prev_close or not cur_close:
+            close_adj_null_tickers_add(ticker)
+            prev = cur
+            prev_close = cur_close
+            prev_cap = cur_cap
+            prev_vol = cur_vol
+            continue
+
+        market_cap_missing = not prev_cap or not cur_cap
+        if market_cap_missing:
+            market_cap_null_tickers_add(ticker)
+
+        price_ratio = cur_close / prev_close
+
+        # 상/하한가 오탐 방지 — 정상 범위면 빠르게 패스
+        if not (LIMIT_LO <= price_ratio <= LIMIT_HI):
+            # 이상 징후 확인
+            process_candidate(ticker, cur, cur_date, cur_close, cur_cap, cur_vol, price_ratio, i, market_cap_missing)
+
+        # 다음 루프를 위해 prev 상태 업데이트
+        prev = cur
+        prev_close = cur_close
+        prev_cap = cur_cap
+        prev_vol = cur_vol
 
     checked_count = len(checked_tickers)
     market_cap_null_count = len(market_cap_null_tickers)
