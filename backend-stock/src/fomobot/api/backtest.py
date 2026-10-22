@@ -44,6 +44,7 @@ from fomobot.db.crud import (
     get_last_trading_day_async,
     get_nearest_snapshot_date,
     get_price_series_async,
+    get_price_series_multi_async,
     get_rankings,
     get_security_name,
 )
@@ -121,12 +122,15 @@ async def backtest_endpoint(
     # 2) 시나리오 계산 — 종목별 price_daily 직접 조회 (top-N 소속 여부 무관)
     start_date = await _resolve_start_date(session, market, period, actual_date)
 
+    tickers = [row.ticker for row in snapshot_rows]
+    price_series_map = await get_price_series_multi_async(
+        session, market, tickers, start_date, actual_date
+    )
+
     items = []
     valid_returns: list[float] = []
     for row in snapshot_rows:
-        price_rows = await get_price_series_async(
-            session, market, row.ticker, start_date, actual_date
-        )
+        price_rows = price_series_map.get(row.ticker, [])
         bh = _compute_buy_and_hold(price_rows)
         dca = _compute_dca(price_rows, period, start_date, actual_date)
 
