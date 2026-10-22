@@ -123,12 +123,24 @@ async def backtest_endpoint(
 
     items = []
     valid_returns: list[float] = []
+
+    bh_cache = {}
+    dca_cache = {}
+
     for row in snapshot_rows:
         price_rows = await get_price_series_async(
             session, market, row.ticker, start_date, actual_date
         )
-        bh = _compute_buy_and_hold(price_rows)
-        dca = _compute_dca(price_rows, period, start_date, actual_date)
+
+        cache_key = tuple(price_rows)
+
+        if cache_key not in bh_cache:
+            bh_cache[cache_key] = _compute_buy_and_hold(price_rows)
+        if cache_key not in dca_cache:
+            dca_cache[cache_key] = _compute_dca(price_rows, period, start_date, actual_date)
+
+        bh = bh_cache[cache_key]
+        dca = dca_cache[cache_key]
 
         if bh is not None:
             valid_returns.append(bh.final_return_pct)
