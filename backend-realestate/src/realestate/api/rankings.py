@@ -9,6 +9,7 @@ from realestate.db.crud import (
     get_has_news_region_keys_async,
     get_latest_complex_snapshot_ym,
 )
+from realestate.db.models import ReComplexRankingSnapshot
 from realestate.services.naver_news import region_key
 from realestate.db.session import get_async_session
 from realestate.schemas.rankings import (
@@ -38,6 +39,91 @@ def _is_recent_incomplete(snapshot_ym: str) -> bool:
         year -= 1
     prev_ym = f"{year}{month:02d}"
     return snapshot_ym >= prev_ym
+
+
+def _resolve_seg_dongs(seg: str | None) -> list[tuple[str, str]] | None:
+    if seg is None:
+        return None
+    seg_def = SEGMENTS.get(seg)
+    if seg_def is None:
+        raise HTTPException(
+            status_code=400,
+            detail=f"알 수 없는 seg 값: '{seg}'. /api/realestate/segments 에서 유효한 목록을 확인하세요.",
+        )
+    return seg_def["dongs"]
+
+
+async def _get_news_keys(
+    session: AsyncSession, period: PeriodLiteral, rows: list[ReComplexRankingSnapshot]
+) -> set[str]:
+    # has_news는 단기 구간(3m/6m)에서만 채운다 — 그 외(1y 이상)는 뉴스 배치 대상이
+    # 아니므로 null 유지(프론트가 인디케이터 자체를 표시하지 않음).
+    # 뉴스는 단지가 아니라 동(1순위)/구(폴백) 단위 캐시이므로, 각 단지가 이미
+    # 갖고 있는 sigungu_code/eupmyeondong으로 두 후보 키를 만들어 합집합 조회한다.
+    if period not in ("3m", "6m"):
+        return set()
+
+    candidate_keys = {
+        key
+        for r in rows
+        for key in (region_key(r.sigungu_code, r.eupmyeondong), region_key(r.sigungu_code))
+    }
+    if not candidate_keys:
+        return set()
+
+    return await get_has_news_region_keys_async(
+        session, list(candidate_keys), settings.region_news_ttl_days
+    )
+
+
+def _process_ranking_rows(
+    rows: list[ReComplexRankingSnapshot],
+    period: PeriodLiteral,
+    order: OrderLiteral,
+    top: int,
+    has_news_region_keys: set[str],
+) -> tuple[list[ComplexRankingItem], list[ComplexRankingItem], int, bool]:
+    ok_items: list[ComplexRankingItem] = []
+    excluded_items: list[ComplexRankingItem] = []
+    ok_count = 0
+    windows_overlap = False
+
+    for row in rows:
+        if row.windows_overlap:
+            windows_overlap = True
+
+        item = ComplexRankingItem(
+            rank=ok_count + 1 if (order == "asc" and row.data_status == "ok") else row.rank,
+            complex_key=row.complex_key,
+            apt_name=row.apt_name,
+            display_name=row.display_name,
+            sigungu_code=row.sigungu_code,
+            sigungu_name=row.sigungu_name,
+            eupmyeondong=row.eupmyeondong,
+            start_ym=row.start_ym,
+            end_ym=row.end_ym,
+            start_price=float(row.start_price) if row.start_price is not None else None,
+            end_price=float(row.end_price) if row.end_price is not None else None,
+            start_deal_amount=int(row.start_deal_amount) if row.start_deal_amount is not None else None,
+            end_deal_amount=int(row.end_deal_amount) if row.end_deal_amount is not None else None,
+            change_pct=float(row.change_pct) if row.change_pct is not None else None,
+            start_tx_count=row.start_tx_count,
+            end_tx_count=row.end_tx_count,
+            data_status=row.data_status,
+            insufficient_reason=row.insufficient_reason,
+            has_news=(
+                region_key(row.sigungu_code, row.eupmyeondong) in has_news_region_keys
+                or region_key(row.sigungu_code) in has_news_region_keys
+            ) if period in ("3m", "6m") else None,
+        )
+        if row.data_status == "ok":
+            if ok_count < top:
+                ok_items.append(item)
+                ok_count += 1
+        else:
+            excluded_items.append(item)
+
+    return ok_items, excluded_items, ok_count, windows_overlap
 
 
 @router.get(
@@ -94,15 +180,7 @@ async def get_rankings_endpoint(
     ),
     session: AsyncSession = Depends(get_async_session),
 ):
-    seg_dongs: list[tuple[str, str]] | None = None
-    if seg is not None:
-        seg_def = SEGMENTS.get(seg)
-        if seg_def is None:
-            raise HTTPException(
-                status_code=400,
-                detail=f"알 수 없는 seg 값: '{seg}'. /api/realestate/segments 에서 유효한 목록을 확인하세요.",
-            )
-        seg_dongs = seg_def["dongs"]
+    seg_dongs = _resolve_seg_dongs(seg)
 
     snapshot_ym = await get_latest_complex_snapshot_ym(session, period)
     if snapshot_ym is None:
@@ -127,60 +205,11 @@ async def get_rankings_endpoint(
             detail=f"{snapshot_ym} 기준 {period} 랭킹 데이터가 없습니다.",
         )
 
-    # has_news는 단기 구간(3m/6m)에서만 채운다 — 그 외(1y 이상)는 뉴스 배치 대상이
-    # 아니므로 null 유지(프론트가 인디케이터 자체를 표시하지 않음).
-    # 뉴스는 단지가 아니라 동(1순위)/구(폴백) 단위 캐시이므로, 각 단지가 이미
-    # 갖고 있는 sigungu_code/eupmyeondong으로 두 후보 키를 만들어 합집합 조회한다.
-    has_news_region_keys: set[str] = set()
-    if period in ("3m", "6m"):
-        candidate_keys = {
-            key
-            for r in rows
-            for key in (region_key(r.sigungu_code, r.eupmyeondong), region_key(r.sigungu_code))
-        }
-        has_news_region_keys = await get_has_news_region_keys_async(
-            session, list(candidate_keys), settings.region_news_ttl_days,
-        )
+    has_news_region_keys = await _get_news_keys(session, period, rows)
 
-    ok_items: list[ComplexRankingItem] = []
-    excluded_items: list[ComplexRankingItem] = []
-    ok_count = 0
-    windows_overlap = False
-
-    for row in rows:
-        if row.windows_overlap:
-            windows_overlap = True
-
-        item = ComplexRankingItem(
-            rank=ok_count + 1 if (order == "asc" and row.data_status == "ok") else row.rank,
-            complex_key=row.complex_key,
-            apt_name=row.apt_name,
-            display_name=row.display_name,
-            sigungu_code=row.sigungu_code,
-            sigungu_name=row.sigungu_name,
-            eupmyeondong=row.eupmyeondong,
-            start_ym=row.start_ym,
-            end_ym=row.end_ym,
-            start_price=float(row.start_price) if row.start_price is not None else None,
-            end_price=float(row.end_price) if row.end_price is not None else None,
-            start_deal_amount=int(row.start_deal_amount) if row.start_deal_amount is not None else None,
-            end_deal_amount=int(row.end_deal_amount) if row.end_deal_amount is not None else None,
-            change_pct=float(row.change_pct) if row.change_pct is not None else None,
-            start_tx_count=row.start_tx_count,
-            end_tx_count=row.end_tx_count,
-            data_status=row.data_status,
-            insufficient_reason=row.insufficient_reason,
-            has_news=(
-                region_key(row.sigungu_code, row.eupmyeondong) in has_news_region_keys
-                or region_key(row.sigungu_code) in has_news_region_keys
-            ) if period in ("3m", "6m") else None,
-        )
-        if row.data_status == "ok":
-            if ok_count < top:
-                ok_items.append(item)
-                ok_count += 1
-        else:
-            excluded_items.append(item)
+    ok_items, excluded_items, ok_count, windows_overlap = _process_ranking_rows(
+        rows, period, order, top, has_news_region_keys
+    )
 
     meta = ComplexRankingsMeta(
         snapshot_ym=snapshot_ym,
