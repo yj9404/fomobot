@@ -20,7 +20,8 @@ import logging
 
 from sqlalchemy.orm import Session
 
-from fomobot.db.crud import get_corporate_action_flag_sync, get_price_series_for_tickers_sync
+from fomobot.db.crud import get_corporate_action_flag_sync, get_corporate_action_flags_sync, get_price_series_for_tickers_sync
+from collections import defaultdict
 
 logger = logging.getLogger(__name__)
 
@@ -115,3 +116,92 @@ def is_prev_day_halt_resumption(
         return False
 
     return True
+
+
+def get_prev_day_halt_resumptions(
+    session: Session, market: str, tickers: list[str], prev_date: date, snapshot_date: date,
+) -> dict[str, bool]:
+    """
+    is_prev_day_halt_resumption의 bulk 버전. 여러 종목의 halt resumption 여부를 한번에 반환한다.
+    N+1 쿼리 방지용.
+    """
+    if not tickers:
+        return {}
+
+    lookback_start = prev_date - timedelta(days=LOOKBACK_DAYS)
+
+    # Bulk fetch
+    series = get_price_series_for_tickers_sync(
+        session, market, tickers, lookback_start, snapshot_date
+    )
+
+    try:
+        flags = get_corporate_action_flags_sync(session, market, tickers)
+    except Exception:
+        # fail-loud logic like singular version, but apply false to all
+        logger.exception(
+            "%s bulk: corporate_action_flag 조회 실패 — halt_resumption 배제 조건 "
+            "확인 불가, 안전측(False)으로 일괄 처리",
+            market,
+        )
+        try:
+            import sentry_sdk
+            sentry_sdk.capture_exception()
+        except Exception:
+            pass
+        return {t: False for t in tickers}
+
+    # Group series by ticker
+    series_by_ticker = defaultdict(list)
+    for row in series:
+        series_by_ticker[row["ticker"]].append(row)
+
+    result = {}
+    for ticker in tickers:
+        ticker_series = series_by_ticker.get(ticker, [])
+        if len(ticker_series) < HALT_MIN_TRADING_DAYS + 1:
+            result[ticker] = False
+            continue
+
+        # Already sorted by DB, but just to be sure:
+        ticker_series = sorted(ticker_series, key=lambda r: r["date"])
+
+        if ticker_series[-1]["date"] != snapshot_date or ticker_series[-2]["date"] != prev_date:
+            result[ticker] = False
+            continue
+        if not ticker_series[-1]["volume"]:
+            result[ticker] = False
+            continue
+        if ticker_series[-2]["volume"]:
+            result[ticker] = False
+            continue
+
+        run_closes = set()
+        run_len = 0
+        halt_start_date = prev_date
+        for row in reversed(ticker_series[:-1]):
+            if row["volume"]:
+                break
+            run_closes.add(row["close_adj"])
+            run_len += 1
+            halt_start_date = row["date"]
+
+        if run_len < HALT_MIN_TRADING_DAYS:
+            result[ticker] = False
+            continue
+        if len(run_closes) != 1:
+            result[ticker] = False
+            continue
+
+        flag = flags.get(ticker)
+        if (
+            flag is not None
+            and flag["reason"] in CAPITAL_ACTION_REASONS
+            and halt_start_date <= flag["flag_date"] <= prev_date
+        ):
+            result[ticker] = False
+            continue
+
+        result[ticker] = True
+
+    return result
