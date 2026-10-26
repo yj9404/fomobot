@@ -9,6 +9,9 @@ async_engine = create_async_engine(
     settings.database_url,
     pool_size=10,
     max_overflow=20,
+    # 프록시/서버가 유휴 연결을 끊어도 죽은 커넥션을 재사용하지 않도록 (Sentry PYTHON-2F)
+    pool_pre_ping=True,
+    pool_recycle=1800,
     echo=settings.app_env == "development",
 )
 
