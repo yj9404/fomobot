@@ -43,6 +43,34 @@ def _report_warning(message: str) -> None:
     logger.warning(message)
 
 
+# Sentry 메시지가 티커 수십 개로 길어지지 않게 상세 표기할 종목 수 (전체는 로그에 남는다)
+ALERT_DETAIL_LIMIT = 20
+
+
+def format_candidates(candidates: list[dict], cliffs_key: str = "isolate_cliffs") -> str:
+    """
+    후보 종목을 '티커 절벽일 x배율 vol거래량비' 형태로 요약한다 (최근 절벽 순).
+
+    티커 목록만으로는 역분할인지 실제 급락인지 알림만 보고 판단할 수 없어,
+    종목당 가장 최근 절벽의 날짜·배율·거래량 비율을 함께 보여준다.
+    이미 검토해 corporate_action_flag로 격리한 종목은 다음 스캔부터 후보에서
+    빠지므로, 이 목록은 자연히 "아직 처리 안 된 종목"만 남는다.
+    """
+    rows = []
+    for c in candidates:
+        last = max(c[cliffs_key], key=lambda x: x["cliff_date"])
+        rows.append((last["cliff_date"], c["ticker"], last["ratio"], last["vol_ratio"]))
+    rows.sort(reverse=True)
+
+    def fmt(r):
+        vol = "inf" if r[3] == float("inf") else f"{r[3]:.1f}"
+        return f"{r[1]} {r[0]:%m-%d} x{r[2]:.2f} vol{vol}"
+
+    shown = ", ".join(fmt(r) for r in rows[:ALERT_DETAIL_LIMIT])
+    rest = len(rows) - ALERT_DETAIL_LIMIT
+    return shown + (f" 외 {rest}종목" if rest > 0 else "")
+
+
 def run(market: str = "nasdaq") -> None:
     try:
         from fomobot.batch.detect_nasdaq_quality import detect_nasdaq_cliffs
@@ -57,16 +85,16 @@ def run(market: str = "nasdaq") -> None:
         )
 
         if result["isolate_candidates"]:
-            tickers = [c["ticker"] for c in result["isolate_candidates"]]
+            candidates = result["isolate_candidates"]
             _report_warning(
-                f"[{market.upper()}] 절벽 격리후보 {len(tickers)}종목 탐지(자동 격리 안 됨, "
-                f"수동 검토 필요): {tickers}"
+                f"[{market.upper()}] 절벽 격리후보 {len(candidates)}종목 탐지(자동 격리 안 됨, "
+                f"수동 검토 필요): {format_candidates(candidates)}"
             )
         if result["lag_possible"]:
-            tickers = [c["ticker"] for c in result["lag_possible"]]
+            candidates = result["lag_possible"]
             _report_warning(
-                f"[{market.upper()}] 최근 절벽 {len(tickers)}종목 — yfinance 소급 랙 가능성, "
-                f"재조회 권장(즉시 격리 대상 아님): {tickers}"
+                f"[{market.upper()}] 최근 절벽 {len(candidates)}종목 — yfinance 소급 랙 가능성, "
+                f"재조회 권장(즉시 격리 대상 아님): {format_candidates(candidates)}"
             )
     except Exception:
         logger.exception("%s 절벽 스캔 중 예외 발생", market.upper())

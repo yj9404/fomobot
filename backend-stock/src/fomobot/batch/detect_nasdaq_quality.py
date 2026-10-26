@@ -31,6 +31,7 @@ from fomobot.db.crud import (
     upsert_corporate_action_flag_sync,
 )
 from fomobot.db.session import SyncSessionLocal
+from fomobot.services.nasdaq_listing import is_warrant_symbol
 
 logger = logging.getLogger(__name__)
 
@@ -127,6 +128,9 @@ POST_CLIFF_ZERO_DAYS_THRESHOLD = 3  # 절벽 후 5일 중 이 값 이상 거래�
 RESOLVED_SUPPRESS_TRADING_DAYS = 3  # detect_corporate_actions.py와 동일 clamp 가드
 LAG_RECENT_DAYS = 5  # 절벽일이 데이터 최신일 기준 이 값 이내면 "랙 가능성"으로 분리
 LOOKBACK_DAYS = 1825 + 10  # 5년 + 첫 날짜 전일 비교용 여유
+# 절벽 전후 종가가 모두 이 값 미만이면 호가 단위 반올림 노이즈로 보고 제외한다
+# (KTTAW $0.01→$0.00, 2026-10). 랭킹 필터의 최소가($5)보다 훨씬 낮은 값이라 실제 절벽은 거르지 않는다.
+MIN_CLIFF_PRICE = 0.05
 
 
 def _cv(vals: list[float | None]) -> float | None:
@@ -228,8 +232,13 @@ def detect_nasdaq_cliffs(
         ticker = r["ticker"]
         if ticker in flagged:
             continue
+        # 탐지 대상에서만 뺀다 — 워런트의 수집·랭킹 포함 여부는 건드리지 않는다
+        if is_warrant_symbol(ticker):
+            continue
 
         cm1, c0 = r["cm1"], r["c0"]
+        if max(cm1, c0) < MIN_CLIFF_PRICE:
+            continue
         ratio = c0 / cm1
 
         # 단일일 이상치 배제: 익일이 절벽 이전 수준으로 복귀하면 지속절벽 아님

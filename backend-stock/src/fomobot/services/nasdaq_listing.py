@@ -26,6 +26,16 @@ def is_when_issued_symbol(ticker: str) -> bool:
     return len(ticker) == 5 and ticker.endswith("V")
 
 
+def is_warrant_symbol(ticker: str) -> bool:
+    """
+    NASDAQ 5자리 심볼의 5번째 글자 W = 워런트(KTTAW 등).
+
+    4자리 티커는 W로 끝나도 정상 종목(SNOW 등)이므로 5자리만 본다.
+    워런트는 $0.00대 호가의 반올림 노이즈로 가격 절벽 탐지를 오탐시킨다.
+    """
+    return len(ticker) == 5 and ticker.endswith("W")
+
+
 def normalize_security_name(name: str) -> str:
     """종목명 끝의 when-issued 표기를 제거한다 (정식 티커에 남은 잔존 표기 정리용)."""
     return _WHEN_ISSUED_NAME_SUFFIX.sub("", name).strip()
