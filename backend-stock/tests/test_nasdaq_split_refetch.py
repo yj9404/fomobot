@@ -88,6 +88,90 @@ class TestPlanRefetch:
         assert m.plan_refetch("EHGO", FLAG, [SPLIT], [])["category"] == "hold"
 
 
+# 2026-10 DB 실제 값: 원본 미조정, 분할일에 절벽 (BTLN 1:8)
+BTLN_ROWS = [{"date": date(2026, 9, 24), "close_adj": 0.650}, {"date": date(2026, 9, 25), "close_adj": 0.640},
+             {"date": date(2026, 9, 28), "close_adj": 5.250}, {"date": date(2026, 9, 29), "close_adj": 4.550}]
+BTLN_SPLIT = [(date(2026, 9, 28), 0.125)]
+
+
+class TestPlanScale:
+    def test_분할과_배율이_맞으면_scalable(self):
+        plan = m.plan_scale("BTLN", date(2026, 9, 28), BTLN_SPLIT, BTLN_ROWS)
+        assert plan["category"] == "scalable"
+        assert plan["cliff_date"] == date(2026, 9, 28) and plan["factor"] == 8.0
+        assert 0.9 < plan["magnitude"] < 1.1
+
+    def test_분할_이력_없거나_조회_실패면_hold(self):
+        for splits in (None, []):
+            assert m.plan_scale("BTLN", date(2026, 9, 28), splits, BTLN_ROWS)["category"] == "hold"
+
+    def test_배율이_범위_밖이면_hold(self):
+        # 점프 x8.2에 분할 1:3(기대 x3)이면 분할 외 요인이 섞인 것
+        plan = m.plan_scale("BTLN", date(2026, 9, 28), [(date(2026, 9, 28), 1 / 3)], BTLN_ROWS)
+        assert plan["category"] == "hold" and "맞는 역분할 미확인" in plan["reason"]
+
+    def test_상승_절벽이_없으면_hold(self):
+        flat = [{"date": date(2026, 9, 24) + timedelta(days=i), "close_adj": 1.0} for i in range(5)]
+        assert m.plan_scale("X", date(2026, 9, 26), BTLN_SPLIT, flat)["category"] == "hold"
+
+    def test_하락_절벽은_대상_아님(self):
+        down = [{"date": date(2026, 9, 25), "close_adj": 5.0}, {"date": date(2026, 9, 28), "close_adj": 0.6}]
+        assert m.plan_scale("X", date(2026, 9, 28), [(date(2026, 9, 28), 8.0)], down)["category"] == "hold"
+
+
+class _FakeSession:
+    def __init__(self, jump_rows, log):
+        self.jump_rows, self.log = jump_rows, log
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *a):
+        return False
+
+    def execute(self, stmt, params=None):
+        sql = str(stmt)
+        self.log.append((sql, params))
+
+        class R:
+            rowcount = 1200
+
+            def fetchall(_):
+                return self.jump_rows
+
+        return R()
+
+
+class TestApplyScale:
+    def _run(self, monkeypatch, jump_rows):
+        log, flags = [], []
+        monkeypatch.setattr(m, "SyncSessionLocal", lambda: _FakeSession(jump_rows, log))
+        monkeypatch.setattr(m, "upsert_corporate_action_flag_sync", lambda s, recs: flags.extend(recs))
+        plan = m.plan_scale("BTLN", date(2026, 9, 28), BTLN_SPLIT, BTLN_ROWS)
+        m.apply_scale([plan, m.plan_scale("XXXX", date(2026, 9, 28), None, BTLN_ROWS)])
+        updates = [(s, p) for s, p in log if s.startswith("UPDATE")]
+        return updates, flags
+
+    def test_점프가_그대로면_환산하고_flag_resolved(self, monkeypatch):
+        rows = [(date(2026, 9, 28), 5.25), (date(2026, 9, 25), 0.64)]
+        updates, flags = self._run(monkeypatch, rows)
+        (sql, params), = updates
+        assert params["f"] == 8.0 and params["d"] == date(2026, 9, 28) and "date < :d" in sql
+        assert "volume / :f" in sql  # 가격은 ×F, 거래량은 ÷F
+        rec, = flags
+        assert (rec["ticker"], rec["status"]) == ("BTLN", "resolved")
+        assert "×8" in rec["note"]
+
+    def test_이미_환산돼_점프가_사라졌으면_건너뜀(self, monkeypatch):
+        rows = [(date(2026, 9, 28), 5.25), (date(2026, 9, 25), 5.12)]  # 점프 x1.03
+        updates, flags = self._run(monkeypatch, rows)
+        assert updates == [] and flags == []
+
+    def test_절벽일_행이_없으면_건너뜀(self, monkeypatch):
+        updates, flags = self._run(monkeypatch, [(date(2026, 9, 25), 0.64)])
+        assert updates == [] and flags == []
+
+
 class TestApplyRefetch:
     def test_fixable만_쓰고_flag를_resolved로(self, monkeypatch):
         prices, flags = [], []

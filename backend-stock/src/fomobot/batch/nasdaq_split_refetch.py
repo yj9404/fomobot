@@ -9,8 +9,9 @@ NASDAQ 역분할 오염 정정 — 분할이 확인된 종목의 전체 이력�
 
 모든 종목이 그런 것은 아니다. 2026-10-26 dry-run에서 CPOP·IPDN·IZM·BTLN·DLXY·GMEX·IMMP는
 yfinance 원본 자체가 분할일에 절벽을 그대로 갖고 있어(분할 이력은 있는데 가격은 미조정),
-재수집해도 절벽이 남는다. 이런 종목은 hold가 되며, 정정하려면 분할 비율로 이전 행을 직접
-환산해야 한다 (이 모듈의 범위 밖).
+재수집해도 절벽이 남는다. 이런 종목은 hold가 되며, plan_scale / apply_scale로 DB의 절벽일
+이전 행에 분할 비율의 역수를 직접 곱해 정정한다. 이 경우 재수집 시계열은 내부가 일관되지
+않을 수 있어(분할 직전 며칠만 미조정) 덮어쓰면 오히려 DB가 망가진다 — 쓰지 않는다.
 
 정정 대상 판정은 plan_refetch가 하며, 아래 중 하나라도 어긋나면 hold(쓰지 않음)다:
   - yfinance 분할 이력에서 flag_date 근처의 역분할이 확인되지 않음
@@ -24,8 +25,17 @@ import statistics
 import time
 from datetime import date, timedelta
 
+from sqlalchemy import text
+
 from fomobot.batch import collect_nasdaq
-from fomobot.batch.detect_nasdaq_quality import CLIFF_HI, CLIFF_LO, SPLIT_WINDOW_DAYS, fetch_splits
+from fomobot.batch.detect_nasdaq_quality import (
+    CLIFF_HI,
+    CLIFF_LO,
+    SPLIT_MAGNITUDE_HI,
+    SPLIT_MAGNITUDE_LO,
+    SPLIT_WINDOW_DAYS,
+    fetch_splits,
+)
 from fomobot.db.crud import upsert_corporate_action_flag_sync, upsert_price_daily_sync
 from fomobot.db.session import SyncSessionLocal
 
@@ -120,6 +130,96 @@ def plan_refetch(
     plan["category"] = "fixable"
     plan["reason"] = f"역분할 확인 {plan['split_date']} (비율 {plan['split_ratio']:g}), 재수집 시 절벽 해소"
     return plan
+
+
+def plan_scale(
+    ticker: str,
+    flag_date: date,
+    splits: list[tuple[date, float]] | None,
+    db_rows: list[dict],
+) -> dict:
+    """
+    yfinance 원본이 미조정이라 재수집으로 못 고치는 종목을, DB 행 자체로 환산해도 되는지 판정한다.
+
+    DB의 flag_date 근처 상승 절벽을 찾고, 그 절벽이 yfinance 분할 이력의 역분할로 설명되면
+    (점프 배율 × 분할 비율 = SPLIT_MAGNITUDE 범위) 절벽일 이전 행에 곱할 계수 F = 1 / 분할 비율을 낸다.
+    경계는 분할일이 아니라 DB에서 관측된 절벽일이다 (샘플 행으로 경계가 분할일에 깨끗하게 있음을 확인).
+
+    db_rows: flag_date 앞뒤 CLIFF_CHECK_DAYS일의 [{date, close_adj}]
+    Returns dict: category("scalable"|"hold"), reason, cliff_date, jump, split_date, split_ratio, factor, magnitude
+    """
+    plan = {
+        "ticker": ticker, "flag_date": flag_date, "category": "hold", "reason": "",
+        "cliff_date": None, "jump": None, "split_date": None, "split_ratio": None,
+        "factor": None, "magnitude": None,
+    }
+    near = [c for c in find_cliffs(db_rows)
+            if c["ratio"] > 1 and abs((c["date"] - flag_date).days) <= CLIFF_CHECK_DAYS]
+    if not near:
+        plan["reason"] = "DB에서 flag_date 근처 상승 절벽 없음"
+        return plan
+    cliff = min(near, key=lambda c: abs((c["date"] - flag_date).days))
+    plan["cliff_date"], plan["jump"] = cliff["date"], cliff["ratio"]
+
+    for split_date, split_ratio in sorted(splits or []):
+        if split_ratio >= 1 or not -SPLIT_BEFORE_TOLERANCE <= (split_date - cliff["date"]).days <= SPLIT_WINDOW_DAYS:
+            continue
+        magnitude = cliff["ratio"] * split_ratio
+        if SPLIT_MAGNITUDE_LO <= magnitude <= SPLIT_MAGNITUDE_HI:
+            plan.update(category="scalable", split_date=split_date, split_ratio=split_ratio,
+                        factor=1 / split_ratio, magnitude=magnitude,
+                        reason=f"역분할 확인 {split_date} (비율 {split_ratio:g}), 배율 대비 {magnitude:.2f}")
+            return plan
+    plan["reason"] = "yfinance 분할 이력에서 점프 배율과 맞는 역분할 미확인" + ("" if splits else " (조회 실패/빈 응답)")
+    return plan
+
+
+def _db_jump(session, ticker: str, cliff_date: date) -> float | None:
+    """cliff_date 종가 / 직전 거래일 종가. cliff_date 행이 없으면 None."""
+    rows = session.execute(text(
+        "SELECT date, close_adj FROM price_daily WHERE market = :m AND ticker = :t AND date <= :d "
+        "ORDER BY date DESC LIMIT 2"), {"m": MARKET, "t": ticker, "d": cliff_date}).fetchall()
+    if len(rows) < 2 or rows[0][0] != cliff_date or not rows[1][1]:
+        return None
+    return rows[0][1] / rows[1][1]
+
+
+def apply_scale(plans: list[dict]) -> None:
+    """
+    scalable 종목마다 한 트랜잭션으로 절벽일 이전 행을 환산하고 flag를 resolved로 전환한다.
+
+    같은 환산을 두 번 하면 데이터가 망가지므로, 쓰기 직전에 DB의 현재 점프 배율이 계획 시점과
+    같은지 다시 확인한다 (이미 환산됐으면 점프가 사라져 건너뜀).
+    가격(open/high/low/close_adj)은 × F, 거래량은 ÷ F — 분할 후 행의 단위에 맞춘다.
+    """
+    for plan in plans:
+        if plan["category"] != "scalable":
+            continue
+        ticker, cliff_date, factor = plan["ticker"], plan["cliff_date"], plan["factor"]
+        with SyncSessionLocal() as session:
+            jump = _db_jump(session, ticker, cliff_date)
+            if jump is None or abs(jump / plan["jump"] - 1) > 0.01:
+                logger.warning("%s 환산 건너뜀: DB 현재 점프 %s ≠ 계획 %.4f (이미 정정됐거나 데이터 변경)",
+                               ticker, jump, plan["jump"])
+                continue
+            n = session.execute(text(
+                "UPDATE price_daily SET open = open * :f, high = high * :f, low = low * :f, "
+                "close_adj = close_adj * :f, volume = ROUND(volume / :f)::bigint "
+                "WHERE market = :m AND ticker = :t AND date < :d"),
+                {"f": factor, "m": MARKET, "t": ticker, "d": cliff_date}).rowcount
+            upsert_corporate_action_flag_sync(session, [{
+                "ticker": ticker,
+                "market": MARKET,
+                "flag_date": plan["flag_date"],
+                "reason": "split",
+                "status": "resolved",
+                "detected_signal": plan["reason"][:2000],
+                "note": (
+                    f"분할 비율 환산 정정: {cliff_date} 이전 {n}행 가격 ×{factor:g}, 거래량 ÷{factor:g}. "
+                    f"yfinance 원본이 미조정이라 재수집 불가. 분할 {plan['split_date']} 비율 {plan['split_ratio']:g}."
+                )[:2000],
+            }])
+        logger.info("%s 환산 완료: %s 이전 %d행 ×%g", ticker, cliff_date, n, factor)
 
 
 def fetch_history(ticker: str, start: date, end: date) -> list[dict]:
