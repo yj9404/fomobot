@@ -6,11 +6,10 @@ Railway Cron 진입점 — NASDAQ 내부절벽 주간 전수 스캔(무거움, �
 (가벼운 음수/0 가격 가드는 fomobot.jobs.collect에 이미 편입돼 있다 —
 fomobot.batch.detect_nasdaq_quality.detect_nasdaq_negative 참조).
 
-이 배치는 격리 후보를 corporate_action_flag에 자동 insert하지 않는다 —
-Sentry 경고 + 로그로만 알린다. 절벽은 실제 급락(뉴스 이벤트)과 오염을
-거래량 신호로만 구분하므로 오탐 여지가 있어, 운영 확인 후 자동 insert
-전환 여부를 별도로 결정한다(fomobot.batch.detect_nasdaq_quality 모듈
-docstring 참조).
+격리 후보 중 yfinance 분할 이력으로 역분할이 확인된 종목만
+corporate_action_flag에 자동 격리한다(Sentry에 격리 내역 경고). 확인되지
+않은 후보는 실제 급등락과 구분할 수 없어 격리하지 않고 Sentry 경고 + 로그로만
+알린다(fomobot.batch.detect_nasdaq_quality 모듈 docstring 참조).
 
 사용법:
     python -m fomobot.jobs.detect_nasdaq_cliffs
@@ -73,7 +72,10 @@ def format_candidates(candidates: list[dict], cliffs_key: str = "isolate_cliffs"
 
 def run(market: str = "nasdaq") -> None:
     try:
-        from fomobot.batch.detect_nasdaq_quality import detect_nasdaq_cliffs
+        from fomobot.batch.detect_nasdaq_quality import (
+            auto_isolate_reverse_splits,
+            detect_nasdaq_cliffs,
+        )
 
         result = detect_nasdaq_cliffs(market, full_scan=True)
 
@@ -84,11 +86,22 @@ def run(market: str = "nasdaq") -> None:
             result["suppressed_count"],
         )
 
-        if result["isolate_candidates"]:
-            candidates = result["isolate_candidates"]
+        isolated = auto_isolate_reverse_splits(result["isolate_candidates"], market)
+        if isolated:
             _report_warning(
-                f"[{market.upper()}] 절벽 격리후보 {len(candidates)}종목 탐지(자동 격리 안 됨, "
-                f"수동 검토 필요): {format_candidates(candidates)}"
+                f"[{market.upper()}] 역분할 확인 자동 격리 {len(isolated)}종목: "
+                + ", ".join(
+                    f"{i['ticker']} 절벽 {i['cliff_date']:%m-%d} x{i['ratio']:.2f} "
+                    f"/ 분할 {i['split_date']:%m-%d} ({i['split_ratio']:g})"
+                    for i in isolated[:ALERT_DETAIL_LIMIT]
+                )
+            )
+        isolated_tickers = {i["ticker"] for i in isolated}
+        remaining = [c for c in result["isolate_candidates"] if c["ticker"] not in isolated_tickers]
+        if remaining:
+            _report_warning(
+                f"[{market.upper()}] 절벽 격리후보 {len(remaining)}종목 탐지(분할 이력 미확인이라 "
+                f"자동 격리 안 됨, 수동 검토 필요): {format_candidates(remaining)}"
             )
         if result["lag_possible"]:
             candidates = result["lag_possible"]

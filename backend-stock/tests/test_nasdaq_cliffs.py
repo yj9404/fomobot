@@ -62,6 +62,90 @@ class TestDetectFilters:
         assert [c["ticker"] for c in result["isolate_candidates"]] == ["JUMP"]
 
 
+def _isolate_candidate(ticker, *cliffs):
+    """cliffs: (cliff_date, ratio, vol_ratio) 튜플들."""
+    return {"ticker": ticker, "isolate_cliffs": [
+        {"cliff_date": d, "ratio": r, "vol_ratio": v} for d, r, v in cliffs
+    ]}
+
+
+@pytest.fixture
+def upserts(monkeypatch):
+    """auto_isolate_reverse_splits가 DB에 쓰려던 레코드를 가로챈다."""
+    saved = []
+    monkeypatch.setattr(q, "SyncSessionLocal", lambda: nullcontext())
+    monkeypatch.setattr(q, "upsert_corporate_action_flag_sync", lambda session, records: saved.extend(records))
+    return saved
+
+
+def _splits(ticker_splits):
+    return lambda ticker: ticker_splits.get(ticker)
+
+
+class TestAutoIsolateReverseSplits:
+    # 2026-10 샘플 대조에서 확인된 실제 값 (절벽이 분할일보다 5~7일 앞선다)
+    def test_분할_확인되면_자동_격리(self, upserts):
+        cand = _isolate_candidate("EHGO", (date(2026, 10, 14), 4.49, 0.1))
+        isolated = q.auto_isolate_reverse_splits([cand], splits_fetcher=_splits({"EHGO": [(date(2026, 10, 21), 0.2)]}))
+        assert [i["ticker"] for i in isolated] == ["EHGO"]
+        rec, = upserts
+        assert (rec["ticker"], rec["market"], rec["reason"], rec["status"]) == ("EHGO", "nasdaq", "split", "excluded")
+        assert rec["flag_date"] == date(2026, 10, 14)
+        assert "auto" in rec["note"] and "2026-10-21" in rec["note"] and "0.2" in rec["note"]
+
+    def test_분할_조회_실패나_빈_응답은_격리하지_않음(self, upserts):
+        cand = _isolate_candidate("EHGO", (date(2026, 10, 14), 4.49, 0.1))
+        assert q.auto_isolate_reverse_splits([cand], splits_fetcher=_splits({})) == []  # None = 조회 실패
+        assert q.auto_isolate_reverse_splits([cand], splits_fetcher=_splits({"EHGO": []})) == []
+        assert upserts == []
+
+    def test_분할이_절벽보다_앞서거나_14일_넘게_뒤면_불인정(self, upserts):
+        cand = _isolate_candidate("X", (date(2026, 10, 14), 4.49, 0.1))
+        for split_date in (date(2026, 10, 13), date(2026, 10, 29)):
+            assert q.auto_isolate_reverse_splits([cand], splits_fetcher=_splits({"X": [(split_date, 0.2)]})) == []
+        assert upserts == []
+
+    def test_배율이_0_7에서_1_3배_밖이면_불인정(self, upserts):
+        # 분할 1:5 → 기대 x5. 실제 x3(0.6배)와 x7(1.4배)은 분할 외 요인이 섞인 것으로 본다
+        for ratio in (3.0, 7.0):
+            cand = _isolate_candidate("X", (date(2026, 10, 14), ratio, 0.1))
+            assert q.auto_isolate_reverse_splits([cand], splits_fetcher=_splits({"X": [(date(2026, 10, 21), 0.2)]})) == []
+        assert upserts == []
+
+    def test_거래량비_2배_초과는_분할이_있어도_경고만(self, upserts):
+        cand = _isolate_candidate("DLXY", (date(2026, 9, 28), 4.88, 2.6))
+        assert q.auto_isolate_reverse_splits(
+            [cand], splits_fetcher=_splits({"DLXY": [(date(2026, 10, 2), 0.2)]})) == []
+
+    def test_하락_절벽과_정방향_분할은_자동_격리_대상_아님(self, upserts):
+        down = _isolate_candidate("X", (date(2026, 10, 14), 0.2, 0.1))
+        assert q.auto_isolate_reverse_splits([down], splits_fetcher=_splits({"X": [(date(2026, 10, 21), 5.0)]})) == []
+        up = _isolate_candidate("Y", (date(2026, 10, 14), 5.0, 0.1))
+        assert q.auto_isolate_reverse_splits([up], splits_fetcher=_splits({"Y": [(date(2026, 10, 21), 5.0)]})) == []
+
+    def test_확인_안_된_격리_절벽이_하나라도_있으면_종목_전체_보류(self, upserts):
+        # OMH: 8/27 x38.78은 분할(0.02)로 설명되지만 7/27 x0.29는 설명되지 않는다
+        cand = _isolate_candidate("OMH", (date(2026, 7, 27), 0.29, 0.3), (date(2026, 8, 27), 38.78, 0.0))
+        assert q.auto_isolate_reverse_splits(
+            [cand], splits_fetcher=_splits({"OMH": [(date(2026, 8, 31), 0.02)]})) == []
+        assert upserts == []
+
+    def test_격리_대상이_없으면_DB에_쓰지_않음(self, upserts):
+        assert q.auto_isolate_reverse_splits([], splits_fetcher=_splits({})) == []
+        assert upserts == []
+
+
+class TestFetchSplits:
+    def test_예외는_None(self, monkeypatch):
+        import yfinance
+
+        def boom(*a, **k):
+            raise RuntimeError("network down")
+
+        monkeypatch.setattr(yfinance, "Ticker", boom)
+        assert q.fetch_splits("EHGO") is None
+
+
 def _candidate(ticker, cliff_date, ratio, vol_ratio):
     return {"ticker": ticker, "isolate_cliffs": [
         {"cliff_date": cliff_date, "ratio": ratio, "vol_ratio": vol_ratio},

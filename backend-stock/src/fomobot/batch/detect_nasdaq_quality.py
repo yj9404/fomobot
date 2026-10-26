@@ -13,9 +13,11 @@ detect_corporate_actions.py의 1차 신호(shares_ratio)를 못 쓴다. 그래�
     → 일일 수집 배치 끝에 편입(무겁지 않음).
   - detect_nasdaq_cliffs: 5년 윈도우 전 종목 스캔, 무겁다. 절벽은 실제
     급락(뉴스 이벤트)과 오염을 거래량 신호로만 구분하므로 오탐 여지가
-    있어 이 단계는 자동 insert하지 않고 후보 목록만 반환한다(운영 확인
-    후 자동 insert 전환 여부 별도 결정).
+    있어 이 함수 자체는 insert하지 않고 후보 목록만 반환한다.
     → 주간(또는 수동) 배치로 분리.
+  - auto_isolate_reverse_splits: 절벽 후보 중 yfinance 분할 이력으로 역분할이
+    확인된 종목만 자동 격리한다. 확인 안 된 후보(분할 없음·조회 실패 포함)는
+    격리하지 않고 경고만 남긴다.
 """
 import logging
 import statistics
@@ -131,6 +133,15 @@ LOOKBACK_DAYS = 1825 + 10  # 5년 + 첫 날짜 전일 비교용 여유
 # 절벽 전후 종가가 모두 이 값 미만이면 호가 단위 반올림 노이즈로 보고 제외한다
 # (KTTAW $0.01→$0.00, 2026-10). 랭킹 필터의 최소가($5)보다 훨씬 낮은 값이라 실제 절벽은 거르지 않는다.
 MIN_CLIFF_PRICE = 0.05
+
+# ── 역분할 자동 격리 기준 (auto_isolate_reverse_splits) ──────────────────────
+# 2026-10 샘플 대조(격리 49종목 중 6종목 15개 절벽)에서 확인된 역분할의 거래량 비율은
+# 0.0~1.1배였고, 거래량이 3배 이상 터진 절벽은 모두 분할과 무관했다.
+AUTO_VOL_RATIO_MAX = 2.0
+# 절벽은 실제 분할일보다 앞선다(DB 절벽 = 분할일 -4~7일). 절벽일 뒤쪽 14일 안의 분할만 인정한다.
+SPLIT_WINDOW_DAYS = 14
+# 점프 배율 / 분할 비율의 역수. 샘플 실제값은 0.78~1.00이었다.
+SPLIT_MAGNITUDE_LO, SPLIT_MAGNITUDE_HI = 0.7, 1.3
 
 
 def _cv(vals: list[float | None]) -> float | None:
@@ -337,3 +348,92 @@ def detect_nasdaq_cliffs(
         "suppressed_count": suppressed_count,
         "scanned_candidate_rows": len(candidate_rows),
     }
+
+
+# ── auto_isolate_reverse_splits ──────────────────────────────────────────────
+
+
+def fetch_splits(ticker: str) -> list[tuple[date, float]] | None:
+    """
+    yfinance Ticker.splits를 [(분할일, 비율)]로 반환한다. 비율 < 1이 역분할.
+    조회 실패는 None — 호출부는 빈 목록과 똑같이 "확인 안 됨"으로 취급한다.
+    """
+    try:
+        import yfinance as yf
+
+        return [(d.date(), float(r)) for d, r in yf.Ticker(ticker).splits.items()]
+    except Exception:
+        logger.warning("%s 분할 이력 조회 실패 — 확인 안 됨으로 처리", ticker, exc_info=True)
+        return None
+
+
+def _match_reverse_split(cliff: dict, splits: list[tuple[date, float]]) -> dict | None:
+    """절벽 하나가 역분할로 설명되면 {split_date, split_ratio, magnitude}, 아니면 None."""
+    if cliff["ratio"] <= 1 or cliff["vol_ratio"] > AUTO_VOL_RATIO_MAX:
+        return None
+    for split_date, split_ratio in splits:
+        if split_ratio >= 1 or not 0 <= (split_date - cliff["cliff_date"]).days <= SPLIT_WINDOW_DAYS:
+            continue
+        magnitude = cliff["ratio"] * split_ratio  # = 점프 배율 / (1 / 분할 비율)
+        if SPLIT_MAGNITUDE_LO <= magnitude <= SPLIT_MAGNITUDE_HI:
+            return {"split_date": split_date, "split_ratio": split_ratio, "magnitude": magnitude}
+    return None
+
+
+def auto_isolate_reverse_splits(
+    candidates: list[dict], market: str = "nasdaq", splits_fetcher=fetch_splits,
+) -> list[dict]:
+    """
+    detect_nasdaq_cliffs의 isolate_candidates 중 yfinance 분할 이력으로 역분할이
+    확인된 종목만 corporate_action_flag에 자동 격리한다(reason=split, status=excluded).
+
+    임계값만으로는 실제 급등락(펌프 후 급락 등)과 구분할 수 없어, 분할 이력 확인을
+    필수 조건으로 둔다. 종목 단위로 격리하므로 isolate 절벽이 하나라도 확인되지
+    않으면(분할 없음·배율 불일치·거래량 비율 초과·조회 실패) 자동 격리하지 않고
+    경고 대상으로 남긴다.
+
+    Returns
+    -------
+    list[dict]  자동 격리한 종목: ticker, cliff_date, ratio, vol_ratio,
+                split_date, split_ratio, magnitude
+    """
+    isolated: list[dict] = []
+    records: list[dict] = []
+    for c in candidates:
+        splits = splits_fetcher(c["ticker"])
+        if not splits:
+            continue
+        matches = [(cl, _match_reverse_split(cl, splits)) for cl in c["isolate_cliffs"]]
+        if any(m is None for _, m in matches):
+            continue
+        cliff, match = max(matches, key=lambda cm: cm[0]["cliff_date"])
+        signal = (
+            f"auto reverse_split cliff={cliff['cliff_date']} x{cliff['ratio']:.2f} "
+            f"vol{cliff['vol_ratio']:.1f} split={match['split_date']} "
+            f"ratio={match['split_ratio']:g} magnitude={match['magnitude']:.2f}"
+        )
+        records.append({
+            "ticker": c["ticker"],
+            "market": market,
+            "flag_date": cliff["cliff_date"],
+            "reason": "split",
+            "status": "excluded",
+            "detected_signal": signal[:2000],
+            "note": (
+                f"auto 격리 — yfinance splits로 역분할 확인(분할일 {match['split_date']}, "
+                f"비율 {match['split_ratio']:g}). 정정 전 DB 행으로 경계 확인 필요."
+            )[:2000],
+        })
+        isolated.append({
+            "ticker": c["ticker"], "cliff_date": cliff["cliff_date"], "ratio": cliff["ratio"],
+            "vol_ratio": cliff["vol_ratio"], **match,
+        })
+
+    if records:
+        with SyncSessionLocal() as session:
+            upsert_corporate_action_flag_sync(session, records)
+        logger.warning(
+            "%s 역분할 확인 자동 격리 %d종목: %s",
+            market.upper(), len(isolated), [i["ticker"] for i in isolated],
+        )
+    return isolated
