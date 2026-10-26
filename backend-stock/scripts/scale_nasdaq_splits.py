@@ -16,10 +16,14 @@ DB 입력: 로컬 dry-run은 운영 DB에 접속하지 않도록 --db-input 파�
   {"flags": {"BTLN": "2026-09-28", ...},
    "closes": {"BTLN": {"2026-09-25": 0.64, "2026-09-28": 5.25, ...}}}   # flag_date 앞뒤 종가
 
+yfinance에 분할 기록이 없는 종목(GCTK, GLMD 등)은 공시로 분할일·비율을 확인한 뒤 --split으로 지정한다.
+점프 배율 × 분할 비율 검증은 그대로 적용되므로 비율이 틀리면 hold가 된다.
+
 실행 (Railway 셸, 일일 수집 cron과 겹치지 않게):
     cd backend-stock
     python scripts/scale_nasdaq_splits.py              # dry-run
     python scripts/scale_nasdaq_splits.py --apply      # 쓰기
+    python scripts/scale_nasdaq_splits.py --split GCTK=15@2026-08-31 --split GLMD=8@2026-08-19
 """
 
 import argparse
@@ -27,7 +31,7 @@ import json
 import logging
 import os
 import sys
-from datetime import date, timedelta
+from datetime import date
 from pathlib import Path
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
@@ -81,8 +85,20 @@ def summarize(plans: list[dict]) -> str:
 def main() -> None:
     p = argparse.ArgumentParser(description="NASDAQ 역분할 오염 종목 분할 비율 환산 정정")
     p.add_argument("--db-input", type=Path, help="로컬 dry-run용 DB 값(JSON). 운영 DB에 접속하지 않는다")
+    p.add_argument("--split", action="append", default=[], metavar="TICKER=N@YYYY-MM-DD",
+                   help="yfinance에 기록이 없는 분할을 공시(8-K/6-K)로 확인해 직접 지정 (N-for-1 역분할, "
+                        "예: GCTK=15@2026-08-31). 해당 종목의 yfinance 조회를 대체한다")
     p.add_argument("--apply", action="store_true")
     args = p.parse_args()
+
+    manual_splits: dict[str, list[tuple[date, float]]] = {}
+    for item in args.split:
+        try:
+            ticker, rest = item.split("=", 1)
+            n, d = rest.split("@", 1)
+            manual_splits[ticker.strip()] = [(date.fromisoformat(d), 1 / float(n))]
+        except ValueError:
+            p.error(f"--split 형식 오류: {item} (TICKER=N@YYYY-MM-DD)")
 
     if args.apply and args.db_input:
         p.error("--apply는 --db-input과 함께 쓸 수 없다(DB를 직접 읽어야 함)")
@@ -99,7 +115,10 @@ def main() -> None:
     for ticker, flag_date in sorted(db_input["flags"].items()):
         rows = [{"date": d, "close_adj": c} for d, c in sorted(db_input["closes"].get(ticker, {}).items())
                 if abs((d - flag_date).days) <= CLIFF_CHECK_DAYS]
-        plans.append(plan_scale(ticker, flag_date, fetch_splits(ticker), rows))
+        if ticker in manual_splits:
+            logger.info("%s: 수동 지정 분할 사용 %s (yfinance 조회 생략)", ticker, manual_splits[ticker])
+        splits = manual_splits[ticker] if ticker in manual_splits else fetch_splits(ticker)
+        plans.append(plan_scale(ticker, flag_date, splits, rows))
     print(summarize(plans))
 
     if args.apply:
