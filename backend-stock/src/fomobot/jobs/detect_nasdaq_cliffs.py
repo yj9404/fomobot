@@ -95,6 +95,9 @@ def run(market: str = "nasdaq") -> None:
                     f"/ 분할 {i['split_date']:%m-%d} ({i['split_ratio']:g})"
                     for i in isolated[:ALERT_DETAIL_LIMIT]
                 )
+                # 가격을 무인으로 덮어쓰지 않는다 — dry-run으로 판정을 확인한 뒤 사람이 --apply
+                + " | 정정: backend-stock에서 scripts/refetch_nasdaq_splits.py 실행(dry-run 확인 후 --apply),"
+                " hold된 종목은 scripts/scale_nasdaq_splits.py"
             )
         isolated_tickers = {i["ticker"] for i in isolated}
         remaining = [c for c in result["isolate_candidates"] if c["ticker"] not in isolated_tickers]
