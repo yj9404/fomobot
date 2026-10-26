@@ -33,6 +33,37 @@ LOOKBACK_DAYS = 60  # 10거래일 이상의 halt run을 안전하게 담을 여�
 CAPITAL_ACTION_REASONS = ("capital_reduction", "merge", "split")
 
 
+def find_long_halted_tickers(
+    rows: list[dict], min_days: int = HALT_MIN_TRADING_DAYS,
+) -> set[str]:
+    """
+    각 종목의 최신 행부터 거슬러 volume이 0(또는 NULL)인 행이 min_days개 이상
+    연속이면 "장기 정지 중"으로 본다. rows는 ticker·date·volume을 가진 dict 목록.
+
+    랭킹 제외를 corporate_action_flag(halted/pending)에 저장하던 방식은 재개 후
+    해제할 주체가 없어 2026-08~10월 KOSPI 17종목·NASDAQ 240종목이 정상 거래 중에도
+    빠져 있었다. "정지 중"은 데이터로 매번 판정할 수 있는 사실이므로 상태로
+    두지 않고 랭킹 계산 시점에 이 함수로 판정한다 — 재개되면 다음 계산부터
+    자동으로 랭킹에 돌아온다.
+    """
+    by_ticker: dict[str, list[dict]] = {}
+    for r in rows:
+        by_ticker.setdefault(r["ticker"], []).append(r)
+
+    halted: set[str] = set()
+    for ticker, series in by_ticker.items():
+        series.sort(key=lambda r: r["date"], reverse=True)
+        run = 0
+        for r in series:
+            if r["volume"]:
+                break
+            run += 1
+            if run >= min_days:
+                halted.add(ticker)
+                break
+    return halted
+
+
 def is_prev_day_halt_resumption(
     session: Session, market: str, ticker: str, prev_date: date, snapshot_date: date,
 ) -> bool:

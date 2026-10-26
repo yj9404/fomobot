@@ -51,6 +51,7 @@ def captured_upserts(monkeypatch):
     monkeypatch.setattr(compute_rankings, "get_index_range_sync", lambda *a, **k: [])
     monkeypatch.setattr(compute_rankings, "upsert_ranking_snapshots_sync", _fake_upsert)
     monkeypatch.setattr(compute_rankings, "_fetch_name_map", lambda *a, **k: {})
+    monkeypatch.setattr(compute_rankings, "_load_long_halted_tickers", lambda *a, **k: set())
     # start_date 거래일 스냅 조회 — 이 테스트들은 _load_price_matrix를 고정값으로
     # 대체했으므로 실제 스냅 여부와 무관, raw 값을 그대로 돌려줘 세션 접근만 피한다.
     monkeypatch.setattr(
@@ -152,6 +153,7 @@ class TestPeriodStartDateSnapsToTradingDay:
         monkeypatch.setattr(compute_rankings, "get_index_range_sync", lambda *a, **k: [])
         monkeypatch.setattr(compute_rankings, "upsert_ranking_snapshots_sync", lambda *a, **k: None)
         monkeypatch.setattr(compute_rankings, "_fetch_name_map", lambda *a, **k: {})
+        monkeypatch.setattr(compute_rankings, "_load_long_halted_tickers", lambda *a, **k: set())
 
         compute_rankings.compute_rankings_for_market(
             "kospi", snapshot_date=date(2026, 6, 29), periods=["1d"]
@@ -159,3 +161,22 @@ class TestPeriodStartDateSnapsToTradingDay:
 
         # _load_price_matrix가 일요일(raw_sunday)이 아니라 스냅된 금요일로 호출됐는지
         assert calls == [(snapped_friday, date(2026, 6, 29))]
+
+
+class TestLongHaltExclusion:
+    """장기 정지 종목은 플래그 없이 랭킹 계산 시점의 판정만으로 빠져야 한다."""
+
+    def test_장기_정지_종목은_모든_기간에서_제외(self, captured_upserts, monkeypatch):
+        monkeypatch.setattr(compute_rankings, "_load_long_halted_tickers", lambda *a, **k: {"BBB"})
+        compute_rankings.compute_rankings_for_market("kospi", snapshot_date=date(2026, 7, 3))
+        tickers = {r["ticker"] for r in captured_upserts}
+        assert tickers == {"AAA"}
+
+    def test_정지_판정이_실패해도_랭킹은_계산된다(self, captured_upserts, monkeypatch):
+        def _boom(*_a, **_k):
+            raise RuntimeError("db down")
+
+        monkeypatch.setattr(compute_rankings, "_load_long_halted_tickers", _boom)
+        compute_rankings.compute_rankings_for_market("kospi", snapshot_date=date(2026, 7, 3))
+        tickers = {r["ticker"] for r in captured_upserts}
+        assert tickers == {"AAA", "BBB"}

@@ -823,30 +823,6 @@ def get_resolved_flags_sync(session: Session, market: str) -> dict[str, date]:
     return {r.ticker: r.flag_date for r in rows}
 
 
-def get_pending_halted_flags_sync(session: Session, market: str) -> list[dict]:
-    """status=pending AND reason=halted인 종목 목록(halt 재개 체크 대상)."""
-    stmt = select(CorporateActionFlag.ticker, CorporateActionFlag.flag_date).where(
-        CorporateActionFlag.market == market,
-        CorporateActionFlag.status == "pending",
-        CorporateActionFlag.reason == "halted",
-    )
-    rows = session.execute(stmt).fetchall()
-    return [{"ticker": r.ticker, "flag_date": r.flag_date} for r in rows]
-
-
-def get_last_real_trade_date_sync(session: Session, market: str, ticker: str) -> date | None:
-    """해당 종목의 마지막 실거래일(volume>0)을 반환한다 — halt 재개 감지용."""
-    stmt = (
-        select(func.max(PriceDaily.date))
-        .where(
-            PriceDaily.market == market,
-            PriceDaily.ticker == ticker,
-            PriceDaily.volume > 0,
-        )
-    )
-    return session.execute(stmt).scalar_one_or_none()
-
-
 def get_cliff_candidates_sync(session: Session, market: str, window_start: date) -> list[dict]:
     """
     윈도우 내 인접 close_adj 비율이 [0.35,3] 밖인 절벽 후보 + 전후 5일

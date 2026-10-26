@@ -11,16 +11,8 @@ close_adj가 구주가/신주가로 갈라지는 사고가 11종목에서 반복
 import logging
 from datetime import date, timedelta
 
-from fomobot.db.crud import (
-    get_flagged_tickers_sync,
-    get_last_real_trade_date_sync,
-    get_pending_halted_flags_sync,
-    get_price_range_sync,
-    get_resolved_flags_sync,
-    upsert_corporate_action_flag_sync,
-)
+from fomobot.db.crud import get_price_range_sync, get_resolved_flags_sync
 from fomobot.db.session import SyncSessionLocal
-from fomobot.services.halt_resumption import HALT_MIN_TRADING_DAYS
 
 logger = logging.getLogger(__name__)
 
@@ -41,16 +33,6 @@ RESOLVED_SUPPRESS_TRADING_DAYS = 3  # resolved flag_date와 이 거래일수 이
 MARKET_CAP_MISSING_RATIO_THRESHOLD = 0.05  # 5%
 MARKET_CAP_MISSING_ABS_THRESHOLD = 100
 
-# halt 재개 알림에 고정으로 붙이는 다음 액션 안내 — 지금까지 5종목+3종목 정정에 쓴
-# 것과 동일한 dry-run→승인→write 3단계 패턴을 그대로 쓰면 된다는 걸 알림 자체에
-# 남겨서, 사람이 절차를 매번 새로 찾지 않고 바로 착수할 수 있게 한다.
-RESUMPTION_NEXT_STEPS = (
-    "다음 액션: 기존과 동일한 3단계로 진행 — "
-    "(1) shares_ratio(market_cap/close_adj) 재검증으로 factor·cutoff 확정 "
-    "(2) dry-run(검증 A/B) 결과 보고 후 승인 대기 "
-    "(3) 승인 후 단일 트랜잭션 write + 필요 시 ranking_snapshot 재계산. "
-    "자동 정정 없음 — 승인 게이트 유지."
-)
 # 병합/분할 비율은 이사회 결의로 임의 정수로 정해지므로(15:1, 30:1 등 실제 관측됨),
 # 고정된 후보 목록 대신 "가장 가까운 정수"로 일반화한다. 2~100 범위로 제한 —
 # 그 이상은 단일 corporate action으로 보기 어렵고 데이터 오류일 가능성이 커진다.
@@ -296,150 +278,3 @@ def detect_corporate_actions(
         "suppressed_count": suppressed_count,
         "market_cap_coverage_alert": market_cap_coverage_alert,
     }
-
-
-LONG_HALT_LOOKBACK_DAYS = 120  # HALT_MIN_TRADING_DAYS(10거래일)를 안전하게 담을 여유(주말·공휴일 포함, ~12배)
-
-
-def detect_long_halts(market: str) -> list[dict]:
-    """
-    현재도 매매정지 중이고 HALT_MIN_TRADING_DAYS(services.halt_resumption과
-    동일 상수) 거래일 이상 지속된 종목을 찾아 corporate_action_flag
-    (reason=halted, status=pending)에 자동 등록한다(DB write — 이 함수는
-    승인 게이트 없이 자동 insert한다, 이유는 아래 참조).
-
-    027970(한국제지) 사고 재발 방지용: 감자/병합으로 정지된 종목은 정지
-    기간 동안 close_adj가 조정 전 값에 머물러 있다가 재개 직전/직후에야
-    KRX가 조정가를 소급 게시하는 경우가 있어(is_prev_day_halt_resumption의
-    "비동결이면 corporate action" 분기가 바로 이 케이스), 가격 점프를
-    기다리는 detect_corporate_actions()로는 원리적으로 라이브 시점에 잡을
-    수 없다(2026-08-07~08-13 5일 연속 미탐으로 실증됨). "정지 자체"는 가격
-    데이터가 갱신되길 기다릴 필요 없이 매일 즉시 판정 가능한 사실이므로,
-    독립적인 선제 신호로 쓴다.
-
-    detect_corporate_actions()의 가격-점프 신호와 달리 이 신호는 자동
-    insert가 안전하다고 판단한다 — "N거래일 연속 거래량 0"은 오탐 여지가
-    거의 없는 사실 판정이고(detect_nasdaq_negative의 음수가격 자동 격리와
-    동일한 근거), 장기 정지 종목이 랭킹에서 빠지는 것 자체가 이미 타당하다
-    (거래가 없어 등락률이 무의미). 이미 corporate_action_flag에 있는
-    종목(status 무관 — excluded/pending/resolved 전부)은 건드리지 않는다 —
-    009310처럼 이미 수동/자동으로 추적 중인 종목의 중복 등록을 막기 위함.
-
-    Parameters
-    ----------
-    market : str  "kospi" | "nasdaq"
-
-    Returns
-    -------
-    list[dict]  신규 등록된 항목: ticker, market, halt_start_date(정지 시작
-                추정일 — LONG_HALT_LOOKBACK_DAYS보다 오래된 정지는 창 시작일로
-                clamp되어 실제보다 짧게 잡힐 수 있음), halt_trading_days
-    """
-    today = date.today()
-    query_start = today - timedelta(days=LONG_HALT_LOOKBACK_DAYS)
-
-    with SyncSessionLocal() as session:
-        rows = get_price_range_sync(session, market, query_start, today)
-        already_flagged = get_flagged_tickers_sync(
-            session, market, statuses=("excluded", "pending", "resolved")
-        )
-
-    by_ticker: dict[str, list[dict]] = {}
-    for r in rows:
-        by_ticker.setdefault(r["ticker"], []).append(r)
-
-    results: list[dict] = []
-    records: list[dict] = []
-
-    for ticker, series in by_ticker.items():
-        if ticker in already_flagged:
-            continue
-        series.sort(key=lambda r: r["date"])
-
-        # 최신 거래일부터 거슬러 올라가며 연속 거래량0(정지) 구간 길이를 센다.
-        # 최신 행이 실거래(volume>0)면 즉시 0으로 끝나 "이미 재개된 과거
-        # 정지"는 자연히 제외된다.
-        halt_days = 0
-        halt_start_date = None
-        for r in reversed(series):
-            if r["volume"]:
-                break
-            halt_days += 1
-            halt_start_date = r["date"]
-
-        if halt_days < HALT_MIN_TRADING_DAYS:
-            continue
-
-        results.append({
-            "ticker": ticker,
-            "market": market,
-            "halt_start_date": halt_start_date,
-            "halt_trading_days": halt_days,
-        })
-        records.append({
-            "ticker": ticker,
-            "market": market,
-            "flag_date": halt_start_date,
-            "reason": "halted",
-            "status": "pending",
-            "detected_signal": (
-                f"장기 매매정지 {halt_days}거래일 연속(정지 시작 추정 {halt_start_date}) "
-                f"— 가격 점프 미확인 상태의 선제 등록(detect_long_halts)"
-            )[:2000],
-            "note": (
-                f"정지 시작일(추정) {halt_start_date}, 연속 {halt_days}거래일, "
-                f"자동 등록(사전 감시 — 027970 사고 재발 방지). 재개 시 "
-                f"check_halt_resumption()이 알리며, 재개 후 실제 사유(감자/병합/기타)를 "
-                f"확인해 필요 시 정정 트랙으로 넘길 것."
-            )[:2000],
-        })
-
-    if records:
-        with SyncSessionLocal() as session:
-            upsert_corporate_action_flag_sync(session, records)
-        logger.warning(
-            "%s 장기 매매정지 %d종목 자동 pending 등록: %s",
-            market, len(results),
-            [(r["ticker"], r["halt_trading_days"]) for r in results],
-        )
-    else:
-        logger.info("%s 장기 매매정지 신규 후보 없음", market)
-
-    return results
-
-
-def check_halt_resumption(market: str) -> list[dict]:
-    """
-    status=pending AND reason=halted인 종목(현재 009310)의 거래 재개 여부를
-    확인한다(DB write 없음, 재계산·정정은 트리거하지 않음 — 알림만).
-
-    flag_date 이후 실거래일(volume>0)이 새로 생겼으면 재개로 판단한다
-    (halt 시작일 자체를 별도로 저장하지 않으므로, "이 종목을 pending으로
-    등록한 시점 이후 실거래가 생겼는가"를 재개 신호로 사용 — 등록 이후
-    줄곧 지켜보는 용도이므로 flag_date 기준으로 충분하다).
-
-    Returns
-    -------
-    list[dict]  각 항목: ticker, flag_date, last_real_trade_date(nullable), resumed(bool)
-    """
-    with SyncSessionLocal() as session:
-        pending = get_pending_halted_flags_sync(session, market)
-        results = []
-        for item in pending:
-            last_trade = get_last_real_trade_date_sync(session, market, item["ticker"])
-            resumed = last_trade is not None and last_trade > item["flag_date"]
-            results.append({
-                "ticker": item["ticker"],
-                "flag_date": item["flag_date"],
-                "last_real_trade_date": last_trade,
-                "resumed": resumed,
-            })
-
-    for r in results:
-        if r["resumed"]:
-            logger.warning(
-                "%s %s 거래 재개 감지 — 재개 첫 실거래일 %s. %s",
-                market, r["ticker"], r["last_real_trade_date"], RESUMPTION_NEXT_STEPS,
-            )
-
-    return results

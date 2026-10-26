@@ -31,8 +31,9 @@ KOSPI는 KRX 원 종가를 저장한다(collect_kospi.py). 원 종가만으로�
 기록: corporate_action_flag(ticker unique)에 남긴다.
   - 기존 행이 없으면 자동 적용은 status=resolved, 보류는 status=pending으로 새로 만든다.
   - 기존 행이 있으면 detected_signal에 내역을 덧붙인다. 자동 적용은 status·reason을
-    건드리지 않는다(정지 중 pending 종목은 사람이 재개를 확인할 때까지 계속 제외).
-    보류는 resolved였던 종목을 pending으로 되돌려 랭킹에서 다시 뺀다.
+    건드리지 않는다. 보류는 resolved였던 종목을 pending으로 되돌려 랭킹에서 다시 뺀다.
+  - 정지 중인 종목은 플래그가 아니라 랭킹 계산 시점의 거래량으로 제외된다
+    (services.halt_resumption.find_long_halted_tickers).
 """
 import logging
 from dataclasses import dataclass

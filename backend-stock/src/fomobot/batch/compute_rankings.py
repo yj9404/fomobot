@@ -29,7 +29,10 @@ from fomobot.services.calculator import (
     build_ranking_df,
     compute_start_validity,
 )
-from fomobot.services.halt_resumption import is_prev_day_halt_resumption
+from fomobot.services.halt_resumption import (
+    find_long_halted_tickers,
+    is_prev_day_halt_resumption,
+)
 from fomobot.services.noise_filter import (
     apply_kospi_filter,
     apply_nasdaq_filter,
@@ -51,6 +54,10 @@ MARKET_CONFIG = {
         "sanity_filter_fn": apply_price_sanity_filter,
     },
 }
+
+# 장기 정지 판정용 조회 범위 — HALT_MIN_TRADING_DAYS(10거래일)에 추석·설 연휴를
+# 더해도 담기는 캘린더 일수. 1d·7d 기간의 가격 창은 이보다 짧아서 따로 조회한다.
+HALT_LOOKBACK_DAYS = 40
 
 
 def _fetch_nasdaq_market_caps(tickers: list[str]) -> dict[str, int | None]:
@@ -165,6 +172,14 @@ def _load_price_matrix(
     return price_matrix, volume_matrix, meta
 
 
+def _load_long_halted_tickers(session, market: str, snapshot_date: date) -> set[str]:
+    """snapshot_date 기준 장기 정지 중인 종목(find_long_halted_tickers 참조)."""
+    rows = get_price_range_sync(
+        session, market, snapshot_date - timedelta(days=HALT_LOOKBACK_DAYS), snapshot_date
+    )
+    return find_long_halted_tickers(rows)
+
+
 def compute_rankings_for_market(
     market: str,
     snapshot_date: date | None = None,
@@ -207,6 +222,27 @@ def compute_rankings_for_market(
         if snapshot_date is None:
             logger.warning("%s: price_daily에 데이터가 없어 랭킹 계산을 스킵합니다.", market)
             return 0
+
+        # 장기 정지 종목 제외 — 기간과 무관한 사실이라 실행당 한 번만 판정한다.
+        # 조회가 실패해도 계산은 계속하되 Sentry로 알린다(flag 조회 실패와 같은 처리).
+        try:
+            halted_tickers = _load_long_halted_tickers(session, market, snapshot_date)
+        except Exception:
+            logger.exception("%s: 장기 정지 판정 실패 — 정지 종목 제외 미적용으로 진행", market)
+            try:
+                # 실패한 쿼리가 트랜잭션을 aborted 상태로 남기면 이후 랭킹 쿼리도 전부 실패한다.
+                session.rollback()
+            except Exception:
+                pass
+            try:
+                import sentry_sdk
+                sentry_sdk.capture_message(
+                    f"[{market.upper()}] 장기 정지 판정 실패 — 랭킹에 정지 종목 제외 미적용",
+                    level="warning",
+                )
+            except Exception:
+                pass
+            halted_tickers = set()
 
         for period_key, days in period_items:
             try:
@@ -298,8 +334,19 @@ def compute_rankings_for_market(
                             [t for t in price_matrix.columns if t not in flagged_tickers]
                         ]
 
+                if halted_tickers:
+                    halted_present = [t for t in price_matrix.columns if t in halted_tickers]
+                    if halted_present:
+                        logger.info(
+                            "%s %s: 장기 정지 제외 %d종목: %s",
+                            market, period_key, len(halted_present), halted_present,
+                        )
+                        price_matrix = price_matrix[
+                            [t for t in price_matrix.columns if t not in halted_tickers]
+                        ]
+
                 if price_matrix.empty:
-                    logger.warning("%s %s: corporate action 제외 후 종목 없음", market, period_key)
+                    logger.warning("%s %s: corporate action·정지 제외 후 종목 없음", market, period_key)
                     continue
 
                 # 지수 가격

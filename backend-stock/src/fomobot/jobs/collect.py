@@ -106,20 +106,14 @@ def _compute_breadth(
 
 def _run_corporate_action_checks(market: str) -> None:
     """
-    corporate action(액면분할·병합) 신규 후보 탐지 + halt 재개 체크.
-
-    이번 단계는 알림만 — corporate_action_flag에 자동 insert하지 않는다
-    (오탐률을 몇 주 지켜본 뒤 다음 단계에서 자동 등록 전환 여부 결정).
+    corporate action(액면분할·병합) 신규 후보 탐지 — 알림만, corporate_action_flag에
+    쓰지 않는다. 장기 정지 종목은 여기서 등록하지 않고 랭킹 계산 시점에 데이터로
+    판정해 제외한다(services.halt_resumption.find_long_halted_tickers).
     실패해도 본 수집/랭킹 작업에는 영향 없다 — _compute_breadth와 동일하게
     예외를 여기서 흡수하고 Sentry로만 올린다(격리).
     """
     try:
-        from fomobot.batch.detect_corporate_actions import (
-            RESUMPTION_NEXT_STEPS,
-            check_halt_resumption,
-            detect_corporate_actions,
-            detect_long_halts,
-        )
+        from fomobot.batch.detect_corporate_actions import detect_corporate_actions
 
         result = detect_corporate_actions(market, lookback_days=7)
         for c in result["candidates"]:
@@ -141,30 +135,9 @@ def _run_corporate_action_checks(market: str) -> None:
                 f"/{result['checked_ticker_count']}종목 — shares_ratio 신호 계산 불가 구간 존재, "
                 f"감지 사각 발생 가능(임계 초과)"
             )
-
-        # 정지 시작 → 자동 pending 등록(여기) → 재개 시 알림(check_halt_resumption) →
-        # 사람이 실제 사유 확인해 정정/해제. 가격 점프 데이터를 기다리지 않고
-        # "정지 지속 자체"만으로 판정하므로, 위 detect_corporate_actions와 달리
-        # 여기서 실제 write까지 일어난다(함수 내부에서 자동 insert).
-        long_halts = detect_long_halts(market)
-        for h in long_halts:
-            _report_warning(
-                f"[{market.upper()}] 장기 매매정지 자동 등록: {h['ticker']} "
-                f"정지 시작(추정) {h['halt_start_date']}, 연속 {h['halt_trading_days']}거래일 "
-                f"— corporate_action_flag(pending/halted) 신규 등록, 랭킹 제외 시작"
-            )
-
-        resumptions = check_halt_resumption(market)
-        for r in resumptions:
-            if r["resumed"]:
-                _report_warning(
-                    f"[{market.upper()}] {r['ticker']} 거래 재개 감지 — "
-                    f"재개 첫 실거래일 {r['last_real_trade_date']}. "
-                    f"{RESUMPTION_NEXT_STEPS}"
-                )
     except Exception:
         logger.exception(
-            "%s corporate action 감지/halt 재개 체크 실패 — 본 수집/랭킹 작업에는 영향 없음(격리됨)",
+            "%s corporate action 감지 실패 — 본 수집/랭킹 작업에는 영향 없음(격리됨)",
             market.upper(),
         )
         try:
@@ -267,7 +240,7 @@ def run(market: str) -> None:
         # breadth 계산은 내부에서 예외를 흡수하므로 여기서는 별도 try/except 불필요.
         _compute_breadth(mkt, **breadth_target)
 
-        # corporate action 감지/halt 재개 체크도 내부에서 예외를 흡수한다(알림만, insert 없음).
+        # corporate action 감지도 내부에서 예외를 흡수한다(알림만, insert 없음).
         _run_corporate_action_checks(mkt)
 
         # NASDAQ 음수/0 가격 일일 가드 — 발견 시 자동 격리까지 수행(내부에서 예외 흡수).
