@@ -35,6 +35,8 @@ from tenacity import (
 )
 
 from fomobot.db.crud import (
+    deactivate_securities_sync,
+    get_active_tickers_sync,
     get_close_on_date_sync,
     get_last_trading_day_sync,
     upsert_price_daily_sync,
@@ -345,15 +347,67 @@ def run_kospi_collection(target_date: date | None = None) -> list[date]:
         d_prev = d
         last_snapshot = snapshot
 
-    master_records = [
-        {"ticker": t, "market": MARKET, "name": name or None, "is_active": True}
-        for t, name in last_snapshot["name"].items()
-    ]
-    with SyncSessionLocal() as session:
-        upsert_securities_master_sync(session, master_records)
+    _sync_securities_master(last_snapshot)
 
     logger.info("KOSPI 수집 완료: %s", [d.isoformat() for d in days])
     return days
+
+
+# 직전 활성 종목 중 이 비율 이상이 그날 시세에 있어야 "빠진 종목 = 상장폐지"로 본다.
+# 정상일에는 상장폐지 몇 종목만 빠진다(940/947). 크게 모자라면 KRX 응답 누락이므로 건너뛴다.
+MASTER_DEACTIVATE_MIN_COVERAGE = 0.9
+
+
+def tickers_to_deactivate(
+    active: set[str], listed: set[str], min_coverage: float = MASTER_DEACTIVATE_MIN_COVERAGE,
+) -> list[str] | None:
+    """
+    직전 활성 종목(active) 중 그날 전종목 시세(listed)에 없는 종목 = 상장폐지.
+
+    KRX 전종목 시세는 거래정지 종목도 거래량 0 행으로 매일 포함하므로(2026-10 캐시로
+    확인) 빠졌다는 것은 상장 목록에서 사라졌다는 뜻이다. 다만 응답이 일부만 온 날
+    대량 비활성화하지 않도록, 직전 활성 종목의 min_coverage 미만만 응답에 있으면
+    None을 반환해 건너뛴다.
+    """
+    if not active:
+        return []
+    if len(active & listed) < min_coverage * len(active):
+        return None
+    return sorted(active - listed)
+
+
+def _sync_securities_master(snapshot: pd.DataFrame) -> None:
+    """
+    마지막 수집일 시세로 securities_master를 맞춘다 — 있는 종목은 활성(upsert),
+    직전 활성인데 없는 종목은 비활성(상장폐지). 실패해도 수집은 성공으로 둔다
+    (가격 저장은 이미 끝났고, 이 정보는 검색 결과의 상장폐지 표시에만 쓰인다).
+    """
+    master_records = [
+        {"ticker": t, "market": MARKET, "name": name or None, "is_active": True}
+        for t, name in snapshot["name"].items()
+    ]
+    try:
+        with SyncSessionLocal() as session:
+            active_before = get_active_tickers_sync(session, MARKET)
+            upsert_securities_master_sync(session, master_records)
+            missing = tickers_to_deactivate(
+                active_before, set(snapshot.index), MASTER_DEACTIVATE_MIN_COVERAGE
+            )
+            if missing is None:
+                logger.warning(
+                    "KOSPI securities_master 비활성화 건너뜀 — 시세 %d종목이 직전 활성 %d종목의 %.0f%% 미만",
+                    len(snapshot), len(active_before), MASTER_DEACTIVATE_MIN_COVERAGE * 100,
+                )
+            elif missing:
+                n = deactivate_securities_sync(session, MARKET, missing)
+                logger.info("KOSPI securities_master 상장폐지 비활성화 %d종목: %s", n, missing)
+    except Exception:
+        logger.exception("KOSPI securities_master 갱신 실패 — 가격 수집에는 영향 없음")
+        try:
+            import sentry_sdk
+            sentry_sdk.capture_exception()
+        except Exception:
+            pass
 
 
 def _get_covered_tickers(market: str, start_date: date, end_date: date, min_rows: int = 100) -> set[str]:

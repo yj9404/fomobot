@@ -1,7 +1,7 @@
 from datetime import date, timedelta
 from typing import Sequence
 
-from sqlalchemy import func, or_, case, select
+from sqlalchemy import func, or_, case, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session, aliased
 
@@ -306,6 +306,32 @@ def upsert_securities_master_sync(session: Session, records: list[dict]) -> None
     )
     session.execute(stmt)
     session.commit()
+
+
+def get_active_tickers_sync(session: Session, market: str) -> set[str]:
+    """securities_master에서 is_active=True인 티커 집합."""
+    stmt = select(SecuritiesMaster.ticker).where(
+        SecuritiesMaster.market == market,
+        SecuritiesMaster.is_active.is_(True),
+    )
+    return set(session.execute(stmt).scalars().all())
+
+
+def deactivate_securities_sync(session: Session, market: str, tickers: list[str]) -> int:
+    """주어진 티커를 is_active=False로 바꾸고 바뀐 행 수를 반환한다(재상장 시 upsert가 다시 True로)."""
+    if not tickers:
+        return 0
+    result = session.execute(
+        update(SecuritiesMaster)
+        .where(
+            SecuritiesMaster.market == market,
+            SecuritiesMaster.ticker.in_(tickers),
+            SecuritiesMaster.is_active.is_(True),
+        )
+        .values(is_active=False, updated_at=func.now())
+    )
+    session.commit()
+    return result.rowcount
 
 
 async def search_securities(

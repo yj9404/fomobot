@@ -29,7 +29,7 @@ from fomobot.batch.kospi_price_adjust import (
     classify_price_basis,
     detect_price_basis_events,
 )
-from fomobot.db.models import PriceDaily
+from fomobot.db.models import PriceDaily, SecuritiesMaster
 
 FIXTURE = Path(__file__).parent / "fixtures" / "krx_daily_events.json"
 D = date(2026, 8, 14)
@@ -216,6 +216,7 @@ def sqlite_session_factory():
         dbapi_conn.create_function("NOW", 0, lambda: "2026-10-20 00:00:00")
 
     PriceDaily.__table__.create(engine)
+    SecuritiesMaster.__table__.create(engine)
     with engine.begin() as conn:
         conn.execute(text(FLAG_DDL))
     return sessionmaker(engine)
@@ -420,6 +421,58 @@ def test_같은_날_보정을_다시_적용해도_이벤트_0건(fake_collector)
         select(PriceDaily.ticker, PriceDaily.close_adj).where(PriceDaily.date == D1)).fetchall()}
     prev_shares = collect_kospi.parse_day_snapshot(_raw(SNAPSHOTS[D1]))["list_shrs"].to_dict()
     assert detect_price_basis_events(D2, rows, prev_close, prev_shares) == []
+
+
+# ── securities_master 상장폐지 비활성화 ──────────────────────────────────────
+
+def _seed_master(session, tickers):
+    session.add_all([SecuritiesMaster(ticker=t, market="kospi", name=t, is_active=True) for t in tickers])
+    session.commit()
+
+
+def _active_tickers(session):
+    rows = session.execute(select(SecuritiesMaster.ticker).where(SecuritiesMaster.is_active.is_(True)))
+    return {t for (t,) in rows.fetchall()}
+
+
+def test_시세에서_빠진_직전_활성_종목만_비활성화_대상():
+    active = {f"T{i}" for i in range(20)}
+    listed = (active - {"T3"}) | {"NEWIPO"}
+    assert collect_kospi.tickers_to_deactivate(active, listed) == ["T3"]
+
+
+def test_응답이_크게_모자라면_비활성화를_건너뛴다():
+    active = {f"T{i}" for i in range(20)}
+    listed = {f"T{i}" for i in range(10)}
+    assert collect_kospi.tickers_to_deactivate(active, listed) is None
+
+
+def test_활성_종목이_없으면_비활성화_대상도_없다():
+    assert collect_kospi.tickers_to_deactivate(set(), {"A"}) == []
+
+
+def test_수집_후_시세에_없는_활성_종목은_비활성화(fake_collector, monkeypatch):
+    factory, _ = fake_collector
+    monkeypatch.setattr(collect_kospi, "MASTER_DEACTIVATE_MIN_COVERAGE", 0.5)
+    s = factory()
+    _seed_master(s, ["027970", "005930", "GONE"])
+    s.close()
+
+    collect_kospi.run_kospi_collection(target_date=D3)
+
+    assert _active_tickers(factory()) == {"027970", "005930"}
+
+
+def test_응답_누락이_의심되면_아무것도_비활성화하지_않는다(fake_collector):
+    factory, _ = fake_collector
+    tickers = ["027970", "005930"] + [f"G{i}" for i in range(8)]
+    s = factory()
+    _seed_master(s, tickers)
+    s.close()
+
+    collect_kospi.run_kospi_collection(target_date=D3)
+
+    assert _active_tickers(factory()) == set(tickers)
 
 
 def test_KRX_로그인_실패_후에는_같은_프로세스에서_다시_시도하지_않는다(monkeypatch):
