@@ -105,19 +105,23 @@ def _fetch_nasdaq_name_map() -> dict[str, str]:
     before_sleep=before_sleep_log(logger, logging.WARNING),
     reraise=True,
 )
-def _download_batch(tickers: list[str], start: str, end: str) -> pd.DataFrame:
+def _download_batch(tickers: list[str], start: str, end: str, actions: bool = False) -> pd.DataFrame:
     """
     yfinance 배치 다운로드 (split-only 조정).
 
     auto_adjust=False로 받은 raw Close를 그대로 close_adj로 쓴다.
-    raw Close는 분할이 항상 소급 반영된 값이라 별도 분할계수 계산이 불필요하며,
+    raw Close에는 분할이 반영돼 있지만 소급 반영이 항상 완전하지는 않다
+    (2026-10 확인: 분할일에 절벽이 그대로 남은 종목, 분할 직전 며칠만 미조정인 종목).
     배당은 반영하지 않는다(_append_ticker_records에서 Close만 사용, Adj Close는 무시).
+
+    actions=True면 "Dividends"/"Stock Splits" 열이 추가된다 — 분할 감지(extract_splits)용.
     """
     import yfinance as yf
     df = yf.download(
         tickers,
         start=start,
         end=end,
+        actions=actions,
         auto_adjust=False,
         group_by="ticker",
         progress=False,
@@ -194,6 +198,63 @@ def _append_ticker_records(
         })
 
 
+def extract_splits(df: pd.DataFrame, tickers: list[str]) -> list[dict]:
+    """
+    actions=True로 받은 배치 응답의 "Stock Splits" 열에서 분할을 읽는다.
+
+    값은 새 주식 수 / 옛 주식 수다 (0.5 = 1-for-2 역분할, 2.0 = 2-for-1 정분할).
+    파싱 실패가 가격 수집을 막으면 안 되므로 예외는 삼키고 빈 목록을 돌려준다.
+    """
+    found: list[dict] = []
+    try:
+        if df.empty:
+            return found
+        if len(tickers) == 1 and not isinstance(df.columns, pd.MultiIndex):
+            frames = {tickers[0]: df}
+        else:
+            level0 = df.columns.get_level_values(0)
+            frames = {t: df[t] for t in tickers if t in level0}
+        for ticker, sub in frames.items():
+            if "Stock Splits" not in sub.columns:
+                continue
+            s = sub["Stock Splits"].dropna()
+            for idx, ratio in s[(s > 0) & (s != 1)].items():
+                found.append({
+                    "ticker": ticker,
+                    "date": idx.date() if hasattr(idx, "date") else idx,
+                    "ratio": float(ratio),
+                })
+    except Exception:
+        logger.warning("분할 열 파싱 실패 — 이번 배치 분할 감지 생략", exc_info=True)
+    return found
+
+
+def report_splits(splits: list[dict]) -> None:
+    """
+    수집 구간에서 감지한 분할을 분할마다 Sentry 경고 하나로 알린다.
+
+    절벽 탐지는 종가 비율 0.35~3배 밖만 잡아서 1-for-2 같은 소규모 분할은 DB가
+    오염돼도 알림이 없다(GCTK 2026-10-26). 분할 자체를 감지해 그 사각을 메운다.
+    수집 구간이 7일이라 같은 분할이 며칠 반복해서 잡히므로, 종목·분할일로 fingerprint를
+    고정해 Sentry에서 한 이슈로 묶는다 (첫 감지에만 새 이슈 알림).
+    """
+    for s in splits:
+        kind = "역분할" if s["ratio"] < 1 else "정분할"
+        message = (
+            f"[NASDAQ] 분할 감지 {s['ticker']} {s['date']} {kind} (비율 {s['ratio']:g}, "
+            f"가격 x{1 / s['ratio']:.2f} 예상) — 수집 구간 경계에서 DB 가격이 불연속일 수 있다. "
+            f"절벽 탐지는 0.35~3배 밖만 잡으므로 소규모 분할은 직접 확인 필요"
+        )
+        logger.warning(message)
+        try:
+            import sentry_sdk
+            with sentry_sdk.new_scope() as scope:
+                scope.fingerprint = ["nasdaq-split-detected", s["ticker"], str(s["date"])]
+                sentry_sdk.capture_message(message, level="warning")
+        except Exception:
+            pass
+
+
 def run_nasdaq_collection(target_date: date | None = None) -> date:
     """
     NASDAQ 전 종목 가격 데이터를 수집해 DB에 저장한다.
@@ -221,6 +282,7 @@ def run_nasdaq_collection(target_date: date | None = None) -> date:
     batches = [tickers[i:i + batch_size] for i in range(0, len(tickers), batch_size)]
 
     all_records: list[dict] = []
+    detected_splits: list[dict] = []
     consecutive_failures = 0
 
     for batch_idx, batch in enumerate(batches):
@@ -235,9 +297,10 @@ def run_nasdaq_collection(target_date: date | None = None) -> date:
             consecutive_failures = 0
 
         try:
-            df = _download_batch(batch, start_str, end_str)
+            df = _download_batch(batch, start_str, end_str, actions=True)
             records = _parse_batch_df(df, batch, MARKET)
             all_records.extend(records)
+            detected_splits.extend(extract_splits(df, batch))
             consecutive_failures = 0
 
             logger.debug("배치 %d/%d: %d건 수집", batch_idx + 1, len(batches), len(records))
@@ -256,6 +319,8 @@ def run_nasdaq_collection(target_date: date | None = None) -> date:
                 upsert_price_daily_sync(session, all_records)
             logger.info("NASDAQ 중간 저장: %d건", len(all_records))
             all_records.clear()
+
+    report_splits(detected_splits)
 
     # QQQ 지수 수집 (NASDAQ 대용 지수)
     index_records: list[dict] = []
