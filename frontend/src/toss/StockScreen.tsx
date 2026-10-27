@@ -131,6 +131,10 @@ function Detail({ d, footer }: { d: StockDetail; footer: React.ReactNode }) {
         ))}
       </div>
 
+      <div style={{ padding: '12px 16px 0' }}>
+        <ShareAction route={{ name: 'stock', market: d.market, ticker: d.ticker }} asOf={asOf} message={TOSS_UI.stockShareMessage(name)} />
+      </div>
+
       {/* 기간별 등락률 */}
       <div style={{ padding: '20px 16px 4px', fontSize: 14, fontWeight: 700, color: C.textPrimary }}>{TOSS_UI.periodChanges}</div>
       {PERIODS.map((p) => {
@@ -149,11 +153,7 @@ function Detail({ d, footer }: { d: StockDetail; footer: React.ReactNode }) {
         )
       })}
 
-      <div style={{ padding: '14px 16px 0', fontSize: 11.5, color: C.textDim, lineHeight: 1.5 }}>{TOSS_STR.disclaimer}</div>
-
-      <div style={{ padding: '16px 16px 8px' }}>
-        <ShareAction route={{ name: 'stock', market: d.market, ticker: d.ticker }} asOf={asOf} message={TOSS_UI.stockShareMessage(name)} />
-      </div>
+      <div style={{ padding: '14px 16px 16px', fontSize: 11.5, color: C.textDim, lineHeight: 1.5 }}>{TOSS_STR.disclaimer}</div>
 
       {footer}
       {showBanner && <TossBanner />}
