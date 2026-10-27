@@ -205,6 +205,13 @@ class TestTossStockCard:
         img = Image.open(BytesIO(r.content))
         assert img.size == (1200, 600)
 
+    def test_카드_버전_파라미터는_내용에_영향이_없다(self, client):
+        path = "/api/og/toss/stock/kospi/005930.png"
+        base = client.get(path, params={"date": "2026-10-15"})
+        versioned = client.get(path, params={"date": "2026-10-15", "v": "2"})
+        assert versioned.status_code == 200
+        assert versioned.content == base.content
+
     def test_과거_기준일과_nasdaq_거래정지_종목도_렌더링(self, client):
         assert self._get(client, "/api/og/toss/stock/kospi/005930.png", "2026-10-01").status_code == 200
         assert self._get(client, "/api/og/toss/stock/nasdaq/AAPL.png", "2026-10-14").status_code == 200
@@ -260,6 +267,12 @@ class TestTossRankingsCard:
         r = client.get(self.PATH, params={**self.OK, **override})
         assert r.status_code == status
         assert r.headers["cache-control"] == "no-store"
+
+    def test_카드_버전_파라미터는_내용에_영향이_없다(self, client):
+        base = client.get(self.PATH, params=self.OK)
+        versioned = client.get(self.PATH, params={**self.OK, "v": "2"})
+        assert versioned.status_code == 200
+        assert versioned.content == base.content
 
     def test_지원하지_않는_시장(self, client):
         r = client.get("/api/og/toss/rankings/kosdaq.png", params=self.OK)
