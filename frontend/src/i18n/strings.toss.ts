@@ -15,3 +15,31 @@ export const TOSS_STR: CommonStrings = {
   breadthFomo: '상승 종목이 더 많아요',
   breadthNeutral: '상승과 하락이 비슷해요',
 }
+
+/** 토스 전용 화면(검색·상세·공유) 문구. 웹과 공유하지 않으므로 CommonStrings 밖에 둔다. */
+export const TOSS_UI = {
+  searchPlaceholder: '종목명 또는 코드로 검색',
+  searchHint: '종목명이나 코드를 입력해 주세요',
+  searching: '찾고 있어요…',
+  searchEmpty: '찾는 종목이 없어요',
+  searchEmptySub: '종목명이나 코드를 다시 확인해 주세요',
+  share: '공유하기',
+  shareFailed: '공유하지 못했어요. 잠시 후 다시 시도해 주세요',
+  prevDay: '전일 대비',
+  periodChanges: '기간별 등락률',
+  sinceListing: (d: string) => `상장 후 · ${d}부터`,
+  lastTraded: (d: string) => `마지막 거래일 ${d}`,
+  delisted: '상장폐지',
+  chartHigh: '최고',
+  chartLow: '최저',
+  correctingTitle: '데이터를 정리하고 있어요',
+  correctingSub: '정리가 끝나면 시세를 다시 보여드릴게요',
+  noDataTitle: '시세 정보가 없어요',
+  noDataSub: '이 종목은 보여드릴 시세가 없어요',
+  notFoundTitle: '종목을 찾을 수 없어요',
+  notFoundSub: '링크가 올바른지 확인해 주세요',
+  allRankings: '전체 순위 보기',
+  stockShareMessage: (name: string) => `${name} 시세`,
+  rankingsShareMessage: (market: string, period: string, order: string) => `${market} ${period} ${order} 순위`,
+  orderShort: { desc: '상승률', asc: '하락률' },
+} as const

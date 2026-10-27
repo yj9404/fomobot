@@ -11,10 +11,12 @@ const strict = process.argv.includes('--strict')
 
 // 웹 도메인은 코드에서 확인한 값(https://fomobot.net). Gmail 작성창 링크(mail.google.com)와
 // AdSense 호스트(googlesyndication)도 같은 이유로 포함.
+// intoss-private는 출시 전 테스트 스킴이라 코드(공유 링크 등)에 들어가면 안 된다.
+// 수익금·투자금은 토스 화면에 투자금 입력·수익 계산을 두지 않는다는 범위 제약을 지키기 위함.
 const TOKENS = [
-  '백테스트', '샀다', '샀죠', '매수', '급등',
+  '백테스트', '샀다', '샀죠', '매수', '급등', '수익금', '투자금',
   'adsbygoogle', 'pagead', 'googlesyndication', 'adfit', 'kakaocdn',
-  'fomobot.net', 'mail.google.com', '_blank', 'mailto',
+  'fomobot.net', 'mail.google.com', '_blank', 'mailto', 'intoss-private',
 ]
 
 // 빌드 산출물에서 한글이 \uXXXX로 이스케이프될 수 있어 그 형태로도 찾는다.

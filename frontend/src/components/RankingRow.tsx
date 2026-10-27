@@ -9,20 +9,26 @@ interface Props {
   item: RankingItem
   market: Market
   t: CommonStrings
+  /** 행을 누르면 종목 상세로 이동한다. */
+  onClick?: () => void
 }
 
 function fmtPct(n: number): string {
   return (n >= 0 ? '+' : '') + n.toFixed(1) + '%'
 }
 
-/** 토스용 단순 행 — 펼침 없이 순위, 종목명, 기준일 종가, 기간 등락률만 보여준다. */
-export function RankingRow({ item, market, t }: Props) {
+/** 토스용 단순 행 — 펼침 없이 순위, 종목명, 기준일 종가, 기간 등락률만 보여준다. 누르면 상세로 간다. */
+export function RankingRow({ item, market, t, onClick }: Props) {
   const C = useC()
   // 펼침이 없어 ⓘ 팝오버 대신, 해당 종목에만 설명을 행 아래에 그대로 보여준다.
   const note = getInfoBadgeText(item, t)
 
   return (
-    <div style={{ padding: '14px 16px', borderBottom: `1px solid ${C.borderFaint}`, fontFamily: FONT.sans }}>
+    <div
+      role={onClick ? 'button' : undefined}
+      onClick={onClick}
+      style={{ padding: '14px 16px', borderBottom: `1px solid ${C.borderFaint}`, fontFamily: FONT.sans, cursor: onClick ? 'pointer' : undefined }}
+    >
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <span style={{
           fontFamily: FONT.mono, fontSize: 12, fontWeight: 700, color: C.blueSoft,

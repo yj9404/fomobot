@@ -3,6 +3,7 @@ import { FONT } from '../tokens'
 import { PERIODS, CAP_TIERS } from '../types'
 import type { CapTier, Market, OrderDir } from '../types'
 import type { CommonStrings } from '../i18n/strings'
+import { TOSS_UI } from '../i18n/strings.toss'
 
 interface Props {
   market: Market
@@ -10,6 +11,7 @@ interface Props {
   capTier: CapTier
   order: OrderDir
   t: CommonStrings
+  onSearch: () => void
   onMarket: (m: Market) => void
   onPeriod: (i: number) => void
   onCapTier: (c: CapTier) => void
@@ -47,9 +49,9 @@ function Segment<V extends string>({ options, value, onChange }: {
 /**
  * 토스 미니앱용 컨트롤 영역. 로고·언어/테마 토글·뒤로가기는 두지 않는다 —
  * 상단 내비게이션 바는 앱인토스 SDK가 제공하므로 겹치면 안 된다.
- * 시장과 정렬은 같은 비중의 주요 선택지라 둘 다 세그먼트로 두고 고정(sticky)하며, 기간·시총 칩은 스크롤된다.
+ * 검색 입구와 시장·정렬 세그먼트는 고정(sticky)하며, 기간·시총 칩은 스크롤된다.
  */
-export function TossHeader({ market, periodIdx, capTier, order, t, onMarket, onPeriod, onCapTier, onOrder }: Props) {
+export function TossHeader({ market, periodIdx, capTier, order, t, onSearch, onMarket, onPeriod, onCapTier, onOrder }: Props) {
   const C = useC()
 
   const chip = (active: boolean): React.CSSProperties => ({
@@ -64,6 +66,23 @@ export function TossHeader({ market, periodIdx, capTier, order, t, onMarket, onP
     <>
       {/* 시장·정렬은 스크롤해도 남는다(sticky). 호출하는 쪽의 세로 flex 컨테이너가 스크롤 영역이어야 한다. */}
       <div style={{ position: 'sticky', top: 0, zIndex: 10, background: C.surface, fontFamily: FONT.sans, paddingTop: 12, borderBottom: `1px solid ${C.borderFaint}` }}>
+        {/* 검색 입구 — 누르면 검색 화면으로 이동한다(여기서 직접 입력받지 않는다). */}
+        <div style={{ padding: '0 16px 8px' }}>
+          <button
+            onClick={onSearch}
+            style={{
+              width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '12px 14px',
+              border: 'none', borderRadius: 12, background: C.surfaceAlt, color: C.textDim,
+              fontSize: 14, fontFamily: FONT.sans, textAlign: 'left', cursor: 'pointer',
+            }}
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
+              <circle cx="6.5" cy="6.5" r="4.5" />
+              <line x1="10.5" y1="10.5" x2="14" y2="14" />
+            </svg>
+            {TOSS_UI.searchPlaceholder}
+          </button>
+        </div>
         <Segment
           options={[{ value: 'kospi' as Market, label: 'KOSPI' }, { value: 'nasdaq' as Market, label: 'NASDAQ' }]}
           value={market}
