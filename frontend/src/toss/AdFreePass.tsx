@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import { useC } from '../ThemeContext'
 import { FONT } from '../tokens'
 import { TOSS_UI } from '../i18n/strings.toss'
-import { getAdFreeUntil, isAdFreeRewardAvailable, preloadAdFreeReward, showAdFreeReward, subscribeAdFree } from './ads'
+import { getAdFreeUntil, isAdFreeRewardAvailable, preloadAdFreeReward, resetAdFreeForTest, showAdFreeReward, subscribeAdFree } from './ads'
+import { USE_TEST_ADS } from './adGroups'
 
 // 남은 시간 표시는 분 단위라 30초마다 갱신하면 충분하다.
 const TICK_MS = 30_000
@@ -65,6 +66,15 @@ export function AdFreePass() {
       <div style={box}>
         <div style={{ fontSize: 14, fontWeight: 700, color: C.blueSoft }}>{TOSS_UI.adFreeActive}</div>
         <div style={{ marginTop: 2, fontSize: 12, color: C.textMuted }}>{TOSS_UI.adFreeRemaining(h, m)}</div>
+        {/* TODO: 출시 전 삭제 — 테스트 광고 빌드에서만 보이는 이용권 초기화 버튼. */}
+        {USE_TEST_ADS && (
+          <button
+            onClick={() => void resetAdFreeForTest()}
+            style={{ marginTop: 8, padding: '4px 8px', fontSize: 12, fontFamily: FONT.sans, color: C.textMuted, background: 'none', border: `1px solid ${C.borderSub}`, borderRadius: 6, cursor: 'pointer' }}
+          >
+            [테스트] 이용권 초기화
+          </button>
+        )}
       </div>
     )
   }

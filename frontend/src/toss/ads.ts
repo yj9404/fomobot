@@ -287,3 +287,12 @@ export async function showAdFreeReward(): Promise<number | null> {
   }
   return getAdFreeUntil()
 }
+
+// TODO: 출시 전 삭제 — 실기기 테스트용 이용권 초기화.
+/** 테스트용: 이용권을 즉시 만료시킨다. 구독자에게 0을 알려 버튼을 다시 보이게 한다. */
+export async function resetAdFreeForTest(): Promise<void> {
+  const s = await readPersisted()
+  s.adFreeUntil = 0
+  writeNumber(KEY_AD_FREE_UNTIL, 0)
+  adFreeListeners.forEach((cb) => cb(0))
+}

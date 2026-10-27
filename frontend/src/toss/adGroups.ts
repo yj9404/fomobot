@@ -20,4 +20,7 @@ const TEST: typeof LIVE = {
   adFreeReward: 'ait-ad-test-rewarded-id',
 }
 
-export const AD_GROUP_IDS = import.meta.env.DEV || import.meta.env.VITE_TOSS_TEST_ADS === '1' ? TEST : LIVE
+/** 테스트 광고 ID를 쓰는 빌드인지(dev 서버·테스트·VITE_TOSS_TEST_ADS=1). */
+export const USE_TEST_ADS = import.meta.env.DEV || import.meta.env.VITE_TOSS_TEST_ADS === '1'
+
+export const AD_GROUP_IDS = USE_TEST_ADS ? TEST : LIVE
