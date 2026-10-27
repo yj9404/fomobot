@@ -36,11 +36,6 @@ const serveTossRoot = (): Plugin => ({
 // wrangler.jsonc의 vars.API_BASE와 같은 서비스다. 다른 주소로 빌드하려면 TOSS_API_BASE_URL을 지정한다.
 const TOSS_API_BASE_URL = process.env.TOSS_API_BASE_URL ?? 'https://fomobot-production-64fd.up.railway.app'
 
-// 앱인토스 배너 광고 그룹 ID(콘솔 발급, 비밀값 아님 — 어차피 클라이언트 번들에 들어간다).
-// build에서만 주입하고 dev 서버는 TossBanner의 테스트 ID를 쓴다(개발 중 실제 ID로 테스트하면 정책 위반).
-// 다른 ID로 빌드하려면 VITE_TOSS_BANNER_AD_GROUP_ID를 지정한다.
-const TOSS_BANNER_AD_GROUP_ID = process.env.VITE_TOSS_BANNER_AD_GROUP_ID ?? 'ait.v2.live.d7d803200c524f97'
-
 // mode === 'toss' 는 앱인토스 미니앱 빌드. Worker(공유 카드)와 정적 글(public/)은 웹 전용이라 뺀다.
 export default defineConfig(({ mode, command }) => {
   const isToss = mode === 'toss'
@@ -49,7 +44,6 @@ export default defineConfig(({ mode, command }) => {
     define: isToss && command === 'build'
       ? {
           'import.meta.env.VITE_API_BASE_URL': JSON.stringify(TOSS_API_BASE_URL),
-          'import.meta.env.VITE_TOSS_BANNER_AD_GROUP_ID': JSON.stringify(TOSS_BANNER_AD_GROUP_ID),
         }
       : undefined,
     plugins: isToss

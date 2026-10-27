@@ -42,4 +42,10 @@ export const TOSS_UI = {
   stockShareMessage: (name: string) => `${name} 시세`,
   rankingsShareMessage: (market: string, period: string, order: string) => `${market} ${period} ${order} 순위`,
   orderShort: { desc: '상승률', asc: '하락률' },
+  // 이용권은 전면광고만 건너뛴다(배너는 그대로) — 부제에서 범위를 분명히 한다.
+  adFreeCta: '광고 보고 24시간 광고 없이 쓰기',
+  adFreeSub: '종목을 열 때 나오는 전체 화면 광고가 사라져요',
+  adFreePreparing: '광고를 준비하고 있어요',
+  adFreeActive: '전체 화면 광고 없이 쓰는 중이에요',
+  adFreeRemaining: (h: number, m: number) => (h > 0 ? `${h}시간 ${m}분 남았어요` : `${m}분 남았어요`),
 } as const
