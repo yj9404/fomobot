@@ -130,7 +130,10 @@ function loadOnce(adGroupId: string): Promise<boolean> {
  * 로드된 광고를 띄우고, 닫히면(dismissed) resolve한다. 실패하거나 안전장치 시간이 지나도 resolve한다.
  * 안전장치로 먼저 resolve해도 보상 이벤트는 dismissed까지 계속 받는다.
  */
-function show(adGroupId: string, on: { show?: () => void; reward?: () => void } = {}): Promise<void> {
+function show(
+  adGroupId: string,
+  on: { show?: () => void; reward?: () => void; startTimeoutMs?: number } = {},
+): Promise<void> {
   // 한 번 띄운 광고는 다시 쓸 수 없다(문서) — 다음 노출 전에 새로 로드해야 한다.
   loaded.delete(adGroupId)
   return new Promise((resolve) => {
@@ -149,7 +152,7 @@ function show(adGroupId: string, on: { show?: () => void; reward?: () => void } 
       ended = true
       unregister?.()
     }
-    let timer = setTimeout(settle, SHOW_START_TIMEOUT_MS)
+    let timer = setTimeout(settle, on.startTimeoutMs ?? SHOW_START_TIMEOUT_MS)
     const extend = () => {
       if (settled) return
       clearTimeout(timer)
@@ -243,6 +246,16 @@ export async function getAdFreeUntil(): Promise<number | null> {
   return isAdFree(s) ? s.adFreeUntil : null
 }
 
+// 보상 이벤트가 show의 resolve(안전장치 포함)보다 늦게 올 수 있어 받는 즉시 구독자에게 알린다.
+// 실기기에서 보상을 받고도 버튼이 화면을 다시 그릴 때까지 바뀌지 않은 적이 있다.
+const adFreeListeners = new Set<(until: number) => void>()
+
+/** 이용권이 새로 생기면 만료 시각으로 cb를 부른다. 해제 함수를 돌려준다. */
+export function subscribeAdFree(cb: (until: number) => void): () => void {
+  adFreeListeners.add(cb)
+  return () => { adFreeListeners.delete(cb) }
+}
+
 /** 이용권 버튼이 보일 때 보상형 광고를 미리 로드한다. 로드되면 true. */
 export function preloadAdFreeReward(): Promise<boolean> {
   return preload(AD_GROUP_IDS.adFreeReward)
@@ -259,9 +272,14 @@ export async function showAdFreeReward(): Promise<number | null> {
   try {
     const s = await readPersisted()
     await show(id, {
+      // 보상형은 닫힌 뒤 이어갈 동작이 없으니 "광고가 안 떴다" 판정을 짧게 두지 않는다 —
+      // 시청 중에 끝난 것으로 보고 다음 광고를 로드하거나 버튼을 되살리면 안 된다.
+      startTimeoutMs: DISMISS_FALLBACK_MS,
       reward: () => {
-        s.adFreeUntil = Date.now() + AD_FREE_MS
-        writeNumber(KEY_AD_FREE_UNTIL, s.adFreeUntil)
+        const until = Date.now() + AD_FREE_MS
+        s.adFreeUntil = until
+        writeNumber(KEY_AD_FREE_UNTIL, until)
+        adFreeListeners.forEach((cb) => cb(until))
       },
     })
   } finally {

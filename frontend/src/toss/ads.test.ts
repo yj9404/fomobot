@@ -167,6 +167,24 @@ describe('광고 제거 이용권', () => {
     expect(shows).toHaveLength(2)
   })
 
+  it('보상 이벤트를 받는 즉시 구독자에게 알리고, 이벤트가 늦어도 5초 만에 끝내지 않는다', async () => {
+    const got: number[] = []
+    ads.subscribeAdFree((u) => got.push(u))
+    const loadedP = ads.preloadAdFreeReward()
+    await flush()
+    await loadedP
+    let resolved = false
+    void ads.showAdFreeReward().then(() => { resolved = true })
+    await vi.advanceTimersByTimeAsync(10_000) // 이벤트가 하나도 오지 않은 채 10초
+    expect(resolved).toBe(false)
+
+    emit('userEarnedReward')
+    expect(got).toEqual([Date.now() + ads.AD_FREE_MS])
+    emit('dismissed')
+    await flush()
+    expect(resolved).toBe(true)
+  })
+
   it('끝까지 보지 않고 닫으면 이용권을 주지 않는다', async () => {
     expect(await watchReward(['show', 'dismissed'])).toBeNull()
     expect(store.has('ads.adFreeUntil')).toBe(false)

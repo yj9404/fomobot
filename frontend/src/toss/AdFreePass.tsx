@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useC } from '../ThemeContext'
 import { FONT } from '../tokens'
 import { TOSS_UI } from '../i18n/strings.toss'
-import { getAdFreeUntil, isAdFreeRewardAvailable, preloadAdFreeReward, showAdFreeReward } from './ads'
+import { getAdFreeUntil, isAdFreeRewardAvailable, preloadAdFreeReward, showAdFreeReward, subscribeAdFree } from './ads'
 
 // 남은 시간 표시는 분 단위라 30초마다 갱신하면 충분하다.
 const TICK_MS = 30_000
@@ -29,6 +29,12 @@ export function AdFreePass() {
   useEffect(() => {
     if (supported) void getAdFreeUntil().then(setUntil)
   }, [supported])
+
+  // 보상을 받는 즉시 활성 상태로 바꾼다(광고가 닫히기를 기다리지 않는다).
+  useEffect(() => subscribeAdFree((u) => {
+    setNow(Date.now())
+    setUntil(u)
+  }), [])
 
   useEffect(() => {
     if (!active) return
