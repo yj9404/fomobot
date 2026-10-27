@@ -6,6 +6,7 @@ import { useStockSearch } from '../hooks/useStockSearch'
 import { TOSS_UI } from '../i18n/strings.toss'
 import type { Market } from '../types'
 import { useRouter } from './router'
+import { rankSearchResults } from './searchSort'
 
 /**
  * 종목 검색. KOSPI·NASDAQ을 함께 찾아 시장 배지와 함께 보여준다.
@@ -23,10 +24,10 @@ export function SearchScreen({ initialQ }: { initialQ: string }) {
     replace({ name: 'search', q })
   }, [q, replace])
 
-  const results = [
+  const results = rankSearchResults([
     ...kospi.results.map((r) => ({ ...r, market: 'kospi' as Market })),
     ...nasdaq.results.map((r) => ({ ...r, market: 'nasdaq' as Market })),
-  ].filter((r) => r.is_active)
+  ].filter((r) => r.is_active), q)
   const loading = kospi.loading || nasdaq.loading
   const trimmed = q.trim()
 
