@@ -62,45 +62,91 @@ class TestExtractSplits:
         assert collect_nasdaq.extract_splits(Boom(), ["A"]) == []
 
 
+TODAY = date(2026, 10, 26)
+
+
+def _split(ticker, d, ratio):
+    return {"ticker": ticker, "date": d, "ratio": ratio}
+
+
 class TestReportSplits:
     @pytest.fixture
     def sentry(self, monkeypatch):
-        """sentry_sdk를 대체해 capture된 (메시지, 레벨, fingerprint)를 모은다."""
-        events, current = [], {}
+        """sentry_sdk를 대체해 capture된 이벤트와 scope 조작을 기록한다."""
+        calls = {"events": [], "scopes": [], "flushed": 0}
 
         class Scope:
             fingerprint = None
+            breadcrumbs_cleared = False
+
+            def clear_breadcrumbs(self):
+                self.breadcrumbs_cleared = True
 
         @contextmanager
-        def new_scope():
-            current["scope"] = Scope()
-            yield current["scope"]
+        def isolation_scope():
+            scope = Scope()
+            calls["scopes"].append(scope)
+            yield scope
 
         def capture_message(message, level):
-            events.append((message, level, current["scope"].fingerprint))
+            calls["events"].append((message, level, calls["scopes"][-1].fingerprint))
+            return "evt-1"
 
-        fake = type("FakeSentry", (), {"new_scope": staticmethod(new_scope),
-                                       "capture_message": staticmethod(capture_message)})
+        def flush(timeout=None):
+            calls["flushed"] += 1
+
+        fake = type("FakeSentry", (), {
+            "isolation_scope": staticmethod(isolation_scope),
+            "capture_message": staticmethod(capture_message),
+            "flush": staticmethod(flush),
+        })
         monkeypatch.setitem(sys.modules, "sentry_sdk", fake)
-        return events
+        return calls
 
-    def test_분할마다_경고_하나와_고정_fingerprint(self, sentry):
+    def test_최근_분할을_이벤트_한_건으로_요약(self, sentry):
         collect_nasdaq.report_splits([
-            {"ticker": "GCTK", "date": date(2026, 10, 26), "ratio": 0.5},
-            {"ticker": "AAPL", "date": date(2026, 10, 23), "ratio": 4.0},
-        ])
-        assert [(e[1], e[2]) for e in sentry] == [
-            ("warning", ["nasdaq-split-detected", "GCTK", "2026-10-26"]),
-            ("warning", ["nasdaq-split-detected", "AAPL", "2026-10-23"]),
-        ]
-        assert "역분할" in sentry[0][0] and "x2.00" in sentry[0][0]
-        assert "정분할" in sentry[1][0]
+            _split("GCTK", date(2026, 10, 26), 0.5),
+            _split("AAPL", date(2026, 10, 24), 4.0),
+        ], TODAY)
+        (message, level, _), = sentry["events"]
+        assert level == "warning"
+        assert "2건(최근 2일)" in message
+        assert "GCTK 10-26 역분할 0.5(x2.00)" in message and "AAPL 10-24 정분할 4(x0.25)" in message
 
-    def test_분할_없으면_알리지_않음(self, sentry):
-        collect_nasdaq.report_splits([])
-        assert sentry == []
+    def test_오래된_분할은_이벤트에서_빠지고_로그에만_남음(self, sentry, caplog):
+        with caplog.at_level("WARNING", logger=collect_nasdaq.logger.name):
+            collect_nasdaq.report_splits([
+                _split("GCTK", date(2026, 10, 26), 0.5),
+                _split("OLD", date(2026, 10, 20), 0.1),
+            ], TODAY)
+        (message, _, _), = sentry["events"]
+        assert "GCTK" in message and "OLD" not in message
+        assert "OLD" in caplog.text  # 전체 목록은 로그에 있다
 
-    def test_Sentry가_실패해도_예외를_내지_않음(self, monkeypatch):
-        broken = type("Broken", (), {"new_scope": staticmethod(lambda: (_ for _ in ()).throw(RuntimeError("x")))})
+    def test_최근_분할이_없으면_이벤트를_보내지_않음(self, sentry):
+        collect_nasdaq.report_splits([_split("OLD", date(2026, 10, 20), 0.1)], TODAY)
+        collect_nasdaq.report_splits([], TODAY)
+        assert sentry["events"] == []
+
+    def test_breadcrumb를_비우고_flush하며_같은_집합은_같은_fingerprint(self, sentry):
+        splits = [_split("GCTK", date(2026, 10, 26), 0.5), _split("EHGO", date(2026, 10, 25), 0.2)]
+        collect_nasdaq.report_splits(splits, TODAY)
+        collect_nasdaq.report_splits(list(reversed(splits)), TODAY)
+        assert all(sc.breadcrumbs_cleared for sc in sentry["scopes"]) and sentry["flushed"] == 2
+        (_, _, fp1), (_, _, fp2) = sentry["events"]
+        assert fp1 == fp2 and fp1[0] == "nasdaq-split-detected"
+        collect_nasdaq.report_splits(splits[:1], TODAY)
+        assert sentry["events"][2][2] != fp1  # 집합이 다르면 새 이슈
+
+    def test_상세_표기_개수_제한(self, sentry):
+        many = [_split(f"T{i:02d}", date(2026, 10, 26), 0.5) for i in range(collect_nasdaq.SPLIT_ALERT_LIMIT + 4)]
+        collect_nasdaq.report_splits(many, TODAY)
+        assert sentry["events"][0][0].count("역분할") == collect_nasdaq.SPLIT_ALERT_LIMIT
+        assert "외 4건" in sentry["events"][0][0]
+
+    def test_Sentry_실패는_예외_없이_로그로_남김(self, monkeypatch, caplog):
+        broken = type("Broken", (), {"isolation_scope": staticmethod(lambda: (_ for _ in ()).throw(RuntimeError("x")))})
         monkeypatch.setitem(sys.modules, "sentry_sdk", broken)
-        collect_nasdaq.report_splits([{"ticker": "A", "date": date(2026, 10, 26), "ratio": 0.5}])
+        with caplog.at_level("WARNING", logger=collect_nasdaq.logger.name):
+            collect_nasdaq.report_splits([_split("GCTK", date(2026, 10, 26), 0.5)], TODAY)
+        assert "Sentry 전송 실패" in caplog.text

@@ -12,6 +12,7 @@ NASDAQ 가격 데이터 수집 배치.
 - 스케줄:      매일 07:30 KST (NYSE 장 마감 16:00 EST = KST 06:00 + 여유 1.5h)
 """
 
+import hashlib
 import io
 import logging
 import time
@@ -229,30 +230,58 @@ def extract_splits(df: pd.DataFrame, tickers: list[str]) -> list[dict]:
     return found
 
 
-def report_splits(splits: list[dict]) -> None:
+# 이 일수 안의 분할만 Sentry로 알린다. 수집 구간이 7일이라 같은 분할이 매일 다시 잡히는데,
+# 분할은 일어난 날의 수집에서 처음 잡히므로 최근 것만 알리면 대부분 한 번만 알림이 간다.
+SPLIT_ALERT_RECENT_DAYS = 2
+SPLIT_ALERT_LIMIT = 30  # 알림 한 건에 상세 표기할 분할 수 (전체는 로그에 남는다)
+
+
+def report_splits(splits: list[dict], today: date | None = None) -> None:
     """
-    수집 구간에서 감지한 분할을 분할마다 Sentry 경고 하나로 알린다.
+    수집 구간에서 감지한 분할을 로그에 모두 남기고, 최근 분할은 Sentry 경고 한 건으로 요약해 알린다.
 
     절벽 탐지는 종가 비율 0.35~3배 밖만 잡아서 1-for-2 같은 소규모 분할은 DB가
     오염돼도 알림이 없다(GCTK 2026-10-26). 분할 자체를 감지해 그 사각을 메운다.
-    수집 구간이 7일이라 같은 분할이 며칠 반복해서 잡히므로, 종목·분할일로 fingerprint를
-    고정해 Sentry에서 한 이슈로 묶는다 (첫 감지에만 새 이슈 알림).
+
+    2026-10-26 첫 실행에서 분할이 21건(7일 창)이라 분할마다 이벤트를 보내자 그 시간대에
+    Sentry가 이벤트를 거부했다(too_large:event 27건, 전송 실패 25건). 그래서 실행당 한 건으로
+    요약하고, 수집 중 쌓인 breadcrumb 없이 작게 보내며, 전달 결과를 로그로 남긴다.
     """
+    today = today or date.today()
     for s in splits:
+        logger.warning("[NASDAQ] 분할 감지 %s %s ratio=%g", s["ticker"], s["date"], s["ratio"])
+
+    recent = sorted(
+        (s for s in splits if (today - s["date"]).days <= SPLIT_ALERT_RECENT_DAYS),
+        key=lambda s: (s["date"], s["ticker"]), reverse=True,
+    )
+    if not recent:
+        return
+
+    def fmt(s: dict) -> str:
         kind = "역분할" if s["ratio"] < 1 else "정분할"
-        message = (
-            f"[NASDAQ] 분할 감지 {s['ticker']} {s['date']} {kind} (비율 {s['ratio']:g}, "
-            f"가격 x{1 / s['ratio']:.2f} 예상) — 수집 구간 경계에서 DB 가격이 불연속일 수 있다. "
-            f"절벽 탐지는 0.35~3배 밖만 잡으므로 소규모 분할은 직접 확인 필요"
-        )
-        logger.warning(message)
-        try:
-            import sentry_sdk
-            with sentry_sdk.new_scope() as scope:
-                scope.fingerprint = ["nasdaq-split-detected", s["ticker"], str(s["date"])]
-                sentry_sdk.capture_message(message, level="warning")
-        except Exception:
-            pass
+        return f"{s['ticker']} {s['date']:%m-%d} {kind} {s['ratio']:g}(x{1 / s['ratio']:.2f})"
+
+    shown = ", ".join(fmt(s) for s in recent[:SPLIT_ALERT_LIMIT])
+    rest = len(recent) - SPLIT_ALERT_LIMIT
+    message = (
+        f"[NASDAQ] 분할 감지 {len(recent)}건(최근 {SPLIT_ALERT_RECENT_DAYS}일): {shown}"
+        + (f" 외 {rest}건" if rest > 0 else "")
+        + " | 수집 구간 경계에서 DB 가격이 불연속일 수 있다. 절벽 탐지는 0.35~3배 밖만 잡으므로 "
+        "소규모 분할은 직접 확인 필요"
+    )
+    # 같은 분할 집합이면 같은 이슈로 묶는다 (구간이 겹쳐 연속 실행에서 반복될 때)
+    digest = hashlib.md5(",".join(sorted(f"{s['ticker']}:{s['date']}" for s in recent)).encode()).hexdigest()[:12]
+    try:
+        import sentry_sdk
+        with sentry_sdk.isolation_scope() as scope:
+            scope.clear_breadcrumbs()
+            scope.fingerprint = ["nasdaq-split-detected", digest]
+            event_id = sentry_sdk.capture_message(message, level="warning")
+        sentry_sdk.flush(timeout=5)
+        logger.info("분할 감지 Sentry 전송: %d건, event_id=%s", len(recent), event_id)
+    except Exception:
+        logger.warning("분할 감지 Sentry 전송 실패", exc_info=True)
 
 
 def run_nasdaq_collection(target_date: date | None = None) -> date:
@@ -320,7 +349,7 @@ def run_nasdaq_collection(target_date: date | None = None) -> date:
             logger.info("NASDAQ 중간 저장: %d건", len(all_records))
             all_records.clear()
 
-    report_splits(detected_splits)
+    report_splits(detected_splits, today)
 
     # QQQ 지수 수집 (NASDAQ 대용 지수)
     index_records: list[dict] = []
