@@ -8,7 +8,7 @@ import { routeToDeepLink, type Route } from './routes'
  * 그 응답은 immutable 1년 캐시라, 카드 디자인이나 렌더링을 고치면 CARD_VERSION을 올려
  * 새 URL을 만든다(서버는 v를 읽지 않는다 — 캐시 키 역할만).
  */
-export const CARD_VERSION = 1
+export const CARD_VERSION = 2
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? ''
 
@@ -19,7 +19,7 @@ export function ogImageUrl(route: Route, asOf: string): string | undefined {
   let query: URLSearchParams
   if (route.name === 'stock') {
     path = `/api/og/toss/stock/${route.market}/${encodeURIComponent(route.ticker)}.png`
-    query = new URLSearchParams({ date: asOf })
+    query = new URLSearchParams({ chart: route.chart, date: asOf })
   } else if (route.name === 'rankings') {
     path = `/api/og/toss/rankings/${route.market}.png`
     query = new URLSearchParams({ period: route.period, cap: route.cap, order: route.order, date: asOf })

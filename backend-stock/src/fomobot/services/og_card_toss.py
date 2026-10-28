@@ -44,6 +44,10 @@ PERIOD_LABEL = {"1d": "전일", "7d": "7일", "30d": "30일", "90d": "90일", "3
 CAP_LABEL = {"all": "전체", "small": "소형", "mid": "중형", "large": "대형"}
 ORDER_LABEL = {"desc": "상승률", "asc": "하락률"}
 
+# frontend toss/routes.ts CHART_PERIODS / DEFAULT_CHART — 상세 차트 구간 탭(1일 제외).
+CHART_PERIODS = {"7d": 7, "30d": 30, "90d": 90, "365d": 365, "1825d": 1825}
+DEFAULT_CHART = "365d"
+
 NAME_SIZES = (64, 56, 48)
 PRICE_SIZES = (96, 80, 64)
 
@@ -58,7 +62,7 @@ FONT_TITLE = _font("ExtraBold", 72)
 FONT_COND = _font("Bold", 30)
 FONT_FOOTER = _font("Regular", 24)
 
-# 종목 카드 오른쪽 1년 차트 영역
+# 종목 카드 오른쪽 차트 영역
 CHART_BOX = (700, 300, WIDTH - PAD, 470)
 PRICE_MAX_WIDTH = CHART_BOX[0] - PAD - 40
 
@@ -116,8 +120,8 @@ def _footer(draw: ImageDraw.ImageDraw, text: str) -> None:
     draw.text((PAD, 562), text, font=FONT_FOOTER, fill=TEXT_DIM, anchor="ls")
 
 
-def _chart(draw: ImageDraw.ImageDraw, points: list[tuple[date, float]]) -> None:
-    """최근 1년 종가 선. 축·날짜 라벨 없이 모양만 — 특정 날짜 가격을 짚지 않는다."""
+def _chart(draw: ImageDraw.ImageDraw, points: list[tuple[date, float]], chart: str) -> None:
+    """최근 구간 종가 선. 축·날짜 라벨 없이 모양만 — 특정 날짜 가격을 짚지 않는다."""
     if len(points) < 2:
         return
     x0, y0, x1, y1 = CHART_BOX
@@ -127,16 +131,16 @@ def _chart(draw: ImageDraw.ImageDraw, points: list[tuple[date, float]]) -> None:
     color = change_color((prices[-1] / prices[0] - 1) * 100) if prices[0] > 0 else TEXT_MUTED
     step = (x1 - x0) / (len(prices) - 1)
     xy = [(x0 + i * step, y1 - (p - lo) / span * (y1 - y0)) for i, p in enumerate(prices)]
-    draw.text((x0, y0 - 18), "최근 1년", font=FONT_LABEL, fill=TEXT_DIM, anchor="ls")
+    draw.text((x0, y0 - 18), f"최근 {PERIOD_LABEL[chart]}", font=FONT_LABEL, fill=TEXT_DIM, anchor="ls")
     draw.line(xy, fill=color, width=4, joint="curve")
 
 
-def render_toss_stock_card(detail: StockDetail) -> bytes:
+def render_toss_stock_card(detail: StockDetail, chart: str = DEFAULT_CHART) -> bytes:
     with _render_lock:
-        return _render_stock(detail)
+        return _render_stock(detail, chart)
 
 
-def _render_stock(d: StockDetail) -> bytes:
+def _render_stock(d: StockDetail, chart: str) -> bytes:
     if d.status != "ok" or d.close is None or d.as_of is None:
         raise ValueError("시세가 없는 종목은 카드를 만들 수 없습니다.")
 
@@ -166,8 +170,8 @@ def _render_stock(d: StockDetail) -> bytes:
             fmt_pct(day.change_pct), font=FONT_CHANGE, fill=change_color(day.change_pct), anchor="ls",
         )
 
-    year_start = d.as_of - timedelta(days=365)
-    _chart(draw, [r for r in d.series if r[0] >= year_start])
+    chart_start = d.as_of - timedelta(days=CHART_PERIODS[chart])
+    _chart(draw, [r for r in d.series if r[0] >= chart_start], chart)
 
     _footer(draw, f"{d.as_of.isoformat()} 종가 기준 · {DISCLAIMER}")
 

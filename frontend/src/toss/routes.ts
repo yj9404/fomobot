@@ -9,17 +9,29 @@ import type { CapTier, Market, OrderDir, Period } from '../types'
  * 돌려주는지 문서에 없어서 — hash는 호스팅 동작과 무관하다.
  *
  * 공유 딥링크(intoss://fomobot/stock?...)는 path + query로 같은 화면을 가리킨다.
+ * 상세의 차트 구간(chart)도 경로에 둔다 — 공유받은 사람이 보낸 사람과 같은 구간을 보고,
+ * 새로고침·뒤로가기 후에도 고른 구간이 유지되도록.
  */
 
 export type RankingsRoute = { name: 'rankings'; market: Market; period: Period; cap: CapTier; order: OrderDir }
+export type StockRoute = { name: 'stock'; market: Market; ticker: string; chart: Period }
 export type Route =
   | RankingsRoute
   | { name: 'search'; q: string }
-  | { name: 'stock'; market: Market; ticker: string }
+  | StockRoute
 
 export const APP_NAME = 'fomobot'
 
 export const DEFAULT_RANKINGS: RankingsRoute = { name: 'rankings', market: 'kospi', period: '30d', cap: 'all', order: 'desc' }
+
+// 상세 차트 구간 탭. 1일은 선이 성립하지 않아 뺀다.
+export const CHART_PERIODS = PERIODS.filter((p) => p.value !== '1d')
+// chart가 없는 링크(이 값이 생기기 전에 공유된 것 포함)는 1년으로 연다.
+export const DEFAULT_CHART: Period = '365d'
+
+export function stockRoute(market: Market, ticker: string): StockRoute {
+  return { name: 'stock', market, ticker, chart: DEFAULT_CHART }
+}
 
 const MARKETS: readonly Market[] = ['kospi', 'nasdaq']
 const ORDERS: readonly OrderDir[] = ['desc', 'asc']
@@ -38,7 +50,10 @@ export function parseRoute(path: string, params: URLSearchParams): Route {
     const market = params.get('market')
     const ticker = params.get('ticker')
     if (MARKETS.includes(market as Market) && ticker && TICKER_RE.test(ticker)) {
-      return { name: 'stock', market: market as Market, ticker: ticker.toUpperCase() }
+      return {
+        name: 'stock', market: market as Market, ticker: ticker.toUpperCase(),
+        chart: pick(params.get('chart'), CHART_PERIODS.map((p) => p.value as Period), DEFAULT_CHART),
+      }
     }
     return DEFAULT_RANKINGS
   }
@@ -59,7 +74,7 @@ export function routeTarget(route: Route): { path: string; query: string } {
     case 'search':
       return { path: '/search', query: route.q ? new URLSearchParams({ q: route.q }).toString() : '' }
     case 'stock':
-      return { path: '/stock', query: new URLSearchParams({ market: route.market, ticker: route.ticker }).toString() }
+      return { path: '/stock', query: new URLSearchParams({ market: route.market, ticker: route.ticker, chart: route.chart }).toString() }
   }
 }
 

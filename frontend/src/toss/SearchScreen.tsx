@@ -6,6 +6,7 @@ import { useStockSearch } from '../hooks/useStockSearch'
 import { TOSS_UI } from '../i18n/strings.toss'
 import type { Market } from '../types'
 import { useRouter } from './router'
+import { stockRoute } from './routes'
 import { rankSearchResults } from './searchSort'
 
 /**
@@ -78,7 +79,7 @@ export function SearchScreen({ initialQ }: { initialQ: string }) {
         <div
           key={`${r.market}:${r.ticker}`}
           role="button"
-          onClick={() => push({ name: 'stock', market: r.market, ticker: r.ticker })}
+          onClick={() => push(stockRoute(r.market, r.ticker))}
           style={{
             display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px', cursor: 'pointer',
             borderBottom: `1px solid ${C.borderFaint}`, fontFamily: FONT.sans,

@@ -7,25 +7,22 @@ import { TossBanner } from '../components/TossBanner'
 import { ErrorState } from '../components/ErrorState'
 import { TOSS_STR, TOSS_UI } from '../i18n/strings.toss'
 import { PERIODS } from '../types'
-import type { Market, Period } from '../types'
+import type { Period } from '../types'
 import { useStockDetail, type StockDetail } from './api'
 import { fmtPct, listedWithin, sliceSeries } from './detail'
 import { PriceChart } from './PriceChart'
 import { ShareAction } from './ShareAction'
 import { useRouter } from './router'
-import { DEFAULT_RANKINGS } from './routes'
-
-// 차트 구간 탭. 1일은 선이 성립하지 않아 뺀다.
-const CHART_PERIODS = PERIODS.filter((p) => p.value !== '1d')
-const DEFAULT_CHART: Period = '365d'
+import { CHART_PERIODS, DEFAULT_RANKINGS, type StockRoute } from './routes'
 
 /**
  * 종목 상세. 종가, 차트, 기간별 등락률만 보여준다 — 매수 시점·투자금 계산 같은 표현은 두지 않는다.
  * 배너는 콘텐츠가 실제로 화면을 넘칠 때만 맨 아래에 붙인다(스크롤되는 화면에만, 한 개).
  */
-export function StockScreen({ market, ticker }: { market: Market; ticker: string }) {
+export function StockScreen({ route }: { route: StockRoute }) {
   const C = useC()
   const { depth, push } = useRouter()
+  const { market, ticker } = route
   const [retryKey, setRetryKey] = useState(0)
   const state = useStockDetail(market, ticker, retryKey)
 
@@ -51,7 +48,7 @@ export function StockScreen({ market, ticker }: { market: Market; ticker: string
       )}
       {state.status === 'error' && <ErrorState t={TOSS_STR} onRetry={() => setRetryKey((k) => k + 1)} />}
       {state.status === 'not_found' && <Notice title={TOSS_UI.notFoundTitle} sub={TOSS_UI.notFoundSub} />}
-      {state.status === 'ok' && <Detail d={state.data} footer={toRankings} />}
+      {state.status === 'ok' && <Detail d={state.data} route={route} footer={toRankings} />}
       {(state.status === 'error' || state.status === 'not_found') && toRankings}
     </div>
   )
@@ -68,9 +65,11 @@ function Notice({ title, sub, name }: { title: string; sub: string; name?: strin
   )
 }
 
-function Detail({ d, footer }: { d: StockDetail; footer: React.ReactNode }) {
+function Detail({ d, route, footer }: { d: StockDetail; route: StockRoute; footer: React.ReactNode }) {
   const C = useC()
-  const [chartPeriod, setChartPeriod] = useState<Period>(DEFAULT_CHART)
+  const { replace } = useRouter()
+  // 구간은 경로에 둔다(replace — 탭 전환마다 history가 쌓이지 않게). 공유 링크도 이 경로를 그대로 쓴다.
+  const chartPeriod = route.chart
   const [showBanner, setShowBanner] = useState(false)
 
   // 배너 없이 그린 콘텐츠가 이미 화면보다 길 때만 배너를 붙인다. 데이터가 그려진 직후 한 번만 잰다.
@@ -125,14 +124,14 @@ function Detail({ d, footer }: { d: StockDetail; footer: React.ReactNode }) {
       <PriceChart points={sliceSeries(d.series, asOf, chartDays)} market={d.market} />
       <div style={{ display: 'flex', gap: 6, padding: '12px 16px 4px' }}>
         {CHART_PERIODS.map((p) => (
-          <button key={p.value} onClick={() => setChartPeriod(p.value as Period)} style={chip(chartPeriod === p.value)}>
+          <button key={p.value} onClick={() => replace({ ...route, chart: p.value as Period })} style={chip(chartPeriod === p.value)}>
             {p.label.ko}
           </button>
         ))}
       </div>
 
       <div style={{ padding: '12px 16px 0' }}>
-        <ShareAction route={{ name: 'stock', market: d.market, ticker: d.ticker }} asOf={asOf} message={TOSS_UI.stockShareMessage(name)} />
+        <ShareAction route={{ ...route, market: d.market, ticker: d.ticker }} asOf={asOf} message={TOSS_UI.stockShareMessage(name)} />
       </div>
 
       {/* 기간별 등락률 */}

@@ -212,6 +212,22 @@ class TestTossStockCard:
         assert versioned.status_code == 200
         assert versioned.content == base.content
 
+    def test_차트_구간(self, client):
+        path = "/api/og/toss/stock/kospi/005930.png"
+        # chart가 생기기 전에 퍼진 URL(chart 없음)은 1년 카드와 같다.
+        base = client.get(path, params={"date": "2026-10-15"})
+        year = client.get(path, params={"date": "2026-10-15", "chart": "365d"})
+        week = client.get(path, params={"date": "2026-10-15", "chart": "7d"})
+        assert year.status_code == week.status_code == 200
+        assert year.content == base.content
+        assert week.content != year.content
+
+    @pytest.mark.parametrize("chart", ["1d", "2d", ""])
+    def test_잘못된_차트_구간은_400_no_store(self, client, chart):
+        r = client.get("/api/og/toss/stock/kospi/005930.png", params={"date": "2026-10-15", "chart": chart})
+        assert r.status_code == 400
+        assert r.headers["cache-control"] == "no-store"
+
     def test_과거_기준일과_nasdaq_거래정지_종목도_렌더링(self, client):
         assert self._get(client, "/api/og/toss/stock/kospi/005930.png", "2026-10-01").status_code == 200
         assert self._get(client, "/api/og/toss/stock/nasdaq/AAPL.png", "2026-10-14").status_code == 200

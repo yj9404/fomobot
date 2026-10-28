@@ -26,7 +26,7 @@ export default function TossApp() {
       }}>
         {route.name === 'rankings' && <RankingsScreen route={route} />}
         {route.name === 'search' && <SearchScreen key="search" initialQ={route.q} />}
-        {route.name === 'stock' && <StockScreen key={`${route.market}:${route.ticker}`} market={route.market} ticker={route.ticker} />}
+        {route.name === 'stock' && <StockScreen key={`${route.market}:${route.ticker}`} route={route} />}
       </div>
     </RouterProvider>
   )

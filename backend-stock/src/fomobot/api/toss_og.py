@@ -1,7 +1,7 @@
 """
 토스 미니앱 공유 카드 이미지 — Share.createLink의 ogImageUrl로 쓴다.
 
-  GET /api/og/toss/stock/{market}/{ticker}.png?date=YYYY-MM-DD
+  GET /api/og/toss/stock/{market}/{ticker}.png?chart=&date=YYYY-MM-DD
   GET /api/og/toss/rankings/{market}.png?period=&cap=&order=&date=YYYY-MM-DD
 
 웹 카드(/api/og, Worker /og/*)와 달리 Railway가 직접 응답한다. Worker는 웹 도메인에
@@ -11,6 +11,10 @@ URL 하나 = 내용 하나:
   date로 기준일을 고정하고 스냅하지 않는다(거래일·스냅샷일이 아니면 404).
   그래서 성공 응답은 immutable로 캐시하고, 오류는 no-store — 다음 거래일이면
   정상이 되는 요청(미래 date)이나 정정이 끝난 종목이 오류 상태로 굳지 않게 한다.
+
+차트 구간(chart):
+  상세 화면에서 고른 구간 그대로 카드 차트를 그린다. 빠지면 1년 — chart가 생기기 전에
+  퍼진 카드 URL(?date=&v=1)이 같은 내용을 유지한다.
 
 카드 버전(v):
   immutable 캐시라 카드 디자인이나 렌더링 버그를 고쳐도 이미 퍼진 URL은 갱신되지 않는다.
@@ -29,6 +33,8 @@ from fomobot.db.crud import get_nearest_snapshot_date
 from fomobot.db.session import get_async_session
 from fomobot.services.og_card_toss import (
     CAP_LABEL,
+    CHART_PERIODS,
+    DEFAULT_CHART,
     ORDER_LABEL,
     PERIOD_LABEL,
     render_toss_rankings_card,
@@ -75,11 +81,14 @@ def _png(content: bytes) -> Response:
 async def toss_stock_card_endpoint(
     market: str,
     ticker: str,
+    chart: str = Query(DEFAULT_CHART, description="7d|30d|90d|365d|1825d — 카드 차트 구간"),
     # 필수지만 Optional로 받아 직접 검증한다 — FastAPI 기본 422 대신 no-store가 붙은 400을 내기 위함.
     date_raw: str | None = Query(None, alias="date", description="기준 거래일 (YYYY-MM-DD)"),
     session: AsyncSession = Depends(get_async_session),
 ):
     _check_market(market)
+    if chart not in CHART_PERIODS:
+        raise _error(400, "chart 값을 확인하세요.")
     as_of = _parse_date(date_raw)
     try:
         detail = await build_stock_detail(session, market, ticker, as_of=as_of)
@@ -89,7 +98,7 @@ async def toss_stock_card_endpoint(
         raise _error(404, "데이터 정정 중인 종목이라 공유 카드를 만들 수 없습니다.")
     if detail.status != "ok":
         raise _error(404, "기준일에 시세가 없는 종목입니다.")
-    return _png(await run_in_threadpool(render_toss_stock_card, detail))
+    return _png(await run_in_threadpool(render_toss_stock_card, detail, chart))
 
 
 @router.get(

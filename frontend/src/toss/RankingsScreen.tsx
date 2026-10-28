@@ -14,7 +14,7 @@ import { PERIODS } from '../types'
 import { FONT } from '../tokens'
 import type { Market } from '../types'
 import { useRestoreScroll, useRouter } from './router'
-import { DEFAULT_RANKINGS, type RankingsRoute } from './routes'
+import { DEFAULT_RANKINGS, stockRoute, type RankingsRoute } from './routes'
 import { ShareAction } from './ShareAction'
 
 const BANNER_AFTER_INDEX = 4 // 5번째 행 아래
@@ -74,7 +74,7 @@ export function RankingsScreen({ route }: { route: RankingsRoute }) {
           )}
           {rankings.map((item, i) => (
             <Fragment key={item.ticker}>
-              <RankingRow item={item} market={market} t={t} onClick={() => push({ name: 'stock', market, ticker: item.ticker })} />
+              <RankingRow item={item} market={market} t={t} onClick={() => push(stockRoute(market, item.ticker))} />
               {/* 광고는 한 화면에 한 개만. 목록 중간(5위 아래)에 두고, 이후 행이 더 있어 스크롤되는 경우에만 넣는다. */}
               {i === BANNER_AFTER_INDEX && rankings.length > BANNER_AFTER_INDEX + 1 && <TossBanner />}
             </Fragment>
