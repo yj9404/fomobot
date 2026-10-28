@@ -22,6 +22,9 @@ from fomobot.services.naver_news import filter_relevant_articles, search_news
 
 logger = logging.getLogger(__name__)
 
+# 종목당 저장 건수. 토스판이 최대 5건을 보여준다(웹 엔드포인트는 응답에서 3건으로 자른다).
+STOCK_NEWS_STORE_LIMIT = 5
+
 
 def collect_kospi_news() -> int:
     """
@@ -62,6 +65,7 @@ def collect_kospi_news() -> int:
                     target_name=name,
                     window_start=target["window_start"],
                     window_end=target["window_end"],
+                    limit=STOCK_NEWS_STORE_LIMIT,
                 )
                 replace_stock_news_sync(session, ticker, articles)
                 if articles:
