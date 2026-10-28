@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useC } from '../ThemeContext'
 import { FONT } from '../tokens'
 import { TOSS_UI } from '../i18n/strings.toss'
 import { shareRoute } from './share'
+import { useToast } from './Toast'
 import type { Route } from './routes'
 
 interface Props {
@@ -16,22 +17,15 @@ interface Props {
 export function ShareAction({ route, asOf, message, compact = false }: Props) {
   const C = useC()
   const [busy, setBusy] = useState(false)
-  const [failed, setFailed] = useState(false)
-
-  useEffect(() => {
-    if (!failed) return
-    const id = setTimeout(() => setFailed(false), 3000)
-    return () => clearTimeout(id)
-  }, [failed])
+  const [toast, showToast] = useToast()
 
   const onClick = () => {
     if (busy) return
     setBusy(true)
-    setFailed(false)
     shareRoute(route, asOf, message)
       .catch((e: unknown) => {
         console.error('[ShareAction] 공유 실패', e)
-        setFailed(true)
+        showToast(TOSS_UI.shareFailed)
       })
       .finally(() => setBusy(false))
   }
@@ -51,15 +45,7 @@ export function ShareAction({ route, asOf, message, compact = false }: Props) {
       <button onClick={onClick} disabled={busy} style={{ ...button, fontFamily: FONT.sans, cursor: 'pointer', opacity: busy ? 0.6 : 1 }}>
         {TOSS_UI.share}
       </button>
-      {failed && (
-        <div role="status" style={{
-          position: 'fixed', left: 16, right: 16, bottom: 'calc(16px + env(safe-area-inset-bottom))', zIndex: 20,
-          padding: '12px 16px', borderRadius: 12, background: 'rgba(17,24,39,0.92)', color: '#fff',
-          fontSize: 13.5, fontFamily: FONT.sans, textAlign: 'center',
-        }}>
-          {TOSS_UI.shareFailed}
-        </div>
-      )}
+      {toast}
     </>
   )
 }

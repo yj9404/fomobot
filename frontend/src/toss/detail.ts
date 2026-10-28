@@ -37,3 +37,14 @@ export function listedWithin(d: StockDetail, period: Period): string | null {
   if (!ch || !first || !d.as_of) return null
   return ch.start_date === first && first > isoMinusDays(d.as_of, days) ? first : null
 }
+
+/** 지금의 한국 날짜(YYYY-MM-DD). 기사 발행일이 한국 날짜라 기기 시간대와 무관하게 KST로 센다. */
+export function todayKst(now: number = Date.now()): string {
+  return new Date(now + 9 * 3600_000).toISOString().slice(0, 10)
+}
+
+/** from부터 to까지 달력 일수. from이 더 늦으면 0. */
+export function daysSince(from: string, to: string): number {
+  const ms = Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)
+  return Math.max(0, Math.round(ms / 86_400_000))
+}

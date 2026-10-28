@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { fmtPct, isoMinusDays, listedWithin, sliceSeries } from './detail'
+import { daysSince, fmtPct, isoMinusDays, listedWithin, sliceSeries, todayKst } from './detail'
 import type { StockDetail } from './api'
 
 describe('isoMinusDays', () => {
@@ -54,5 +54,24 @@ describe('fmtPct', () => {
   it('부호와 소수 첫째 자리', () => {
     expect(fmtPct(5)).toBe('+5.0%')
     expect(fmtPct(-1.16)).toBe('-1.2%')
+  })
+})
+
+describe('todayKst', () => {
+  it('UTC 15시부터 한국 날짜가 넘어간다', () => {
+    expect(todayKst(Date.parse('2026-10-27T14:59:00Z'))).toBe('2026-10-27')
+    expect(todayKst(Date.parse('2026-10-27T15:00:00Z'))).toBe('2026-10-28')
+  })
+})
+
+describe('daysSince', () => {
+  it('달력 일수를 센다(월말 포함)', () => {
+    expect(daysSince('2026-10-28', '2026-10-28')).toBe(0)
+    expect(daysSince('2026-10-27', '2026-10-28')).toBe(1)
+    expect(daysSince('2026-09-30', '2026-10-02')).toBe(2)
+  })
+
+  it('미래 날짜는 0', () => {
+    expect(daysSince('2026-10-29', '2026-10-28')).toBe(0)
   })
 })

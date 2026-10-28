@@ -8,15 +8,16 @@ import { ErrorState } from '../components/ErrorState'
 import { TOSS_STR, TOSS_UI } from '../i18n/strings.toss'
 import { PERIODS } from '../types'
 import type { Period } from '../types'
-import { useStockDetail, type StockDetail } from './api'
+import { useStockDetail, useStockNews, type StockDetail } from './api'
 import { fmtPct, listedWithin, sliceSeries } from './detail'
+import { NewsList } from './NewsList'
 import { PriceChart } from './PriceChart'
 import { ShareAction } from './ShareAction'
 import { useRouter } from './router'
 import { CHART_PERIODS, DEFAULT_RANKINGS, type StockRoute } from './routes'
 
 /**
- * 종목 상세. 종가, 차트, 기간별 등락률만 보여준다 — 매수 시점·투자금 계산 같은 표현은 두지 않는다.
+ * 종목 상세. 종가, 차트, 기간별 등락률, 관련 뉴스만 보여준다 — 매수 시점·투자금 계산 같은 표현은 두지 않는다.
  * 배너는 콘텐츠가 실제로 화면을 넘칠 때만 맨 아래에 붙인다(스크롤되는 화면에만, 한 개).
  */
 export function StockScreen({ route }: { route: StockRoute }) {
@@ -71,6 +72,8 @@ function Detail({ d, route, footer }: { d: StockDetail; route: StockRoute; foote
   // 구간은 경로에 둔다(replace — 탭 전환마다 history가 쌓이지 않게). 공유 링크도 이 경로를 그대로 쓴다.
   const chartPeriod = route.chart
   const [showBanner, setShowBanner] = useState(false)
+  // 정정 중·시세 없음 종목은 뉴스도 숨긴다. 뉴스는 KOSPI 랭킹 종목만 수집되므로 NASDAQ은 부르지 않는다.
+  const news = useStockNews(d.status === 'ok' && d.market === 'kospi' ? d.ticker : null)
 
   // 배너 없이 그린 콘텐츠가 이미 화면보다 길 때만 배너를 붙인다. 데이터가 그려진 직후 한 번만 잰다.
   useLayoutEffect(() => {
@@ -151,6 +154,8 @@ function Detail({ d, route, footer }: { d: StockDetail; route: StockRoute; foote
           </div>
         )
       })}
+
+      <NewsList articles={news} />
 
       <div style={{ padding: '14px 16px 16px', fontSize: 11.5, color: C.textDim, lineHeight: 1.5 }}>{TOSS_STR.disclaimer}</div>
 

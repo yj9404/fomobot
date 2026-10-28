@@ -49,3 +49,31 @@ export function useStockDetail(market: Market, ticker: string, retryKey: number)
 
   return state
 }
+
+/** backend GET /api/stock/news/{ticker}/toss (schemas/news.py TossNewsArticle) */
+export interface TossNewsArticle {
+  title: string
+  source: string
+  url: string
+  published_at: string
+}
+
+/**
+ * 종목 뉴스. 불러오는 중·실패·0건을 구분하지 않고 빈 배열을 준다 — 화면은 뉴스가 있을 때만 섹션을 그린다.
+ * ticker가 null이면 요청하지 않는다(뉴스는 KOSPI 랭킹 종목만 수집되므로 그 밖에는 부르지 않는다).
+ */
+export function useStockNews(ticker: string | null): TossNewsArticle[] {
+  const [articles, setArticles] = useState<TossNewsArticle[]>([])
+
+  useEffect(() => {
+    setArticles([])
+    if (!ticker) return
+    let cancelled = false
+    apiFetch<{ articles: TossNewsArticle[] }>(`/api/stock/news/${encodeURIComponent(ticker)}/toss`, {})
+      .then((r) => { if (!cancelled) setArticles(r.articles) })
+      .catch((err: unknown) => console.error('[useStockNews]', err))
+    return () => { cancelled = true }
+  }, [ticker])
+
+  return articles
+}
