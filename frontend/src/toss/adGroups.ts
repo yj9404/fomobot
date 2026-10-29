@@ -8,10 +8,8 @@
  */
 const LIVE = {
   banner: 'ait.v2.live.d7d803200c524f97',
-  // TODO: 콘솔에서 전면형 그룹(fomobot_detail_interstitial)을 만들고 발급된 ID를 넣는다.
-  detailInterstitial: '',
-  // TODO: 콘솔에서 보상형 그룹(fomobot_adfree_reward)을 만들고 발급된 ID를 넣는다.
-  adFreeReward: '',
+  detailInterstitial: 'ait.v2.live.64b380ae405d417a',
+  adFreeReward: 'ait.v2.live.86fdde923b364e94',
 }
 
 const TEST: typeof LIVE = {
