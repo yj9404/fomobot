@@ -8,6 +8,7 @@ import type { Market } from '../types'
 import { useRouter } from './router'
 import { stockRoute } from './routes'
 import { rankSearchResults } from './searchSort'
+import { preloadDetailInterstitial, withDetailInterstitial } from './ads'
 
 /**
  * 종목 검색. KOSPI·NASDAQ을 함께 찾아 시장 배지와 함께 보여준다.
@@ -24,6 +25,8 @@ export function SearchScreen({ initialQ }: { initialQ: string }) {
   useEffect(() => {
     replace({ name: 'search', q })
   }, [q, replace])
+  // 검색 결과에서도 상세로 가므로 순위 화면과 같이 미리 로드한다.
+  useEffect(preloadDetailInterstitial, [])
 
   const results = rankSearchResults([
     ...kospi.results.map((r) => ({ ...r, market: 'kospi' as Market })),
@@ -79,7 +82,7 @@ export function SearchScreen({ initialQ }: { initialQ: string }) {
         <div
           key={`${r.market}:${r.ticker}`}
           role="button"
-          onClick={() => push(stockRoute(r.market, r.ticker))}
+          onClick={() => withDetailInterstitial(() => push(stockRoute(r.market, r.ticker)))}
           style={{
             display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px', cursor: 'pointer',
             borderBottom: `1px solid ${C.borderFaint}`, fontFamily: FONT.sans,

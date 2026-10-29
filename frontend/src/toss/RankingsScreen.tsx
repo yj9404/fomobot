@@ -1,4 +1,4 @@
-import { Fragment, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import { TossHeader } from '../components/TossHeader'
 import { RankingRow } from '../components/RankingRow'
 import { TossBanner } from '../components/TossBanner'
@@ -16,6 +16,8 @@ import type { Market } from '../types'
 import { useRestoreScroll, useRouter } from './router'
 import { DEFAULT_RANKINGS, stockRoute, type RankingsRoute } from './routes'
 import { ShareAction } from './ShareAction'
+import { AdFreePass } from './AdFreePass'
+import { preloadDetailInterstitial, withDetailInterstitial } from './ads'
 
 const BANNER_AFTER_INDEX = 4 // 5번째 행 아래
 
@@ -33,6 +35,7 @@ export function RankingsScreen({ route }: { route: RankingsRoute }) {
   const periodIdx = Math.max(0, PERIODS.findIndex((p) => p.value === period))
   const { status, rankings, asOf } = useRankings(market, period, cap, retryKey, order)
   useRestoreScroll(status === 'ok')
+  useEffect(preloadDetailInterstitial, [])
 
   const update = (patch: Partial<RankingsRoute>) => replace({ ...route, ...patch })
 
@@ -51,6 +54,7 @@ export function RankingsScreen({ route }: { route: RankingsRoute }) {
         onOrder={(o) => update({ order: o })}
       />
       <BreadthWidget market={market} t={t} upColor={KR_UP} downColor={KR_DOWN} />
+      <AdFreePass />
       {status === 'loading' && <SkeletonList t={t} />}
       {status === 'empty' && <EmptyState t={t} onRetry={() => update({ period: DEFAULT_RANKINGS.period, cap: 'all' })} />}
       {status === 'error' && <ErrorState t={t} onRetry={() => setRetryKey((k) => k + 1)} />}
@@ -74,7 +78,7 @@ export function RankingsScreen({ route }: { route: RankingsRoute }) {
           )}
           {rankings.map((item, i) => (
             <Fragment key={item.ticker}>
-              <RankingRow item={item} market={market} t={t} onClick={() => push(stockRoute(market, item.ticker))} />
+              <RankingRow item={item} market={market} t={t} onClick={() => withDetailInterstitial(() => push(stockRoute(market, item.ticker)))} />
               {/* 광고는 한 화면에 한 개만. 목록 중간(5위 아래)에 두고, 이후 행이 더 있어 스크롤되는 경우에만 넣는다. */}
               {i === BANNER_AFTER_INDEX && rankings.length > BANNER_AFTER_INDEX + 1 && <TossBanner />}
             </Fragment>
