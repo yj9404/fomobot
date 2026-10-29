@@ -45,7 +45,7 @@ function initMarket(): Market {
 function initPeriodIdx(): number {
   const v = new URLSearchParams(window.location.search).get('period')
   const idx = PERIODS.findIndex((p) => p.value === v)
-  return idx >= 0 ? idx : 2 // default: 30d
+  return idx >= 0 ? idx : 0 // default: 1d
 }
 
 export default function App() {

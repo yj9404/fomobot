@@ -22,7 +22,7 @@ export type Route =
 
 export const APP_NAME = 'fomobot'
 
-export const DEFAULT_RANKINGS: RankingsRoute = { name: 'rankings', market: 'kospi', period: '30d', cap: 'all', order: 'desc' }
+export const DEFAULT_RANKINGS: RankingsRoute = { name: 'rankings', market: 'kospi', period: '1d', cap: 'all', order: 'desc' }
 
 // 상세 차트 구간 탭. 1일은 선이 성립하지 않아 뺀다.
 export const CHART_PERIODS = PERIODS.filter((p) => p.value !== '1d')
